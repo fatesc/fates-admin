@@ -1371,6 +1371,144 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
     end
 end)
 
+AddCommand("reach", {"swordreach"}, "reach\nchanges handle size of your tool", {0,1}, function(Caller, Args)
+	local Amount = Args[1] or 2
+	local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+	Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
+    Tool.Handle.Massless = true;
+end)
+
+AddCommand("swordaura", {"saura", "sora"}, "SWORD MF KILL AURA (but better)", {0,1}, function(Caller, Args, Tbl)
+    if sdistance ~= nil then
+        sdistance = Args[1] or 10
+    end
+    sdistance = Args[1] or 10
+
+    local current = {}
+    local function deactivate(tool)
+        if current[tool] then
+			pcall(function()
+            	current[tool]:Disconnect()
+			end)
+            current[tool] = nil
+        end
+    end
+    
+    local function activate(tool)
+        deactivate(tool)
+    
+        current[tool] = RunService.Stepped:Connect(function()
+            if tool and current[tool] and tool:FindFirstChild('Handle') then
+                local handle = tool.Handle
+                for _,v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('Humanoid') and v.Character.Humanoid.Health > 0 and v.Character:FindFirstChild('HumanoidRootPart') and (v.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= distance then
+                        tool:Activate()
+                        for _,v in pairs(v.Character:GetChildren()) do
+                            if v:IsA('BasePart') then
+                                firetouchinterest(handle, v, 1)
+                                firetouchinterest(handle, v, 0)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+    local function onChar(char)
+        local function onChild(child)
+            if child:IsA('Tool') and child:FindFirstChild('Handle') then
+                activate(child)
+            end
+        end
+        local function onChildRemoving(child)
+            if current[child] then
+                deactivate(child)
+            end
+        end
+		for _,v in pairs(char:GetChildren()) do
+			onChild(v)
+		end
+        char.ChildAdded:Connect(onChild)
+        char.ChildRemoved:Connect(onChildRemoving)
+    end
+    
+    if LocalPlayer.Character then
+        onChar(LocalPlayer.Character)
+    end
+    LocalPlayer.CharacterAdded:Connect(onChar)
+end)
+
+AddCommand("reach", {"swordreach"}, "reach\nchanges handle size of your tool", {}, function(Caller, Args)
+    local Amount = Args[1] or 2
+    local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    if Tool and Tool:FindFirstChild('Handle') then
+        Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
+        Tool.Handle.Massless = true;
+    end
+end)
+
+AddCommand("swordaura", {"saura", "sora"}, "sword kill aura", {}, function(Caller, Args, Tbl)
+    local stop = false
+    if sdistance then stop = true end
+    sdistance = tonumber(Args[1]) or 10
+    print(sdistance, typeof(sdistance))
+
+    if stop then return end
+
+    local current = {}
+    local function deactivate(tool)
+        if current[tool] then
+            pcall(function()
+                current[tool]:Disconnect()
+            end)
+            current[tool] = nil
+        end
+    end
+
+    local function activate(tool)
+        deactivate(tool)
+
+        current[tool] = RunService.Stepped:Connect(function()
+            if tool and current[tool] and tool:FindFirstChild('Handle') then
+                local handle = tool.Handle
+                for _,v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('Humanoid') and v.Character.Humanoid.Health > 0 and v.Character:FindFirstChild('HumanoidRootPart') and (v.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= sdistance then
+                        tool:Activate()
+                        for _,v in pairs(v.Character:GetChildren()) do
+                            if v:IsA('BasePart') then
+                                firetouchinterest(handle, v, 0)
+                                firetouchinterest(handle, v, 1)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+    local function onChar(char)
+        local function onChild(child)
+            if child:IsA('Tool') and child:FindFirstChild('Handle') then
+                activate(child)
+            end
+        end
+        local function onChildRemoving(child)
+            if current[child] then
+                deactivate(child)
+            end
+        end
+        for _,v in pairs(char:GetChildren()) do
+            onChild(v)
+        end
+        char.ChildAdded:Connect(onChild)
+        char.ChildRemoved:Connect(onChildRemoving)
+    end
+
+    if LocalPlayer.Character then
+        onChar(LocalPlayer.Character)
+    end
+    LocalPlayer.CharacterAdded:Connect(onChar)
+end)
+
 AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, Tbl) 
     local Rand = function(len) return HttpService:GenerateGUID():sub(2, len):gsub("-", "") end
     local Hide = function(a, v)
@@ -1626,7 +1764,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
         Tbl[#Tbl + 1] = Esp
     end);
 
-    local PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
+    PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
@@ -1648,6 +1786,10 @@ AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
     local Esp = LoadCommand("esp").CmdExtra
     for i, v in next, Esp.Billboards do
         v:Destroy();
+    end
+    if PlayerAddedConnection then
+        PlayerAddedConnection:Disconnect()
+        PlayerAddedConnection = nil
     end
     return "esp disabled"
 end)
@@ -2355,7 +2497,7 @@ PlrChat = function(i, plr)
                     warn(Err);
                 end
             else
-                Utils.Notify(plr, "Error", ("coudln't find the command %s"):format(Command));
+                Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
             end
         end
     end)
@@ -2395,7 +2537,7 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
             warn(Err);
         end
     else
-        Utils.Notify(plr, "Error", ("coudln't find the command %s"):format(Command));
+        Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
     end
 end)
 

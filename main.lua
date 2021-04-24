@@ -1,4 +1,5 @@
-Debug = false -- change to true if you want to see errors (if there is any)
+---@diagnostic disable: undefined-field
+Debug = true
 
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
@@ -73,7 +74,7 @@ if (setreadonly) then
             local new = {}
             for i, v in next, tbl do
                 if (ret(i,v)) then
-                    table.insert(new, #new + 1, v);     
+                    table.insert(new, #new + 1, v);
                 end
             end
             return new
@@ -130,7 +131,7 @@ if (setreadonly) then
     table.flatMap = function(tbl, ret)
         if (type(tbl) == 'table') then
             local new = table.flat(table.map(tbl, ret));
-            return new           
+            return new
         end
     end
 
@@ -391,7 +392,7 @@ if (RobloxChatBarFrame) then
     PredictionClone.TextTransparency = 0.3
     PredictionClone.Name = "Predict"
     PredictionClone.Parent = RobloxChatBarFrame.Frame.BoxFrame.Frame
-    
+
     ChatBar = RobloxChatBarFrame.Frame.BoxFrame.Frame.ChatBar
 end
 
@@ -636,7 +637,7 @@ function Utils.SetAllTrans(Object)
         local IsImage = v:IsA("ImageLabel") or v:IsA("ImageButton")
         local IsScrollingFrame = v:IsA("ScrollingFrame")
 
-        if (not v:IsA("UIListLayout")) then	
+        if (not v:IsA("UIListLayout")) then
             v.BackgroundTransparency = 1
 
             if (IsText) then
@@ -693,22 +694,22 @@ function Utils.Notify(Caller, Title, Message, Time)
     if (not Caller or Caller == LocalPlayer) then
         local Notification = UI.Notification
         local NotificationBar = UI.NotificationBar
-    
+
         local Clone = Notification:Clone()
-    
+
         local function TweenDestroy()
             local Tween = Utils.TweenAllTrans(Clone, .25)
-    
+
             Tween.Completed:Wait()
             Clone:Destroy() -- tween out then destroy
         end
-    
+
         Clone.Message.Text = Message
         Clone.Title.Text = Title or "Notification"
         Utils.SetAllTrans(Clone)
         Utils.Click(Clone.Close, "TextColor3")
         Clone.Visible = true -- tween
-    
+
         if (Message:len() >= 35) then
             Clone.AutomaticSize = Enum.AutomaticSize.Y
             Clone.Message.AutomaticSize = Enum.AutomaticSize.Y
@@ -717,20 +718,20 @@ function Utils.Notify(Caller, Title, Message, Time)
             Clone.Message.TextYAlignment = Enum.TextYAlignment.Top
             Clone.DropShadow.AutomaticSize = Enum.AutomaticSize.Y
         end
-    
+
         Clone.Parent = NotificationBar
-    
+
         coroutine.wrap(function()
             local Tween = Utils.TweenAllTransToObject(Clone, .5, Notification)
-    
+
             Tween.Completed:Wait();
             wait(Time or 5);
-    
+
             if (Clone) then
                 TweenDestroy();
             end
         end)()
-    
+
         Connections["CloneClose" .. #Connections] = Clone.Close.MouseButton1Click:Connect(function()
             TweenDestroy()
         end)
@@ -764,7 +765,7 @@ function Utils.GetPlayerArgs(Arg)
                 return Name
             end
         end
-    end)()	
+    end)()
 end
 
 function Utils.ToolTip(Object, Message)
@@ -959,7 +960,7 @@ local AddCommand = function(name, aliases, description, options, func)
     return Success
 end
 
---- gets the function of the command 
+--- gets the function of the command
 ---@param name string
 local LoadCommand = function(name)
     local Command = rawget(CommandsTable, name);
@@ -1089,7 +1090,7 @@ AddCommand("jumppower", {"jp"}, "changes your jumpower to the second argument", 
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.JumpPower
     Humanoid.JumpPower = Args[1] or 50
-    return "your jumppower is now " .. Humanoid.JumpPower 
+    return "your jumppower is now " .. Humanoid.JumpPower
 end)
 
 AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument", {}, function(Caller, Args, Tbl)
@@ -1259,7 +1260,7 @@ AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller
         end
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
-    until not next(LoadCommand("loopkill").CmdExtra) or not GetPlayer(Args[1]) 
+    until not next(LoadCommand("loopkill").CmdExtra) or not GetPlayer(Args[1])
 end)
 
 AddCommand("unloopkill", {"unlkill"}, "unloopkills a user", {3,"1"}, function(Caller, Args)
@@ -1326,11 +1327,11 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                         Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
                         do break end
                     end
-    
+
                     if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
                         do break end
                     end
-    
+
                     local TargetRoot = GetRoot(v);
                     local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
                     if (not Tool) then
@@ -1348,7 +1349,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, Tool.Handle, 0);
                             firetouchinterest(TargetRoot, Tool.Handle, 1);
-                            CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));	
+                            CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
                         end
                     end
                 else
@@ -1540,7 +1541,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1}, function(Caller, A
     if (not Amount) then
         return "amount must be a number"
     end
-    
+
     GetCharacter().Humanoid:UnequipTools();
     local ToolAmount = #table.filter(LocalPlayer.Backpack:GetChildren(), function(i, v)
         return v:IsA("Tool");
@@ -1556,11 +1557,11 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1}, function(Caller, A
         wait(game.Players.RespawnTime - (Speed or .05)); --todo: add the amount of tools divided by 100 or something like that
         local OldPos = GetRoot().CFrame
         ReplaceHumanoid(Humanoid);
-        
+
         local Tools = table.filter(LocalPlayer.Backpack:GetChildren(), function(i, v)
             return v:IsA("Tool");
         end)
-        
+
         for i, v in next, Tools do
             v.CanBeDropped = true
             v.Parent = LocalPlayer.Character
@@ -1569,7 +1570,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1}, function(Caller, A
         end
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos;
-    
+
         for i, v in next, Duped do
             if (v.Handle) then
                 firetouchinterest(v.Handle, GetRoot(), 1);
@@ -1603,7 +1604,7 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
         v.Parent = Workspace
         firetouchinterest(Workspace:WaitForChild(v.Name).Handle, GetRoot(), 1);
         firetouchinterest(v.Handle, GetRoot(), 0);
-        Char:WaitForChild(v.Name).Parent = LocalPlayer.Backpack	
+        Char:WaitForChild(v.Name).Parent = LocalPlayer.Backpack
     end
     Utils.Notify(Caller, nil, "Tools are now saved");
     GetHumanoid().Died:Wait();
@@ -1843,7 +1844,7 @@ end)
 
 AddCommand("infinitejump", {"infjump"}, "infinite jump no cooldown", {3}, function(Caller, Args, Tbl)
     local InfJump = UserInputService.JumpRequest:Connect(function()
-        if (GetHumanoid()) then 
+        if (GetHumanoid()) then
             GetHumanoid():ChangeState(3);
         end
     end)
@@ -1942,7 +1943,7 @@ AddCommand("ping", {}, "shows you your ping", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local x = 0	
+    local x = 0
     local a = tick();
     local fpsget = function()
         x = (1 / (tick() - a));
@@ -2011,7 +2012,7 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
         local TargetPos = TargetRoot.Position
         local Stepped = RunService.Stepped:Connect(function(step)
             step = step - Workspace.DistributedGameTime
-        
+
             Root.CFrame = (TargetRoot.CFrame - (Vector3.new(0, 1e6, 0) * step)) + (TargetRoot.Velocity * (step * 30))
             Root.Velocity = Vector3.new(0, 1e6, 0)
         end)
@@ -2040,7 +2041,7 @@ AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
 end)
 
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)
-    local Target, Option = GetPlayer(Args[1]), Args[2] or "" 
+    local Target, Option = GetPlayer(Args[1]), Args[2] or ""
     local Backpack, Character = LocalPlayer.Backpack, GetCharacter();
     local Tool = Character:FindFirstChild("ClassicSword") or Backpack:FindFirstChild("ClassicSword") or Backpack:FindFirstChildOfClass("Tool") or Character:FindFirstChildOfClass("Tool")
     Tool.Parent = Character
@@ -2072,7 +2073,78 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
     end
 end)
 
-AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, Tbl) 
+AddCommand("reach", {"swordreach"}, "reach\nchanges handle size of your tool", {}, function(Caller, Args)
+    local Amount = Args[1] or 2
+    local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    if Tool and Tool:FindFirstChild('Handle') then
+        Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
+        Tool.Handle.Massless = true;
+    end
+end)
+
+AddCommand("swordaura", {"saura", "sora"}, "sword kill aura", {}, function(Caller, Args, Tbl)
+    local stop = false
+    if sdistance then stop = true end
+    sdistance = tonumber(Args[1]) or 10
+    print(sdistance, typeof(sdistance))
+
+    if stop then return end
+
+    local current = {}
+    local function deactivate(tool)
+        if current[tool] then
+            pcall(function()
+                current[tool]:Disconnect()
+            end)
+            current[tool] = nil
+        end
+    end
+
+    local function activate(tool)
+        deactivate(tool)
+
+        current[tool] = RunService.Stepped:Connect(function()
+            if tool and current[tool] and tool:FindFirstChild('Handle') then
+                local handle = tool.Handle
+                for _,v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('Humanoid') and v.Character.Humanoid.Health > 0 and v.Character:FindFirstChild('HumanoidRootPart') and (v.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= sdistance then
+                        tool:Activate()
+                        for _,v in pairs(v.Character:GetChildren()) do
+                            if v:IsA('BasePart') then
+                                firetouchinterest(handle, v, 0)
+                                firetouchinterest(handle, v, 1)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+    local function onChar(char)
+        local function onChild(child)
+            if child:IsA('Tool') and child:FindFirstChild('Handle') then
+                activate(child)
+            end
+        end
+        local function onChildRemoving(child)
+            if current[child] then
+                deactivate(child)
+            end
+        end
+        for _,v in pairs(char:GetChildren()) do
+            onChild(v)
+        end
+        char.ChildAdded:Connect(onChild)
+        char.ChildRemoved:Connect(onChildRemoving)
+    end
+
+    if LocalPlayer.Character then
+        onChar(LocalPlayer.Character)
+    end
+    LocalPlayer.CharacterAdded:Connect(onChar)
+end)
+
+AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, Tbl)
     local Rand = function(len) return HttpService:GenerateGUID():sub(2, len):gsub("-", "") end
     local Hide = function(a, v)
         if (v and v:IsA("TextLabel") or v:IsA("TextButton")) then
@@ -2084,7 +2156,7 @@ AddCommand("streamermode", {}, "changes names of everyone to something random", 
                 end
                 v.Text = NewName
             end
-        end	
+        end
     end
 
     table.forEach(game:GetDescendants(), Hide);
@@ -2093,7 +2165,7 @@ AddCommand("streamermode", {}, "changes names of everyone to something random", 
         Hide(nil, x);
     end)
     Tbl[#Tbl + 1] = Hide
-    
+
     return "streamer mode enabled"
 end)
 
@@ -2327,7 +2399,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
         Tbl[#Tbl + 1] = Esp
     end);
 
-    local PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
+    PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
@@ -2341,7 +2413,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
 
     AddConnection(PlayerAddedConnection);
     Tbl[#Tbl + 1] = PlayerAddedConnection
-    
+
     return "esp enabled"
 end)
 
@@ -2349,6 +2421,10 @@ AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
     local Esp = LoadCommand("esp").CmdExtra
     for i, v in next, Esp.Billboards do
         v:Destroy();
+    end
+    if PlayerAddedConnection then
+        PlayerAddedConnection:Disconnect()
+        PlayerAddedConnection = nil
     end
     return "esp disabled"
 end)
@@ -2464,7 +2540,7 @@ AddCommand("removealias", {}, "removes an alias from a command", {}, function(Ca
     if (not CommandsTable[Alias]) then
         return Alias .. " is not an alias"
     end
-    
+
     if (CommandsTable[Alias].Name ~= Alias) then
         local Cmd = CommandsTable[Alias]
         CommandsTable[Alias] = nil
@@ -2542,7 +2618,7 @@ AddCommand("loopgoto", {"loopto"}, "loop teleports yourself to the other charact
     local Connection = RunService.Heartbeat:Connect(function()
         GetRoot().CFrame = GetRoot(Target).CFrame * CFrame.new(0, 0, 2);
     end)
-    
+
     Tbl[Target.Name] = Connection
     AddPlayerConnection(LocalPlayer, Connection);
     AddConnection(Connection);
@@ -2589,7 +2665,7 @@ AddCommand("notruesight", {"nots"}, "removes truesight", {}, function(Caller, Ar
     for i, v in next, showing do
         i.Transparency = v
     end
-    
+
     return ("%d items hidden in %.3f (s)"):format(#showing, (tick() or os.clock()) - time);
 end)
 
@@ -2699,7 +2775,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
         d = false,
         w = false,
         s = false
-    } 
+    }
     local function start()
         local pos = Instance.new("BodyPosition", hrp)
         local gyro = Instance.new("BodyGyro", hrp)
@@ -2714,11 +2790,11 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
             if not keys.w and not keys.s and not keys.a and not keys.d then
                 speed = 1
             end
-            if (keys.w or keys.s) then 
-                new = keys.w and (new+Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) or (new-Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) 
+            if (keys.w or keys.s) then
+                new = keys.w and (new+Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) or (new-Workspace.CurrentCamera.CoordinateFrame.lookVector*speed)
                 speed = speed + (0.01 * (flyspeed or 0.3))
             end
-            if (keys.d or keys.a) then 
+            if (keys.d or keys.a) then
                 new = new * CFrame.new(keys.d and speed or -speed,0,0)
                 speed = speed + (0.01 * (flyspeed or 0.3))
             end
@@ -2732,7 +2808,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
                 gyro.cframe = Workspace.CurrentCamera.CoordinateFrame
             end
         until not flying
-        
+
         if gyro then gyro:Destroy() end
         if pos then pos:Destroy() end
         flying = false
@@ -2762,7 +2838,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
             keys.d=false
         end
     end)
-    Tbl[#Tbl + 1] = flying	 
+    Tbl[#Tbl + 1] = flying
     start();
 end)
 
@@ -3005,7 +3081,7 @@ PlrChat = function(i, plr)
         Connections.Players[plr.Name].Connections = {}
     end
     Connections.Players[plr.Name].ChatCon = plr.Chatted:Connect(function(raw)
-        
+
         local message = raw:lower();
 
         if (ChatLogsEnabled) then
@@ -3017,7 +3093,7 @@ PlrChat = function(i, plr)
             Clone.Visible = true
             Clone.TextTransparency = 1
             Clone.Parent = ChatLogs.Frame.List
-            
+
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
             })
@@ -3034,7 +3110,7 @@ PlrChat = function(i, plr)
         end
 
         message = raw:trim():lower();
-        
+
         if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = message:split(" ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
@@ -3056,7 +3132,7 @@ PlrChat = function(i, plr)
                     warn(Err);
                 end
             else
-                Utils.Notify(plr, "Error", ("coudln't find the command %s"):format(Command));
+                Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
             end
         end
     end)
@@ -3074,7 +3150,7 @@ ParentGui = function(Gui)
     else
         Gui.Parent = CoreGui
     end
-    Guis[#Guis + 1] = Gui 
+    Guis[#Guis + 1] = Gui
     return Gui
 end
 
@@ -3265,7 +3341,7 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
     local Text = CommandBar.Input.Text:trim();
     local CommandArgs = Text:split(" ");
 
-    CommandBarOpen = false 
+    CommandBarOpen = false
 
     Utils.TweenAllTrans(CommandBar, .5)
     Utils.Tween(CommandBar, "Quint", "Out", .5, {
@@ -3290,8 +3366,8 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
         if (not Success and Debug) then
             warn(Err);
         end
-    else
-        Utils.Notify(plr, "Error", ("coudln't find the command %s"):format(Command));
+    elseif Command ~= "" then
+        Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
     end
 end)
 
@@ -3316,13 +3392,13 @@ Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"
             local CommandName = v.Name
             local Aliases = v.Aliases
             local FoundAlias
-    
+
             if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
                 Prediction.Text = CommandName
                 CommandArgs = v.Args or {}
                 break
             end
-    
+
             for _, v2 in next, Aliases do
                 if (Utils.MatchSearch(Args[1], v2)) then
                     FoundAlias = true
@@ -3330,7 +3406,7 @@ Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"
                     CommandArgs = v2.Args or {}
                     break
                 end
-    
+
                 if (FoundAlias) then
                     break
                 end
@@ -3376,14 +3452,14 @@ if (ChatBar) then
         local Text = string.lower(ChatBar.Text)
         local Prediction = PredictionClone
         local PredictionText = PredictionClone.Text
-    
+
         local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
-    
+
         Prediction.Text = ""
         if (not Text:startsWith(Prefix)) then
             return
         end
-    
+
         local FoundCommand = false
         local FoundAlias = false
         CommandArgs = CommandArgs or {}
@@ -3392,14 +3468,14 @@ if (ChatBar) then
                 local CommandName = v.Name
                 local Aliases = v.Aliases
                 local FoundAlias
-        
+
                 if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
                     Prediction.Text = Prefix .. CommandName
                     FoundCommand = true
                     CommandArgs = v.Args or {}
                     break
                 end
-        
+
                 for _, v2 in next, Aliases do
                     if (Utils.MatchSearch(Args[1], v2)) then
                         FoundAlias = true
@@ -3407,14 +3483,14 @@ if (ChatBar) then
                         CommandArgs = v.Args or {}
                         break
                     end
-        
+
                     if (FoundAlias) then
                         break
                     end
                 end
             end
         end
-    
+
         for i, v in next, Args do -- make it get more players after i space out
             if (i > 1 and v ~= "") then
                 local Predict = ""
@@ -3441,7 +3517,7 @@ if (ChatBar) then
                 end
             end
         end
-    
+
         if (string.find(Text, "\t")) then -- remove tab from preditction text also
             ChatBar.Text = PredictionText
             ChatBar.CursorPosition = #ChatBar.Text + 2
