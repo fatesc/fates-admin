@@ -44,9 +44,11 @@ Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(In
 
         -- tween position
         if (CommandBarOpen) then
-            Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110) -- tween -110
-            })
+            if (not Draggable) then
+                Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110) -- tween -110
+                })
+            end
 
             CommandBar.Input:CaptureFocus()
             coroutine.wrap(function()
@@ -54,9 +56,11 @@ Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(In
                 CommandBar.Input.Text = ""
             end)()
         else
-            Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
-            })
+            if (not Draggable) then
+                Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
+                })
+            end
         end
     end
 end)

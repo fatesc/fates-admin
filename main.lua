@@ -1,3 +1,6 @@
+---@diagnostic disable: undefined-field
+Debug = false
+
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     repeat wait() until game:IsLoaded();
@@ -862,6 +865,7 @@ function Utils.Locate(Player, Color)
                     Billboard:Destroy();
                 end
             end)
+            AddConnection(EspLoop);
         end
     end)()
 
@@ -2124,18 +2128,26 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
     end)
 
     local AuraConnection = RunService.Heartbeat:Connect(function()
+        if (not Tool) then
+            for i, v in next, LoadCommand("swordaura").CmdExtra do
+                if (type(v) == 'userdata' and v.Disconnect) then
+                    v:Disconnect();
+                end
+            end
+        end
         for i, v in next, PlayersTbl do
             if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
-                Tool.Parent = GetCharacter();
-                local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
-                    return v:IsA("BasePart");
-                end)
-                table.forEach(BaseParts, function(i, v)
-                    Tool:Activate();
-                    firetouchinterest(Tool.Handle, v, 1);
-                    firetouchinterest(Tool.Handle, v, 0);
-                end)
-                Tool.Parent = LocalPlayer.Character
+                if (GetHumanoid().Health ~= 0) then
+                    Tool.Parent = GetCharacter();
+                    local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
+                        return v:IsA("BasePart");
+                    end)
+                    table.forEach(BaseParts, function(i, v)
+                        Tool:Activate();
+                        firetouchinterest(Tool.Handle, v, 1);
+                        firetouchinterest(Tool.Handle, v, 0);
+                    end)
+                end
             end
         end
     end)
@@ -2147,6 +2159,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
         table.remove(PlayersTbl, table.indexOf(PlayersTbl, Plr))
     end)
 
+    AddConnection(AuraConnection);
     AddConnection(PlayerAddedConnection);
     AddConnection(PlayerRemovingConnection);
     Tbl[#Tbl + 1] = AuraConnection
@@ -2166,6 +2179,7 @@ AddCommand("noswordaura", {"noaura"}, "stops the sword aura", {}, function()
             v:Disconnect();
         end
     end
+    return "sword aura disabled"
 end)
 
 AddCommand("freeze", {}, "freezes your character", {3}, function(Caller, Args)
@@ -2652,7 +2666,11 @@ end)
 
 AddCommand("goto", {"to"}, "teleports yourself to the other character", {3, "1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
+    local Delay = tonumber(Args[2]);
     for i, v in next, Target do
+        if (Delay) then
+            wait(Delay);
+        end
         GetRoot().CFrame = GetRoot(v).CFrame * CFrame.new(-5, 0, 0);
     end
 end)
@@ -3109,13 +3127,28 @@ end)
 
 AddCommand("widebar", {}, "widens the command bar (toggle)", {}, function(Caller, Args)
     WideBar = not WideBar
-    Utils.Tween(CommandBar, "Quint", "Out", .5, {
-        Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween -110
-    })
+    if (not Draggable) then
+        Utils.Tween(CommandBar, "Quint", "Out", .5, {
+            Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween -110
+        })
+    end
     Utils.Tween(CommandBar, "Quint", "Out", .5, {
         Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
     })
     return ("widebar %s"):format(WideBar and "enabled" or "disabled")
+end)
+
+AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {}, function(Caller)
+    Draggable = not Draggable
+    CommandBarOpen = not CommandBarOpen
+    Utils.Tween(CommandBar, "Quint", "Out", .5, {
+        Position = UDim2.new(0, Mouse.X, 0, Mouse.Y);
+    })
+    Utils.Draggable(CommandBar);
+    local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
+    local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
+    CommandBar.Input.Text = ""
+    return ("widebar %s"):format(Draggable and "enabled" or "disabled")
 end)
 
 ---@param i any
@@ -3229,9 +3262,11 @@ Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(In
 
         -- tween position
         if (CommandBarOpen) then
-            Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110) -- tween -110
-            })
+            if (not Draggable) then
+                Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110) -- tween -110
+                })
+            end
 
             CommandBar.Input:CaptureFocus()
             coroutine.wrap(function()
@@ -3239,9 +3274,11 @@ Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(In
                 CommandBar.Input.Text = ""
             end)()
         else
-            Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
-            })
+            if (not Draggable) then
+                Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
+                })
+            end
         end
     end
 end)
@@ -3382,16 +3419,19 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
     Utils.Notify(LocalPlayer, "Saved", "Chat logs saved!");
 end)
 WideBar = false
+Draggable = false
 Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
     local Text = CommandBar.Input.Text:trim();
     local CommandArgs = Text:split(" ");
 
     CommandBarOpen = false 
 
-    Utils.TweenAllTrans(CommandBar, .5)
-    Utils.Tween(CommandBar, "Quint", "Out", .5, {
-        Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5); -- tween 5
-    })
+    if (not Draggable) then
+        Utils.TweenAllTrans(CommandBar, .5)
+        Utils.Tween(CommandBar, "Quint", "Out", .5, {
+            Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5); -- tween 5
+        })
+    end
 
     local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
     local Args = table.shift(CommandArgs);

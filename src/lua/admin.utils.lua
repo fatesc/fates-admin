@@ -444,6 +444,7 @@ function Utils.Locate(Player, Color)
                     Billboard:Destroy();
                 end
             end)
+            AddConnection(EspLoop);
         end
     end)()
 
