@@ -5,6 +5,7 @@ a roblox admin script with fe features
 - [fate#5647](https://github.com/fatesc) (Main Script Developer)
 - [Iaying#6564](https://github.com/Iaying6564) (Script Developer)
 - [misrepresenting#4917](https://github.com/misrepresenting) (UI Developer)
+- [Shawn#2000](https://github.com/Fluxxx222) (Management)
 
 ## Plugin Docs
 ### (will do later in a seperate file) example plugin:
