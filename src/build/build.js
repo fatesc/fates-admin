@@ -5,7 +5,7 @@ const option = process.argv.slice(2)[0]
 
 const file = join(__dirname, "../lua/admin");
 const main = ".main.lua"
-const out = join(__dirname + option ? "../../../main.lua" : "../../output.lua");
+const out = join(__dirname + "../../output.lua");
 
 console.log("preparing...");
 const script = readFileSync(file + main, "utf8");

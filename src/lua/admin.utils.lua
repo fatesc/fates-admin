@@ -407,7 +407,7 @@ function Utils.Locate(Player, Color)
     local Billboard = Instance.new("BillboardGui");
     coroutine.wrap(function()
         if (GetCharacter(Player)) then
-            ParentGui(Billboard);
+            Billboard.Parent = UI
             Billboard.Name = HttpService:GenerateGUID();
             Billboard.AlwaysOnTop = true
             Billboard.Adornee = Player.Character.Head

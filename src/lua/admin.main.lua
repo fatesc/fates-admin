@@ -57,6 +57,13 @@ GetHumanoid = function(Plr)
     return Plr and GetCharacter(Plr):FindFirstChildWhichIsA("Humanoid") or GetCharacter():FindFirstChildWhichIsA("Humanoid");
 end
 
+---comment
+---@param Plr any
+---@return any
+GetMagnitude = function(Plr)
+    return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
+end
+
 local Settings = {
     Prefix = "!",
     CommandBarPrefix = "Semicolon"
@@ -1371,71 +1378,103 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
     end
 end)
 
-AddCommand("reach", {"swordreach"}, "reach\nchanges handle size of your tool", {1, 3}, function(Caller, Args)
-	local Amount = Args[1] or 2
-	local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
-	Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
+AddCommand("reach", {"swordreach"}, "changes handle size of your tool", {1, 3}, function(Caller, Args, Tbl)
+    local Amount = Args[1] or 2
+    local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    Tbl[Tool] = Tool.Size
+    Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
     Tool.Handle.Massless = true;
+    return "reach on"
 end)
 
-AddCommand("swordaura", {"saura", "sora"}, "SWORD MF KILL AURA (but better)", {1, 3}, function(Caller, Args, Tbl) -- @laying please look at line 225 you don't need toadd a 0 -fate
-    if sdistance ~= nil then
-        sdistance = Args[1] or 10
+AddCommand("noreach", {"noswordreach"}, "removes sword reach", {}, function()
+    local ReachedTools = LoadCommand("reach").CmdExtra
+    if (not next(ReachedTools)) then
+        return "reach isn't enabled"
     end
-    sdistance = Args[1] or 10
+    for i, v in next, ReachedTools do
+        i.Size = v
+    end
+    LoadCommand("reach").CmdExtra = {}
+    return "reach disabled"
+end)
 
-    local current = {}
-    local function deactivate(tool)
-        if current[tool] then
-			pcall(function()
-            	current[tool]:Disconnect()
-			end)
-            current[tool] = nil
+AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl)
+    for i, v in next, LoadCommand("swordaura").CmdExtra do
+        if (type(v) == 'userdata' and v.Disconnect) then
+            v:Disconnect();
         end
     end
     
-    local function activate(tool)
-        deactivate(tool)
-    
-        current[tool] = RunService.Stepped:Connect(function()
-            if tool and current[tool] and tool:FindFirstChild('Handle') then
-                local handle = tool.Handle
-                for _,v in pairs(Players:GetPlayers()) do
-                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild('Humanoid') and v.Character.Humanoid.Health > 0 and v.Character:FindFirstChild('HumanoidRootPart') and (v.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= distance then
-                        tool:Activate()
-                        for _,v in pairs(v.Character:GetChildren()) do
-                            if v:IsA('BasePart') then
-                                firetouchinterest(handle, v, 1)
-                                firetouchinterest(handle, v, 0)
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-    local function onChar(char)
-        local function onChild(child)
-            if child:IsA('Tool') and child:FindFirstChild('Handle') then
-                activate(child)
+    local SwordDistance = tonumber(Args[1]) or 10
+    local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    local PlayersTbl = table.filter(Players:GetPlayers(), function(i, v)
+        return v ~= LocalPlayer
+    end)
+
+    local AuraConnection = RunService.Heartbeat:Connect(function()
+        for i, v in next, PlayersTbl do
+            if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
+                Tool.Parent = GetCharacter();
+                local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
+                    return v:IsA("BasePart");
+                end)
+                table.forEach(BaseParts, function(i, v)
+                    Tool:Activate();
+                    firetouchinterest(Tool.Handle, v, 1);
+                    firetouchinterest(Tool.Handle, v, 0);
+                end)
+                Tool.Parent = LocalPlayer.Character
             end
         end
-        local function onChildRemoving(child)
-            if current[child] then
-                deactivate(child)
-            end
+    end)
+
+    local PlayerAddedConnection = Players.PlayerAdded:Connect(function(Plr)
+        PlayersTbl[#PlayersTbl + 1] = Plr
+    end)
+    local PlayerRemovingConnection = Players.PlayerRemoving:Connect(function(Plr)
+        table.remove(PlayersTbl, table.indexOf(PlayersTbl, Plr))
+    end)
+
+    AddConnection(PlayerAddedConnection);
+    AddConnection(PlayerRemovingConnection);
+    Tbl[#Tbl + 1] = AuraConnection
+    Tbl[#Tbl + 1] = PlayerAddedConnection
+    Tbl[#Tbl + 1] = PlayerRemovingConnection
+    return "sword aura enabled with distance " .. SwordDistance
+end)
+
+
+AddCommand("noswordaura", {"noaura"}, "stops the sword aura", {}, function()
+    local Aura = LoadCommand("swordaura").CmdExtra
+    if (not next(Aura)) then
+        return "sword aura is not enabled"
+    end
+    for i, v in next, Aura do
+        if (type(v) == 'userdata' and v.Disconnect) then
+            v:Disconnect();
         end
-		for _,v in pairs(char:GetChildren()) do
-			onChild(v)
-		end
-        char.ChildAdded:Connect(onChild)
-        char.ChildRemoved:Connect(onChildRemoving)
     end
-    
-    if LocalPlayer.Character then
-        onChar(LocalPlayer.Character)
+end)
+
+AddCommand("freeze", {}, "freezes your character", {3}, function(Caller, Args)
+    local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
+        return v:IsA("BasePart");
+    end)
+    for i, v in next, BaseParts do
+        v.Anchored = true
     end
-    LocalPlayer.CharacterAdded:Connect(onChar)
+    return "freeze enabled (client)"
+end)
+
+AddCommand("unfreeze", {}, "unfreezes your character", {3}, function(Caller, Args)
+    local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
+        return v:IsA("BasePart");
+    end)
+    for i, v in next, BaseParts do
+        v.Anchored = false
+    end
+    return "freeze disabled"
 end)
 
 AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, Tbl) 
@@ -2243,7 +2282,7 @@ AddCommand("blacklist", {"bl"}, "blacklists a whitelisted user", {"1"}, function
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         if (table.find(AdminUsers, v)) then
-            table.remove(AdminUsers, table.indexOf(v));
+            table.remove(AdminUsers, table.indexOf(AdminUsers, v));
         end
     end
 end)
@@ -2284,6 +2323,7 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = nil
             end
         end)
+        
         UI:Destroy();
         getgenv().F_A = nil
         for i, v in next, getfenv() do
