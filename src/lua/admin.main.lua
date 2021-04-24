@@ -2433,7 +2433,7 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
     local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
     CommandBar.Input.Text = ""
-    return ("widebar %s"):format(Draggable and "enabled" or "disabled")
+    return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
 
 ---@param i any
