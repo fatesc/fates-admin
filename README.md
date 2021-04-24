@@ -1,6 +1,11 @@
 # fates-admin
 a roblox admin script with fe features
 
+## Script
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua")();
+```
+
 ## Developers
 - [fate#5647](https://github.com/fatesc) (Main Script Developer)
 - [Iaying#6564](https://github.com/Iaying6564) (Script Developer)
