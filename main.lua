@@ -1,6 +1,3 @@
----@diagnostic disable: undefined-field
-Debug = true
-
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     repeat wait() until game:IsLoaded();
@@ -171,6 +168,18 @@ end
 -- else
 --     setfenv(1, NewEnv);
 -- end
+local touched = {}
+firetouchinterest = firetouchinterest or function(part1, part2, toggle)
+    if (part1 and part2) then
+        if (toggle == 1) then
+            touched[1] = part1.CFrame
+            part1.CFrame = part2.CFrame
+        else
+            part1.CFrame = touched[1]
+            touched[1] = nil
+        end
+    end
+end
 
 ---@type number
 local start = start or tick() or os.clock();
@@ -2081,10 +2090,10 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
 end)
 
 AddCommand("reach", {"swordreach"}, "changes handle size of your tool", {1, 3}, function(Caller, Args, Tbl)
-	local Amount = Args[1] or 2
-	local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    local Amount = Args[1] or 2
+    local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
     Tbl[Tool] = Tool.Size
-	Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
+    Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
     Tool.Handle.Massless = true;
     return "reach on"
 end)
@@ -2126,6 +2135,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
                     firetouchinterest(Tool.Handle, v, 1);
                     firetouchinterest(Tool.Handle, v, 0);
                 end)
+                Tool.Parent = LocalPlayer.Character
             end
         end
     end)

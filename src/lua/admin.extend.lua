@@ -159,3 +159,15 @@ end
 -- else
 --     setfenv(1, NewEnv);
 -- end
+local touched = {}
+firetouchinterest = firetouchinterest or function(part1, part2, toggle)
+    if (part1 and part2) then
+        if (toggle == 1) then
+            touched[1] = part1.CFrame
+            part1.CFrame = part2.CFrame
+        else
+            part1.CFrame = touched[1]
+            touched[1] = nil
+        end
+    end
+end
