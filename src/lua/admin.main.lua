@@ -1673,7 +1673,7 @@ AddCommand("audiolog", {}, "audio logs someone", {"1"}, function(Caller, Args)
     end
 end)
 
-AddCommand("position", {"pos"}, "shows you a player's current (cframe) position", {"1"}, function(Caller, Args)
+AddCommand("position", {"pos"}, "shows you a player's current (cframe) position", {}, function(Caller, Args)
     local Target = Args[1] and GetPlayer(Args[1])[1] or Caller
     local Root = GetRoot(Target)
     local Pos = Sanitize(Root.CFrame)
