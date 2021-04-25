@@ -1413,25 +1413,21 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
     end)
 
     local AuraConnection = RunService.Heartbeat:Connect(function()
-        if (not Tool) then
-            for i, v in next, LoadCommand("swordaura").CmdExtra do
-                if (type(v) == 'userdata' and v.Disconnect) then
-                    v:Disconnect();
-                end
-            end
-        end
-        for i, v in next, PlayersTbl do
-            if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
-                if (GetHumanoid().Health ~= 0) then
-                    Tool.Parent = GetCharacter();
-                    local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
-                        return v:IsA("BasePart");
-                    end)
-                    table.forEach(BaseParts, function(i, v)
-                        Tool:Activate();
-                        firetouchinterest(Tool.Handle, v, 1);
-                        firetouchinterest(Tool.Handle, v, 0);
-                    end)
+        local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+        if (Tool and Tool.Handle) then
+            for i, v in next, PlayersTbl do
+                if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
+                    if (GetHumanoid().Health ~= 0) then
+                        Tool.Parent = GetCharacter();
+                        local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
+                            return v:IsA("BasePart");
+                        end)
+                        table.forEach(BaseParts, function(i, v)
+                            Tool:Activate();
+                            firetouchinterest(Tool.Handle, v, 1);
+                            firetouchinterest(Tool.Handle, v, 0);
+                        end)
+                    end
                 end
             end
         end
@@ -1834,6 +1830,20 @@ AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
         if (method == "kick") then
             Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(tostring(args[1])));
             return wait(9e9);
+        end
+        return oldnc(self, ...);
+    end)
+end)
+
+AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args)
+    local mt = getrawmetatable(game);
+    local oldnc = mt.__namecall
+    setreadonly(mt, false);
+    mt.__namecall = newcclosure(function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod():lower();
+        if (method == "kick") then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
         end
         return oldnc(self, ...);
     end)

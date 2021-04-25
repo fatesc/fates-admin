@@ -1,5 +1,5 @@
 ---@diagnostic disable: undefined-field
-Debug = false
+Debug = true
 
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
@@ -2128,25 +2128,21 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
     end)
 
     local AuraConnection = RunService.Heartbeat:Connect(function()
-        if (not Tool) then
-            for i, v in next, LoadCommand("swordaura").CmdExtra do
-                if (type(v) == 'userdata' and v.Disconnect) then
-                    v:Disconnect();
-                end
-            end
-        end
-        for i, v in next, PlayersTbl do
-            if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
-                if (GetHumanoid().Health ~= 0) then
-                    Tool.Parent = GetCharacter();
-                    local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
-                        return v:IsA("BasePart");
-                    end)
-                    table.forEach(BaseParts, function(i, v)
-                        Tool:Activate();
-                        firetouchinterest(Tool.Handle, v, 1);
-                        firetouchinterest(Tool.Handle, v, 0);
-                    end)
+        local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+        if (Tool and Tool.Handle) then
+            for i, v in next, PlayersTbl do
+                if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
+                    if (GetHumanoid().Health ~= 0) then
+                        Tool.Parent = GetCharacter();
+                        local BaseParts = table.filter(GetCharacter(v):GetChildren(), function(i, v)
+                            return v:IsA("BasePart");
+                        end)
+                        table.forEach(BaseParts, function(i, v)
+                            Tool:Activate();
+                            firetouchinterest(Tool.Handle, v, 1);
+                            firetouchinterest(Tool.Handle, v, 0);
+                        end)
+                    end
                 end
             end
         end
@@ -2388,8 +2384,8 @@ AddCommand("audiolog", {}, "audio logs someone", {"1"}, function(Caller, Args)
     end
 end)
 
-AddCommand("position", {"pos"}, "shows you a player's current (cframe) position", {"1"}, function(Caller, Args)
-    local Target = GetPlayer(Args[1])[1]
+AddCommand("position", {"pos"}, "shows you a player's current (cframe) position", {}, function(Caller, Args)
+    local Target = Args[1] and GetPlayer(Args[1])[1] or Caller
     local Root = GetRoot(Target)
     local Pos = Sanitize(Root.CFrame)
     if setclipboard then
@@ -2549,6 +2545,20 @@ AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
         if (method == "kick") then
             Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(tostring(args[1])));
             return wait(9e9);
+        end
+        return oldnc(self, ...);
+    end)
+end)
+
+AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args)
+    local mt = getrawmetatable(game);
+    local oldnc = mt.__namecall
+    setreadonly(mt, false);
+    mt.__namecall = newcclosure(function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod():lower();
+        if (method == "kick") then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
         end
         return oldnc(self, ...);
     end)
@@ -3148,7 +3158,7 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
     local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
     CommandBar.Input.Text = ""
-    return ("widebar %s"):format(Draggable and "enabled" or "disabled")
+    return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
 
 ---@param i any
@@ -3187,7 +3197,7 @@ PlrChat = function(i, plr)
             return
         end
 
-        message = raw:trim():lower();
+        message = raw:trim();
         
         if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = message:split(" ");
