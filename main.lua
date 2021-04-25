@@ -1857,6 +1857,21 @@ AddCommand("load", {"loadstring"}, "loads whatever you want", {"1"}, function(Ca
     end
 end)
 
+AddCommand("load2", {"loadstring2"}, "loads whatever you want but outputs in chat", {"1"}, function(Caller, Args)
+    local Code = table.concat(Args, " ");
+    local Success, Err = pcall(function()
+        loadstring(("%s\n%s\n%s"):format("local oldprint=print print=function(...)getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '))return oldprint(...)end", Code, "print = oldprint"))();
+    end)
+    if (not Success and Err) then
+        local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+        ChatRemote:FireServer(("[FA] Load: %s"):format(Err), "All");
+        return Err
+    else
+        ChatRemote:FireServer(("[FA] Load: %s"):format("executed with no errors"), "All");
+        return "executed with no errors"
+    end
+end)
+
 AddCommand("sit", {}, "makes you sit", {3}, function(Caller, Args, Tbl)
     LocalPlayer.Character.Humanoid.Sit = true
     return "now sitting (obviously)"
@@ -2441,6 +2456,32 @@ AddCommand("unlocate", {"nolocate"}, "disables location for a player", {"1"}, fu
     end
 end)
 
+AddCommand("cameralock", {"calock"}, "locks your camera on the the players head", {"1"}, function(Caller, Args, Tbl)
+    local Target = GetPlayer(Args[1])[1];
+    local CameraLock = RunService.Heartbeat:Connect(function()
+        if (GetCharacter(Target) and GetRoot(Target)) then
+            Workspace.CurrentCamera.CoordinateFrame = CFrame.new(Workspace.CurrentCamera.CoordinateFrame.p, GetCharacter(Target).Head.CFrame.p);
+        end
+    end)
+    Tbl[#Tbl + 1] = CameraLock
+    AddConnection(CameraLock);
+    AddPlayerConnection(LocalPlayer, CameraLock);
+    return "now locking camera to " .. Target.Name
+end)
+
+AddCommand("uncameralock", {"nocalock"}, "unlocks your camera", {}, function(Caller, Args)
+    local Looping = LoadCommand("cameralock").CmdExtra;
+    if (not next(Looping)) then
+        return "you aren't cameralocked"
+    end
+    for i, v in next, Looping do
+        if (type(v) == 'userdata' and v.Disconnect) then
+            v:Disconnect();
+        end
+    end
+    return "cameralock disabled"
+end)
+
 AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
     Tbl.Billboards = {}
     table.forEach(Players:GetPlayers(), function(i,v)
@@ -2491,13 +2532,11 @@ end)
 
 AddCommand("follow", {}, "follows a player", {"1", 3}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1])[1]
-    Tbl[Target.Name] = true
-    coroutine.wrap(function()
-        repeat
-            GetHumanoid():MoveTo(GetRoot(Target).Position);
-            wait(.2);
-        until not LoadCommand("follow").CmdExtra[Target.Name]
-    end)()
+    local Following = RunService.Heartbeat:Connect(function()
+        GetHumanoid():MoveTo(GetRoot(Target).Position);
+    end)
+    Tbl[#Tbl + 1] = Following
+    AddConnection(Following);
     return "now following " .. Target.Name
 end)
 
@@ -2550,18 +2589,18 @@ AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
     end)
 end)
 
-AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args)
-    local mt = getrawmetatable(game);
-    local oldnc = mt.__namecall
-    setreadonly(mt, false);
-    mt.__namecall = newcclosure(function(self, ...)
-        local args = {...}
-        local method = getnamecallmethod():lower();
-        if (method == "kick") then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
+AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)
+    local RejoinConnection = CoreGui:FindFirstChild("RobloxPromptGui"):FindFirstChildWhichIsA("Frame").DescendantAdded:Connect(function(Prompt)
+        if (Prompt.Name == "ErrorTitle") then
+            Prompt:GetPropertyChangedSignal("Text"):Wait();
+            if (Prompt.Text == "Disconnected") then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
+            end            
         end
-        return oldnc(self, ...);
     end)
+    AddConnection(RejoinConnection);
+    Tbl[#Tbl + 1] = RejoinConnection
+    return "auto rejoin enabled (rejoins when you get kicked from the game)"
 end)
 
 AddCommand("respawn", {}, "respawns your character", {3}, function()
