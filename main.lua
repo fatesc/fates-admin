@@ -1246,6 +1246,9 @@ end)
 
 AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        table.insert(Tbl, v)
+    end
     repeat
         for i, v in next, Target do
             repeat
