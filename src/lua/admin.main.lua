@@ -116,6 +116,7 @@ local Connections = {
 }
 local CLI = false
 local ChatLogsEnabled = true
+local GlobalChatLogsEnabled = false
 
 ---gets the player in your game from string
 ---@param str string
@@ -1145,14 +1146,22 @@ end)
 AddCommand("load2", {"loadstring2"}, "loads whatever you want but outputs in chat", {"1"}, function(Caller, Args)
     local Code = table.concat(Args, " ");
     local Success, Err = pcall(function()
-        loadstring(("%s\n%s\n%s"):format("local oldprint=print print=function(...)getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '))return oldprint(...)end", Code, "print = oldprint"))();
+        loadstring(("%s\n%s\n%s"):format([[
+            local oldprint = print
+            local oldwarn = warn
+            print = function(...)
+                ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(("[FA] Load Output: %s"):format(table.concat({...}, " ")), "All");
+                getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '))
+                return oldprint(...)
+            end
+            warn = print
+            ]], Code, "print = oldprint; warn = oldwarn"))();
     end)
     if (not Success and Err) then
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote:FireServer(("[FA] Load: %s"):format(Err), "All");
         return Err
     else
-        ChatRemote:FireServer(("[FA] Load: %s"):format("executed with no errors"), "All");
         return "executed with no errors"
     end
 end)
@@ -1881,6 +1890,7 @@ AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, fu
         if (Prompt.Name == "ErrorTitle") then
             Prompt:GetPropertyChangedSignal("Text"):Wait();
             if (Prompt.Text == "Disconnected") then
+                syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()")
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
             end            
         end
@@ -1971,7 +1981,58 @@ AddCommand("chatlogs", {"clogs"}, "enables chatlogs", {}, function()
     Utils.Tween(ChatLogs.Frame.List, "Sine", "Out", .25, {
         ScrollBarImageTransparency = 0
     })
+end)
 
+AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, function()
+    local MessageClone = GlobalChatLogs.Frame.List:Clone();
+
+    Utils.ClearAllObjects(GlobalChatLogs.Frame.List);
+    GlobalChatLogs.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(GlobalChatLogs, .25, GlobalChatLogsTransparencyClone);
+
+
+    MessageClone.Parent = ChatLogs.Frame
+
+    for i, v in next, GlobalChatLogs.Frame.List:GetChildren() do
+        if (not v:IsA("UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local GlobalChatLogsListLayout = GlobalChatLogs.Frame.List.UIListLayout
+
+    GlobalChatLogsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        ChatLogs.Frame.List.CanvasPosition = Vector2.new(0, GlobalChatLogsListLayout.AbsoluteContentSize.Y);
+    end)
+
+    Utils.Tween(GlobalChatLogs.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    });
+
+    GlobalChatLogsEnabled = true
+    if (not WebSocket) then
+        WebSocket = syn.websocket.connect("ws://localhost/scripts/fates-admin/chat");
+        WebSocket.OnMessage:Connect(function(msg)
+            if (GlobalChatLogsEnabled) then
+                msg = HttpService:JSONDecode(msg);
+                local Clone = GlobalChatLogMessage:Clone()
+                Clone.Text = ("%s - [%s]: %s"):format(tostring(os.date("%X")), msg.username, msg.message);
+                if (msg.error) then
+                    Clone.TextColor3 = Color3.fromRGB(255, 10, 10);
+                end
+                Clone.Visible = true
+                Clone.TextTransparency = 1
+                Clone.Parent = GlobalChatLogs.Frame.List
+                Utils.Tween(Clone, "Sine", "Out", .25, {
+                    TextTransparency = 0
+                });
+                GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+            end
+        end)
+    end
 end)
 
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
@@ -2496,7 +2557,7 @@ PlrChat = function(i, plr)
     end
     Connections.Players[plr.Name].ChatCon = plr.Chatted:Connect(function(raw)
         
-        local message = raw:lower();
+        local message = raw
 
         if (ChatLogsEnabled) then
             local time = os.date("%X");
@@ -2513,6 +2574,15 @@ PlrChat = function(i, plr)
             })
 
             ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        end
+
+        if (GlobalChatLogsEnabled) then
+            local Message = {
+                username = LocalPlayer.Name,
+                userid = LocalPlayer.UserId,
+                message = message
+            }
+            WebSocket:Send(HttpService:JSONEncode(Message));
         end
 
         if (raw:startsWith("/e")) then
@@ -2550,6 +2620,10 @@ PlrChat = function(i, plr)
             end
         end
     end)
+end
+
+while (GlobalChatLogsEnabled and WebSocket and wait()) do
+    WebSocket:Send("ping");
 end
 
 --[[
