@@ -13,7 +13,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/ma
 - [Shawn#2000](https://github.com/Fluxxx222) (Management)
 
 ## Plugins
-### (will do later in a seperate file) example plugin:
 
 ### Docs
 ```lua
