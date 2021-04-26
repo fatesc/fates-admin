@@ -1,0 +1,122 @@
+:root {
+	--cprimary: rgb(40, 44, 53);
+	--cprimary-text: rgb(211, 211, 211);
+}
+
+
+/* scroll bar */
+
+body {
+	scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+	width: 5px;
+	background: transparent;
+	z-index: 1;
+	transition: all 21s;
+}
+
+::-webkit-scrollbar:hover {
+	width: 7px;
+	background: rgba(255, 255, 255, 0.2);
+	z-index: 1;
+	transition: all 21s;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+	z-index: 1;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.575);
+	border-radius: 4px;
+	z-index: 1;
+}
+
+
+/* commands box */
+
+.cmdsbox {
+	overflow-y: auto;
+	width: 85%;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: rgb(33, 36, 43);
+	height: 89vh;
+	box-shadow: inset 0px 0px 14px 7px var(--cprimary);
+	display: flex;
+	flex-flow: column;
+	align-items: center;
+	padding: 25px 0px;
+}
+
+.cmdbox {
+	min-width: 200px;
+	width: 60vw;
+	/* min-height: 100px; */
+	min-height: 20vh;
+	background-color: rgb(22, 24, 29);
+	flex: 0 0 auto;
+	border-radius: 8px;
+	padding: 7px;
+}
+
+.cmdbox {
+	margin-bottom: 40px;
+}
+
+
+/* hr */
+
+hr {
+	width: 90%;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: rgb(26, 26, 26);
+	border-radius: 4px;
+}
+
+hr.thick {
+	height: 5px;
+}
+
+hr.light {
+	height: 3px;
+}
+
+
+/* main */
+
+@keyframes FadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes SlideIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.main {
+	animation-name: FadeIn;
+	animation-duration: 1s;
+	padding: 14px;
+}
+
+@media only screen and (max-width: 600px) {
+	.main {
+		margin-left: 0;
+		margin-bottom: 5rem;
+	}
+}
+

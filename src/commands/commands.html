@@ -1,0 +1,61 @@
+<!-- all credits to pozm -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="./admincmd.css" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css" integrity="sha384-nNK9n28pDUDDgIiIqZ/MiyO3F4/9vsMtReZK39klb/MtkZI3/LtjSjlmyVPS3KdN" crossorigin="anonymous">
+</head>
+
+<body style="background-color: var(--cprimary)">
+    <div class="main">
+        <h1 style="text-align: center;">Fate's Admin Commands</h1>
+        <h4 style="text-align: center;"><a href="https://discord.com/invite/5epGRYR">fates admin discord server</a></h4>
+        <hr class="light" />
+        <div id="cmds" class="cmdsbox">
+            <div id="cmdexmaple" class="cmdbox" hidden>
+                <h2 class="cmdname" style="font-size: 4vh;">title</h3>
+                    <hr class="light" style="background-color: rgb(41, 41, 41);" />
+                    <div style="display: flex; flex-flow: row; align-items: center; ">
+                        <p style="font-size: 2vh;margin-right: 5px;">Usage : </p>
+                        <p class="cmdusage">test {target} </p>
+                    </div>
+                    <div style="display: flex; flex-flow: row; align-items: center; ">
+                        <p style="font-size: 2vh;margin-right: 5px;">Alias : </p>
+                        <p class="cmdalias">aaa, bbb </p>
+                    </div>
+                    <h3 style="font-size: 2vh;">Description</h3>
+                    <p class="cmddesc" style="word-break: break-all;">
+                        wow this command is soooo cool
+                    </p>
+            </div>
+            <div style="visibility: hidden;">a</div>
+        </div>
+    </div>
+    <script>
+        const regx = /AddCommand\("(?<cmdName>\S+)",\ *(?<alias>{.*?}),\ *"(?<desc>.*?)"/gmi
+        const descregx = /^((?<usage>[^\\\n]+)(?:\\n))?(?<desc>.*)$/gmi
+        const parseTable = (t) => t?.replaceAll?.(/{(.*?)}/gmi, "[$1]").split(/,\ */gmi).map((v, idx, arr) => arr.length == 1 ? v.slice(2, -2) : idx == 0 ? v.slice(2, -1) : idx == arr.length - 1 ? v.slice(1, -2) : v.slice(1, -1))
+        const parseDesc = (t) => (b = Array.from(t?.matchAll?.(descregx) ?? [])?.[0]?.groups, ({
+            usage: b?.usage,
+            desc: b?.desc
+        }));
+        (async () => {
+            let data = Array.from((await fetch("https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua").then(v => v.text(), rej => "").then(txt => txt, rej => ""))?.matchAll(regx))
+            let parsed = data.map(v => ({
+                name: v.groups.cmdName,
+                ...parseDesc(v.groups.desc),
+                alias: parseTable(v.groups.alias)
+            }))
+            for (let data of parsed) {
+                let newBox = $('#cmdexmaple').clone(false).attr("hidden", false);
+                Object.entries(data).map(([idx, val]) => idx == "alias" ? newBox.find('.cmd' + idx).text(val.join(', ')) : newBox.find('.cmd' + idx).text(val))
+                newBox.appendTo('#cmds')
+            }
+        })()
+    </script>
+</body>
+</html>
