@@ -12,8 +12,22 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/ma
 - [misrepresenting#4917](https://github.com/misrepresenting) (UI Developer)
 - [Shawn#2000](https://github.com/Fluxxx222) (Management)
 
-## Plugin Docs
+## Plugins
 ### (will do later in a seperate file) example plugin:
+
+### Docs
+```lua
+{
+    ["Name"] = <string Name>;
+    ["Aliases"] = <table Aliases {<string> ...}>;
+    ["Description"] = <string Description>;
+    ["Author"] = <string Author>;
+    ["Requirements"] = <table Requirements {<function> ...}>;
+    ["Func"] = <function Func>;
+}
+```
+
+### Example:
 ```lua
 return {
     ["Name"] = "hatspin",
