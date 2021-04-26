@@ -2622,7 +2622,7 @@ PlrChat = function(i, plr)
     end)
 end
 
-while (GlobalChatLogsEnabled and WebSocket and wait()) do
+while (GlobalChatLogsEnabled and WebSocket and wait(30)) do
     WebSocket:Send("ping");
 end
 
