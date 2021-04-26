@@ -1246,6 +1246,9 @@ end)
 
 AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        table.insert(Tbl, v)
+    end
     repeat
         for i, v in next, Target do
             repeat
@@ -2483,7 +2486,9 @@ AddCommand("uncameralock", {"nocalock"}, "unlocks your camera", {}, function(Cal
 end)
 
 AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
-    Tbl.Billboards = {}
+    Tbl.Billboards = Tbl.Billboards or {}
+    Tbl.CharConnections = Tbl.CharConnections or {}
+
     table.forEach(Players:GetPlayers(), function(i,v)
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
         local Esp = v.CharacterAdded:Connect(function()
@@ -2491,10 +2496,15 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
             v.Character:WaitForChild("Head");
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
         end)
-        Tbl[#Tbl + 1] = Esp
+        AddConnection(Esp);
+        Tbl.CharConnections[#Tbl.CharConnections + 1] = Esp
     end);
 
+    if PlayerAddedConnection then
+        PlayerAddedConnection:Disconnect()
+    end
     PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
+        print('player added')
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
@@ -2503,20 +2513,24 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
             Player.Character:WaitForChild("Head");
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
         end)
-        Tbl[#Tbl + 1] = Esp
+        AddConnection(Esp);
+        Tbl.CharConnections[#Tbl.CharConnections + 1] = Esp
     end);
-
     AddConnection(PlayerAddedConnection);
-    Tbl[#Tbl + 1] = PlayerAddedConnection
     
     return "esp enabled"
 end)
 
 AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
     local Esp = LoadCommand("esp").CmdExtra
-    for i, v in next, Esp.Billboards do
+    for _, v in next, Esp.Billboards or {} do
         v:Destroy();
     end
+    table.clear(Esp.Billboards or {})
+    for _, v in next, Esp.CharConnections or {} do
+        v:Disconnect()
+    end
+    table.clear(Esp.CharConnections or {})
     if PlayerAddedConnection then
         PlayerAddedConnection:Disconnect()
         PlayerAddedConnection = nil
