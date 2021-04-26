@@ -1,0 +1,24 @@
+
+{
+	"compilerOptions": {
+		"lib": ["ES2020"],
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"target": "ES2020",
+		"outDir": "dist",
+		"sourceMap": true,
+		"esModuleInterop": true,
+		"strict": true,
+		"strictNullChecks": false,
+		"suppressImplicitAnyIndexErrors": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true,
+		"skipDefaultLibCheck": true,
+		"declaration": true,
+		"resolveJsonModule": true
+	},
+	"include": ["src"],
+	"exclude": ["node_modules", "**/*.spec.ts", "**/*.spec.ts"]
+}
