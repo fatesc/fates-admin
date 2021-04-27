@@ -2692,7 +2692,14 @@ AddCommand("chatlogs", {"clogs"}, "enables chatlogs", {}, function()
     local ChatLogsListLayout = ChatLogs.Frame.List.UIListLayout
 
     ChatLogsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        ChatLogs.Frame.List.CanvasPosition = Vector2.new(0, ChatLogsListLayout.AbsoluteContentSize.Y);
+        local CanvasPosition = ChatLogs.Frame.List.CanvasPosition
+        local CanvasSize = ChatLogs.Frame.List.CanvasSize
+        local AbsoluteSize = ChatLogs.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait() -- chatlogs updates absolutecontentsize before sizing frame
+           ChatLogs.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000) --ChatLogsListLayout.AbsoluteContentSize.Y + 100)
+        end
     end)
 
     Utils.Tween(ChatLogs.Frame.List, "Sine", "Out", .25, {
