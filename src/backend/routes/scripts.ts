@@ -69,7 +69,7 @@ function sendMessageToAll(chat: Chat.Send) {
 
 let ConnectedUsers: string[] = []
 const RateLimited: Map<WebSocket, number> = new Map();
-const RateLimitTime = .5
+const RateLimitTime = .7
 
 export function websocketCon(client: WebSocket, request: IncomingMessage) {
 	const userip = <string>request?.headers?.["X-Forwarded-For"] ?? request?.socket?.localAddress
@@ -80,6 +80,17 @@ export function websocketCon(client: WebSocket, request: IncomingMessage) {
 	const queries: Map<string, string|number> = new Map([...parsed]);
 
 	const user = queries.get("username") ?? "a user";
+
+	if (!user || (<string>user)?.length > 15) {
+		client.send(JSON.stringify(<Chat.Send>{
+			error: true,
+			username: "C-LOG",
+			tagColour: [100, 40, 0],
+			clientOnly: true,
+			message: "you don't have a username or your username is too long, please shorten it"
+		}));
+		return client.close();
+	}
 
 	sendMessageToAll({
 		error: false,
