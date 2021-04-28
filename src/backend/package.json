@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon ./rest.ts"
+    "dev": "nodemon ./rest.ts",
+    "build": "tsc && echo build complete",
+    "start": "npm run build && node dist/rest.js",
+    "serverbuild": "node --max-old-space-size=4096 node_modules/.bin/nuxt-ts build"
   },
   "keywords": [],
   "author": "",

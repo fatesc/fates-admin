@@ -1,4 +1,3 @@
-
 {
 	"compilerOptions": {
 		"lib": ["ES2020"],
@@ -19,6 +18,6 @@
 		"declaration": true,
 		"resolveJsonModule": true
 	},
-	"include": ["src"],
+	"include": ["./"],
 	"exclude": ["node_modules", "**/*.spec.ts", "**/*.spec.ts"]
 }
