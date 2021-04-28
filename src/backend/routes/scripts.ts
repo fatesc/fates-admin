@@ -72,7 +72,7 @@ const RateLimited: Map<WebSocket, number> = new Map();
 const RateLimitTime = .7
 
 export function websocketCon(client: WebSocket, request: IncomingMessage) {
-	const userip = <string>request?.headers?.["X-Forwarded-For"] ?? request?.socket?.localAddress
+	const userip = <string>request.headers["cf-connecting-ip"]
 	if (ConnectedUsers.includes(userip)) return client.close();
 	ConnectedUsers.push(userip);
 	
