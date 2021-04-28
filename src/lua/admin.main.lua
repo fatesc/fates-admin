@@ -1975,7 +1975,14 @@ AddCommand("chatlogs", {"clogs"}, "enables chatlogs", {}, function()
     local ChatLogsListLayout = ChatLogs.Frame.List.UIListLayout
 
     ChatLogsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        ChatLogs.Frame.List.CanvasPosition = Vector2.new(0, ChatLogsListLayout.AbsoluteContentSize.Y);
+        local CanvasPosition = ChatLogs.Frame.List.CanvasPosition
+        local CanvasSize = ChatLogs.Frame.List.CanvasSize
+        local AbsoluteSize = ChatLogs.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait() -- chatlogs updates absolutecontentsize before sizing frame
+           ChatLogs.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000) --ChatLogsListLayout.AbsoluteContentSize.Y + 100)
+        end
     end)
 
     Utils.Tween(ChatLogs.Frame.List, "Sine", "Out", .25, {
@@ -2005,7 +2012,14 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     local GlobalChatLogsListLayout = GlobalChatLogs.Frame.List.UIListLayout
 
     GlobalChatLogsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        ChatLogs.Frame.List.CanvasPosition = Vector2.new(0, GlobalChatLogsListLayout.AbsoluteContentSize.Y);
+        local CanvasPosition = GlobalChatLogs.Frame.List.CanvasPosition
+        local CanvasSize = GlobalChatLogs.Frame.List.CanvasSize
+        local AbsoluteSize = GlobalChatLogs.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait() -- chatlogs updates absolutecontentsize before sizing frame
+           GlobalChatLogs.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000) --ChatLogsListLayout.AbsoluteContentSize.Y + 100)
+        end
     end)
 
     Utils.Tween(GlobalChatLogs.Frame.List, "Sine", "Out", .25, {
@@ -2018,10 +2032,10 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         WebSocket.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);
-                local Clone = GlobalChatLogMessage:Clone()
-                Clone.Text = ("%s - [%s]: %s"):format(tostring(os.date("%X")), msg.username, msg.message);
-                if (msg.error) then
-                    Clone.TextColor3 = Color3.fromRGB(255, 10, 10);
+                local Clone = GlobalChatLogMessage:Clone();
+                Clone.Text = ("%s - [%s]: %s"):format(msg.fromDiscord and "from discord" or tostring(os.date("%X")), msg.username, msg.message);
+                if (msg.tagColour) then
+                    Clone.TextColor3 = Color3.fromRGB(msg.tagColour[1], msg.tagColour[2], msg.tagColour[3]);
                 end
                 Clone.Visible = true
                 Clone.TextTransparency = 1
