@@ -1,3 +1,6 @@
+---@diagnostic disable: undefined-field
+Debug = true
+
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     repeat wait() until game:IsLoaded();
@@ -2785,7 +2788,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
 
     GlobalChatLogsEnabled = true
     if (not WebSocket) then
-        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat");
+        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
         WebSocket.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);

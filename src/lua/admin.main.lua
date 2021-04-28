@@ -2028,7 +2028,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
 
     GlobalChatLogsEnabled = true
     if (not WebSocket) then
-        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat");
+        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
         WebSocket.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);
