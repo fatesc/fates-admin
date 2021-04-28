@@ -2028,7 +2028,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
 
     GlobalChatLogsEnabled = true
     if (not WebSocket) then
-        WebSocket = syn.websocket.connect("ws://localhost/scripts/fates-admin/chat");
+        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat");
         WebSocket.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);
@@ -2590,7 +2590,7 @@ PlrChat = function(i, plr)
             ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         end
 
-        if (GlobalChatLogsEnabled) then
+        if (GlobalChatLogsEnabled and plr == LocalPlayer) then
             local Message = {
                 username = LocalPlayer.Name,
                 userid = LocalPlayer.UserId,
@@ -2636,10 +2636,17 @@ PlrChat = function(i, plr)
     end)
 end
 
-while (GlobalChatLogsEnabled and WebSocket and wait(30)) do
+while (WebSocket and wait(30)) do
     WebSocket:Send("ping");
 end
 
+--[[
+    require - tags
+]]
+
+--[[
+    require - hash
+]]
 --[[
     require - uimore
 ]]
@@ -2843,6 +2850,10 @@ table.forEach(CurrentPlayers, function(i,v)
     v.CharacterAdded:Connect(function()
         RespawnTimes[v.Name] = tick()
     end)
+    local PlrTag = PlayerTags[SHA256(tostring(v.UserId)):sub(1, 10)]
+    if (PlrTag) then
+        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(PlrTag.Name, PlrTag.Tag))
+    end
 end);
 
 Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
@@ -2851,6 +2862,9 @@ Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
+    if (PlayerTags[SHA256(tostring(Plr.UserId)):sub(1, 10)]) then
+        Utils.Notify(LocalPlayer, "", ("%s (%s) has joined"))
+    end
 end)
 
 Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)

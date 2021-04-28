@@ -162,7 +162,7 @@ end
 local touched = {}
 firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then
-        if (toggle == 1) then
+        if (toggle == 0) then
             touched[1] = part1.CFrame
             part1.CFrame = part2.CFrame
         else
