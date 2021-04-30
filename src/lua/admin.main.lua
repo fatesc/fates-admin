@@ -299,7 +299,7 @@ end
 
 --- gets the function of the command 
 ---@param name string
-local LoadCommand = function(name)
+LoadCommand = function(name)
     local Command = rawget(CommandsTable, name);
     if (Command) then
         return Command
@@ -532,6 +532,9 @@ end)
 
 AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        table.insert(Tbl, v);
+    end
     repeat
         for i, v in next, Target do
             repeat
@@ -572,6 +575,7 @@ end)
 AddCommand("unloopkill", {"unlkill"}, "unloopkills a user", {3,"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]); -- not really needed but
     LoadCommand("loopkill").CmdExtra = {}
+    LoadCommand("loopkill2").CmdExtra = {}
     return "loopkill disabled"
 end)
 
@@ -603,7 +607,7 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart");
         wait(1);
-    until not GetPlayer(Args[1])
+    until not next(LoadCommand("loopkill2").CmdExtra) or GetPlayer(Args[1])
 end)
 
 AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
@@ -1610,7 +1614,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
     end
 end)
 
-AddCommand("unloopmuteboobmox", {}, "unloopmutes a persons boombox", {"1"}, function(Caller, Args)
+AddCommand("unloopmuteboombox", {}, "unloopmutes a persons boombox", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1])
     local Looped = LoadCommand("loopmuteboombox").CmdExtra
     for i, v in next, Target do
@@ -2027,9 +2031,9 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     });
 
     GlobalChatLogsEnabled = true
-    if (not WebSocket) then
-        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
-        WebSocket.OnMessage:Connect(function(msg)
+    if (not Socket) then
+        Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
+        Socket.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);
                 local Clone = GlobalChatLogMessage:Clone();
@@ -2596,7 +2600,7 @@ PlrChat = function(i, plr)
                 userid = LocalPlayer.UserId,
                 message = message
             }
-            WebSocket:Send(HttpService:JSONEncode(Message));
+            Socket:Send(HttpService:JSONEncode(Message));
         end
 
         if (raw:startsWith("/e")) then
@@ -2636,8 +2640,8 @@ PlrChat = function(i, plr)
     end)
 end
 
-while (WebSocket and wait(30)) do
-    WebSocket:Send("ping");
+while (Socket and wait(30)) do
+    Socket:Send("ping");
 end
 
 --[[
@@ -2850,10 +2854,6 @@ table.forEach(CurrentPlayers, function(i,v)
     v.CharacterAdded:Connect(function()
         RespawnTimes[v.Name] = tick()
     end)
-    local PlrTag = PlayerTags[SHA256(tostring(v.UserId)):sub(1, 10)]
-    if (PlrTag) then
-        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(PlrTag.Name, PlrTag.Tag))
-    end
 end);
 
 Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
@@ -2862,8 +2862,10 @@ Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    if (PlayerTags[SHA256(tostring(Plr.UserId)):sub(1, 10)]) then
-        Utils.Notify(LocalPlayer, "", ("%s (%s) has joined"))
+    local Tag = PlayerTags[SHA256(tostring(plr.UserId)):sub(1, 10)]
+    if (Tag and plr ~= LocalPlayer) then
+        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
+        Utils.AddTag(Tag);
     end
 end)
 

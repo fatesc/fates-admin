@@ -403,7 +403,7 @@ function Utils.ClearAllObjects(Object)
     end
 end
 
-function Utils.Rainbow(TextObject)
+function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 	local Text = TextObject.Text
 	local Frequency = 1 -- determines how quickly it repeats
 	local TotalCharacters = 0
@@ -445,7 +445,11 @@ function Utils.Rainbow(TextObject)
 		end
 	end)()
 
-    return TextObject
+	RobloxScroller.DescendantRemoving:Connect(function(v)
+		if (v == TextObject) then
+			Destroyed = true
+		end
+	end)
 end
 
 function Utils.Locate(Player, Color)
@@ -479,8 +483,8 @@ function Utils.Locate(Player, Color)
             Color.TextSize = 8
 
             local EspLoop = RunService.Heartbeat:Connect(function()
-                local Humanoid = GetCharacter(Player) and GetHumanoid(Player) or nil
-                local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player) or nil
+                local Humanoid = GetCharacter(Player) and GetHumanoid(Player);
+                local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player);
                 if (Humanoid and HumanoidRootPart) then
                     local Distance = math.floor((Workspace.CurrentCamera.CFrame.p - HumanoidRootPart.CFrame.p).Magnitude)
                     Color.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
@@ -494,4 +498,30 @@ function Utils.Locate(Player, Color)
     end)()
 
     return Billboard
+end
+
+function Utils.AddTag(Tag)
+    local PlrCharacter = GetCharacter(Tag.Player)
+    if (not PlrCharacter) then
+        return
+    end
+    local Billboard = Instance.new("BillboardGui");
+    Billboard.Parent = UI
+    Billboard.Name = HttpService:GenerateGUID();
+    Billboard.AlwaysOnTop = true
+    Billboard.Adornee = PlrCharacter.Head
+    Billboard.Size = UDim2.new(0, 200, 0, 50)
+    Billboard.StudsOffset = Vector3.new(0, 4, 0);
+
+    local TextLabel = Instance.new("TextLabel", Billboard);
+    TextLabel.Name = HttpService:GenerateGUID();
+    TextLabel.TextStrokeTransparency = 0.6
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.TextColor3 = Color3.new(0, 255, 0);
+    TextLabel.Size = UDim2.new(0, 200, 0, 50);
+    TextLabel.TextScaled = false
+    TextLabel.TextSize = 10
+    TextLabel.Text = ("%s (%s)"):format(Tag.Name, Tag.Tag);
+
+    Utils.Rainbow(TextLabel)
 end

@@ -1,4 +1,4 @@
-if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
+if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
     local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
@@ -29,6 +29,6 @@ if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fa
             warn(("Error in plugin %s: %s"):format(v[1], Err));
         end
     end
-else
+elseif (isfolder) then
     WriteConfig();
 end

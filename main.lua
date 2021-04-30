@@ -1,6 +1,3 @@
----@diagnostic disable: undefined-field
-Debug = true
-
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     repeat wait() until game:IsLoaded();
@@ -11,141 +8,159 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
 end
 
 if (setreadonly) then
-    setreadonly(string, false);
-
-    ---Returns true if the sequence of elements of searchString converted to a String is the same as the corresponding elements of this object (converted to a String) starting at position. Otherwise returns fals
-    ---@param searchString string
-    ---@param rawPos number
-    ---@return string
-    string.startsWith = function(str, searchString, rawPos)
-        local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
-        return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
-    end
-
-    ---trims the string
-    ---@param str any
-    ---@return string
-    string.trim = function(str)
-        return str:gsub("^%s*(.-)%s*$", "%1");
-    end
-
     setreadonly(table, false);
-
-    ---The table.tbl_concat() method concatenates the string arguments to the calling string and returns a new string.
-    ---@return table
-    table.tbl_concat = function(...)
-        local new = {}
-        for i, v in next, {...} do
-            for i2, v2 in next, v do
-                table.insert(new, i, v2);
-            end
-        end
-        return new
-    end
-    ---The string.indexOf() method returns the index within the calling String object of the first occurrence of the specified value, starting the search at fromIndex. Returns -1 if the value is not found.
-    ---@param tbl table
-    ---@param val any
-    ---@return any
-    table.indexOf = function(tbl, val)
-        if (type(tbl) == 'table') then
-            for i, v in next, tbl do
-                if (v == val) then
-                    return i
-                end
-            end
-        end
-    end
-
-    ---The table.forEach() method executes a provided function once for each array element.
-    ---@param tbl table
-    ---@param ret function
-    table.forEach = function(tbl, ret)
-        for i, v in next, tbl do
-            ret(i,v);
-        end
-    end
-
-    ---The table.filter() method creates a new array with all elements that pass the test implemented by the provided function.
-    ---@param tbl table
-    ---@param ret function
-    ---@return table
-    table.filter = function(tbl, ret)
-        if (type(tbl) == 'table') then
+    setreadonly(string, false)
+else
+    local makewritable = function(global)
+        if (getfenv()[global]) then
             local new = {}
-            for i, v in next, tbl do
-                if (ret(i,v)) then
-                    table.insert(new, #new + 1, v);     
-                end
+            local old = getfenv()[global]
+            for i, v in next, old do
+                new[i] = v
             end
             return new
         end
+        return {}
     end
 
-    ---The table.map() method creates a new array populated with the results of calling a provided function on every element in the calling array
-    ---@param tbl table
-    ---@param ret function
-    ---@return table
-    table.map = function(tbl, ret)
-        if (type(tbl) == 'table') then
-            local new = {}
-            for i, v in next, tbl do
-                table.insert(new, #new + 1, ret(i,v));
-            end
-            return new
-        end
-    end
-
-    ---deepsearches a table with the callback on each value
-    ---@param tbl table
-    ---@param ret function
-    table.deepsearch = function(tbl, ret)
-        if (type(tbl) == 'table') then
-            for i, v in next, tbl do
-                if (type(v) == 'table') then
-                    table.deepsearch(v, ret);
-                end
-                ret(i,v);
-            end
-        end
-    end
-
-    ---The flat() method creates a new array with all sub-array elements concatenated into it recursively up to the specified depth
-    ---@param tbl table
-    ---@return table
-    table.flat = function(tbl)
-        if (type(tbl) == 'table') then
-            local new = {}
-            table.deepsearch(tbl, function(i, v)
-                if (type(v) ~= 'table') then
-                    new[#new + 1] = v
-                end
-            end)
-            return new
-        end
-    end
-
-    ---The flatMap() method returns a new array formed by applying a given callback function to each element of the array, and then flattening the result by one level. It is identical to a map() followed by a flat() of depth 1, but slightly more efficient than calling those two methods separately.
-    ---@param tbl table
-    ---@param ret function
-    ---@return table
-    table.flatMap = function(tbl, ret)
-        if (type(tbl) == 'table') then
-            local new = table.flat(table.map(tbl, ret));
-            return new           
-        end
-    end
-
-    ---The table.shift() method removes the first element from an array and returns that removed element. This method changes the length of the array.
-    ---@param tbl any
-    table.shift = function(tbl)
-        if (type(tbl) == 'table') then
-            local firstVal = tbl[1]
-            tbl = table.pack(table.unpack(tbl, 2, #tbl));
-            tbl.n = nil
-            return tbl
-        end
-    end
+    table = makewritable("table");
+    string = makewritable("string");
 end
+
+---Returns true if the sequence of elements of searchString converted to a String is the same as the corresponding elements of this object (converted to a String) starting at position. Otherwise returns fals
+---@param searchString string
+---@param rawPos number
+---@return string
+string.startsWith = function(str, searchString, rawPos)
+	local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
+	return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
+end
+
+---trims the string
+---@param str any
+---@return string
+string.trim = function(str)
+	return str:gsub("^%s*(.-)%s*$", "%1");
+end
+
+---The table.tbl_concat() method concatenates the string arguments to the calling string and returns a new string.
+---@return table
+table.tbl_concat = function(...)
+	local new = {}
+	for i, v in next, {
+		...
+	} do
+		for i2, v2 in next, v do
+			table.insert(new, i, v2);
+		end
+	end
+	return new
+end
+
+---The string.indexOf() method returns the index within the calling String object of the first occurrence of the specified value, starting the search at fromIndex. Returns -1 if the value is not found.
+---@param tbl table
+---@param val any
+---@return any
+table.indexOf = function(tbl, val)
+	if (type(tbl) == 'table') then
+		for i, v in next, tbl do
+			if (v == val) then
+				return i
+			end
+		end
+	end
+end
+
+---The table.forEach() method executes a provided function once for each array element.
+---@param tbl table
+---@param ret function
+table.forEach = function(tbl, ret)
+	for i, v in next, tbl do
+		ret(i, v);
+	end
+end
+
+---The table.filter() method creates a new array with all elements that pass the test implemented by the provided function.
+---@param tbl table
+---@param ret function
+---@return table
+table.filter = function(tbl, ret)
+	if (type(tbl) == 'table') then
+		local new = {}
+		for i, v in next, tbl do
+			if (ret(i, v)) then
+				table.insert(new, #new + 1, v);
+			end
+		end
+		return new
+	end
+end
+
+---The table.map() method creates a new array populated with the results of calling a provided function on every element in the calling array
+---@param tbl table
+---@param ret function
+---@return table
+table.map = function(tbl, ret)
+	if (type(tbl) == 'table') then
+		local new = {}
+		for i, v in next, tbl do
+			table.insert(new, #new + 1, ret(i, v));
+		end
+		return new
+	end
+end
+
+---deepsearches a table with the callback on each value
+---@param tbl table
+---@param ret function
+table.deepsearch = function(tbl, ret)
+	if (type(tbl) == 'table') then
+		for i, v in next, tbl do
+			if (type(v) == 'table') then
+				table.deepsearch(v, ret);
+			end
+			ret(i, v);
+		end
+	end
+end
+
+---The flat() method creates a new array with all sub-array elements concatenated into it recursively up to the specified depth
+---@param tbl table
+---@return table
+table.flat = function(tbl)
+	if (type(tbl) == 'table') then
+		local new = {}
+		table.deepsearch(tbl, function(i, v)
+			if (type(v) ~= 'table') then
+				new[#new + 1] = v
+			end
+		end)
+		return new
+	end
+end
+
+---The flatMap() method returns a new array formed by applying a given callback function to each element of the array, and then flattening the result by one level. It is identical to a map() followed by a flat() of depth 1, but slightly more efficient than calling those two methods separately.
+---@param tbl table
+---@param ret function
+---@return table
+table.flatMap = function(tbl, ret)
+	if (type(tbl) == 'table') then
+		local new = table.flat(table.map(tbl, ret));
+		return new
+	end
+end
+
+---The table.shift() method removes the first element from an array and returns that removed element. This method changes the length of the array.
+---@param tbl any
+table.shift = function(tbl)
+	if (type(tbl) == 'table') then
+		local firstVal = tbl[1]
+		tbl = table.pack(table.unpack(tbl, 2, #tbl));
+		tbl.n = nil
+		return tbl
+	end
+end
+
 
 -- local OldEnv, Mt = getfenv() or function()
 --     return _ENV
@@ -825,7 +840,7 @@ function Utils.ClearAllObjects(Object)
     end
 end
 
-function Utils.Rainbow(TextObject)
+function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 	local Text = TextObject.Text
 	local Frequency = 1 -- determines how quickly it repeats
 	local TotalCharacters = 0
@@ -867,7 +882,11 @@ function Utils.Rainbow(TextObject)
 		end
 	end)()
 
-    return TextObject
+	RobloxScroller.DescendantRemoving:Connect(function(v)
+		if (v == TextObject) then
+			Destroyed = true
+		end
+	end)
 end
 
 function Utils.Locate(Player, Color)
@@ -901,8 +920,8 @@ function Utils.Locate(Player, Color)
             Color.TextSize = 8
 
             local EspLoop = RunService.Heartbeat:Connect(function()
-                local Humanoid = GetCharacter(Player) and GetHumanoid(Player) or nil
-                local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player) or nil
+                local Humanoid = GetCharacter(Player) and GetHumanoid(Player);
+                local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player);
                 if (Humanoid and HumanoidRootPart) then
                     local Distance = math.floor((Workspace.CurrentCamera.CFrame.p - HumanoidRootPart.CFrame.p).Magnitude)
                     Color.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
@@ -916,6 +935,32 @@ function Utils.Locate(Player, Color)
     end)()
 
     return Billboard
+end
+
+function Utils.AddTag(Tag)
+    local PlrCharacter = GetCharacter(Tag.Player)
+    if (not PlrCharacter) then
+        return
+    end
+    local Billboard = Instance.new("BillboardGui");
+    Billboard.Parent = UI
+    Billboard.Name = HttpService:GenerateGUID();
+    Billboard.AlwaysOnTop = true
+    Billboard.Adornee = PlrCharacter.Head
+    Billboard.Size = UDim2.new(0, 200, 0, 50)
+    Billboard.StudsOffset = Vector3.new(0, 4, 0);
+
+    local TextLabel = Instance.new("TextLabel", Billboard);
+    TextLabel.Name = HttpService:GenerateGUID();
+    TextLabel.TextStrokeTransparency = 0.6
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.TextColor3 = Color3.new(0, 255, 0);
+    TextLabel.Size = UDim2.new(0, 200, 0, 50);
+    TextLabel.TextScaled = false
+    TextLabel.TextSize = 10
+    TextLabel.Text = ("%s (%s)"):format(Tag.Name, Tag.Tag);
+
+    Utils.Rainbow(TextLabel)
 end
 
 
@@ -1028,7 +1073,7 @@ end
 
 --- gets the function of the command 
 ---@param name string
-local LoadCommand = function(name)
+LoadCommand = function(name)
     local Command = rawget(CommandsTable, name);
     if (Command) then
         return Command
@@ -1104,7 +1149,7 @@ AddConnection = function(Connection, Tbl)
     end
 end
 
-if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
+if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
     local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
@@ -1135,7 +1180,7 @@ if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fa
             warn(("Error in plugin %s: %s"):format(v[1], Err));
         end
     end
-else
+elseif (isfolder) then
     WriteConfig();
 end
 
@@ -1292,6 +1337,9 @@ end)
 
 AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        table.insert(Tbl, v);
+    end
     repeat
         for i, v in next, Target do
             repeat
@@ -1332,6 +1380,7 @@ end)
 AddCommand("unloopkill", {"unlkill"}, "unloopkills a user", {3,"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]); -- not really needed but
     LoadCommand("loopkill").CmdExtra = {}
+    LoadCommand("loopkill2").CmdExtra = {}
     return "loopkill disabled"
 end)
 
@@ -1363,7 +1412,7 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart");
         wait(1);
-    until not GetPlayer(Args[1])
+    until not next(LoadCommand("loopkill2").CmdExtra) or GetPlayer(Args[1])
 end)
 
 AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
@@ -2370,7 +2419,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
     end
 end)
 
-AddCommand("unloopmuteboobmox", {}, "unloopmutes a persons boombox", {"1"}, function(Caller, Args)
+AddCommand("unloopmuteboombox", {}, "unloopmutes a persons boombox", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1])
     local Looped = LoadCommand("loopmuteboombox").CmdExtra
     for i, v in next, Target do
@@ -2787,10 +2836,9 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     });
 
     GlobalChatLogsEnabled = true
-    if (not websocket1) then
-        local websockets = WebSocket or (syn and syn.websocket)
-        websocket1 = websockets.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
-        websocket1.OnMessage:Connect(function(msg)
+    if (not Socket) then
+        Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
+        Socket.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);
                 local Clone = GlobalChatLogMessage:Clone();
@@ -3357,7 +3405,7 @@ PlrChat = function(i, plr)
                 userid = LocalPlayer.UserId,
                 message = message
             }
-            websocket1:Send(HttpService:JSONEncode(Message));
+            Socket:Send(HttpService:JSONEncode(Message));
         end
 
         if (raw:startsWith("/e")) then
@@ -3397,8 +3445,8 @@ PlrChat = function(i, plr)
     end)
 end
 
-while (websocket1 and wait(30)) do
-    websocket1:Send("ping");
+while (Socket and wait(30)) do
+    Socket:Send("ping");
 end
 
 PlayerTags = {
@@ -3921,10 +3969,6 @@ table.forEach(CurrentPlayers, function(i,v)
     v.CharacterAdded:Connect(function()
         RespawnTimes[v.Name] = tick()
     end)
-    local PlrTag = PlayerTags[SHA256(tostring(v.UserId)):sub(1, 10)]
-    if (PlrTag) then
-        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(PlrTag.Name, PlrTag.Tag))
-    end
 end);
 
 Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
@@ -3933,8 +3977,10 @@ Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    if (PlayerTags[SHA256(tostring(Plr.UserId)):sub(1, 10)]) then
-        Utils.Notify(LocalPlayer, "", ("%s (%s) has joined"))
+    local Tag = PlayerTags[SHA256(tostring(plr.UserId)):sub(1, 10)]
+    if (Tag and plr ~= LocalPlayer) then
+        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
+        Utils.AddTag(Tag);
     end
 end)
 
