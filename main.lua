@@ -293,7 +293,7 @@ local SetConfig = function(conf)
     end
 end
 
-local Prefix = GetConfig().Prefix or "!"
+local Prefix = isfolder and GetConfig().Prefix "!"
 local AdminUsers = AdminUsers or {}
 local Exceptions = Exceptions or {}
 local Connections = {
