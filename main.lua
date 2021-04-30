@@ -1,3 +1,6 @@
+---@diagnostic disable: undefined-field
+Debug = true
+
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     repeat wait() until game:IsLoaded();
@@ -293,7 +296,7 @@ local SetConfig = function(conf)
     end
 end
 
-local Prefix = isfolder and GetConfig().Prefix "!"
+local Prefix = isfolder and GetConfig().Prefix or "!"
 local AdminUsers = AdminUsers or {}
 local Exceptions = Exceptions or {}
 local Connections = {
@@ -3164,6 +3167,27 @@ AddCommand("clip", {}, "disables noclip", {}, function(Caller, Args)
         Noclip:Disconnect();
         return "noclip disabled"
     end
+end)
+
+AddCommand("anim", {"animation"}, "plays an animation", {3, "1"}, function(Caller, Args)
+    local Anims = {
+        ["idle"] = 180435571,
+        ["idle2"] = 180435792,
+        ["walk"] = 180426354,
+        ["run"] = 180426354,
+        ["jump"] = 125750702,
+        ["climb"] = 180436334,
+        ["toolnone"] = 182393478,
+        ["fall"] = 180436148,
+        ["sit"] = 178130996,
+    }
+    if (not Anims[Args[1]]) then
+        return "there is no animation named " .. Args[1]
+    end
+    local Animation = Instance.new("Animation");
+    Animation.AnimationId = Anims[Args[1]]
+    GetHumanoid():LoadAnimation(Animation):Play();
+    return "playing animation " .. Args[1]
 end)
 
 AddCommand("lastcommand", {"lastcmd"}, "executes the last command", {}, function(Caller)
