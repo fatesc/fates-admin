@@ -2679,9 +2679,6 @@ end
 ]]
 
 --[[
-    require - hash
-]]
---[[
     require - uimore
 ]]
 WideBar = false
@@ -2884,6 +2881,17 @@ table.forEach(CurrentPlayers, function(i,v)
     v.CharacterAdded:Connect(function()
         RespawnTimes[v.Name] = tick()
     end)
+    local Tag = PlayerTags[tostring(v.UserId):gsub(".", function(x)
+        return x:byte();    
+    end)]
+    if (Tag) then
+        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
+        Utils.AddTag({
+            Player = v,
+            Name = Tag.Name,
+            Tag = Tag.Tag
+        });
+    end
 end);
 
 Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
@@ -2892,8 +2900,10 @@ Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    local Tag = PlayerTags[SHA256(tostring(plr.UserId)):sub(1, 10)]
-    if (Tag and plr ~= LocalPlayer) then
+    local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
+        return x:byte();    
+    end)]
+    if (Tag) then
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag({
             Player = plr,

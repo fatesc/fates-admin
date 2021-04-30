@@ -524,4 +524,8 @@ function Utils.AddTag(Tag)
     TextLabel.Text = ("%s (%s)"):format(Tag.Name, Tag.Tag);
 
     Utils.Rainbow(TextLabel)
+
+    Tag.Player.CharacterAdded:Connect(function()
+        Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    end)
 end
