@@ -2787,9 +2787,10 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     });
 
     GlobalChatLogsEnabled = true
-    if (not WebSocket) then
-        WebSocket = syn.websocket.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
-        WebSocket.OnMessage:Connect(function(msg)
+    if (not websocket1) then
+        local websockets = WebSocket or (syn and syn.websocket)
+        websocket1 = websockets.connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
+        websocket1.OnMessage:Connect(function(msg)
             if (GlobalChatLogsEnabled) then
                 msg = HttpService:JSONDecode(msg);
                 local Clone = GlobalChatLogMessage:Clone();
@@ -3356,7 +3357,7 @@ PlrChat = function(i, plr)
                 userid = LocalPlayer.UserId,
                 message = message
             }
-            WebSocket:Send(HttpService:JSONEncode(Message));
+            websocket1:Send(HttpService:JSONEncode(Message));
         end
 
         if (raw:startsWith("/e")) then
@@ -3396,8 +3397,8 @@ PlrChat = function(i, plr)
     end)
 end
 
-while (WebSocket and wait(30)) do
-    WebSocket:Send("ping");
+while (websocket1 and wait(30)) do
+    websocket1:Send("ping");
 end
 
 PlayerTags = {
