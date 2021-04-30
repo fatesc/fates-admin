@@ -4,7 +4,7 @@ UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
 
 Guis = {}
 local ParentGui
-local CommandBarPrefix = GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon
+local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands

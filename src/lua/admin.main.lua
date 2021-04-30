@@ -2372,13 +2372,22 @@ AddCommand("anim", {"animation"}, "plays an animation", {3, "1"}, function(Calle
         ["toolnone"] = 182393478,
         ["fall"] = 180436148,
         ["sit"] = 178130996,
+        ["dance"] = 182435998,
+        ["dance2"] = 182491277,
+        ["dance3"] = 182491423
     }
     if (not Anims[Args[1]]) then
         return "there is no animation named " .. Args[1]
     end
     local Animation = Instance.new("Animation");
-    Animation.AnimationId = Anims[Args[1]]
-    GetHumanoid():LoadAnimation(Animation):Play();
+    Animation.AnimationId = "rbxassetid://" .. Anims[Args[1]]
+    local LoadedAnimation = GetHumanoid():LoadAnimation(Animation);
+    LoadedAnimation:Play();
+    local Playing = LoadedAnimation:GetPropertyChangedSignal("IsPlaying"):Connect(function()
+        if (LoadedAnimation.IsPlaying ~= true) then
+            LoadedAnimation:Play(.1, 1, 10);
+        end
+    end)
     return "playing animation " .. Args[1]
 end)
 
@@ -2886,7 +2895,11 @@ Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     local Tag = PlayerTags[SHA256(tostring(plr.UserId)):sub(1, 10)]
     if (Tag and plr ~= LocalPlayer) then
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
-        Utils.AddTag(Tag);
+        Utils.AddTag({
+            Player = plr,
+            Name = Tag.Name,
+            Tag = Tag.Tag
+        });
     end
 end)
 
