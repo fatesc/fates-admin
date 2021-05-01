@@ -204,7 +204,7 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
 end)
 
 local function RainbowChatOnAdded(v)
-	if (v:IsA("TextButton")) then
+    if (v:IsA("TextButton")) then
         local Player = Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
         if (Player) then
             local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
@@ -214,7 +214,7 @@ local function RainbowChatOnAdded(v)
                 Utils.Rainbow(v);
             end
         end
-	end
+    end
 end
 
 coroutine.wrap(function()

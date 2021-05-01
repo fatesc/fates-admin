@@ -32,29 +32,29 @@ end
 ---@param rawPos number
 ---@return string
 string.startsWith = function(str, searchString, rawPos)
-	local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
-	return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
+    local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
+    return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
 end
 
 ---trims the string
 ---@param str any
 ---@return string
 string.trim = function(str)
-	return str:gsub("^%s*(.-)%s*$", "%1");
+    return str:gsub("^%s*(.-)%s*$", "%1");
 end
 
 ---The table.tbl_concat() method concatenates the string arguments to the calling string and returns a new string.
 ---@return table
 table.tbl_concat = function(...)
-	local new = {}
-	for i, v in next, {
-		...
-	} do
-		for i2, v2 in next, v do
-			table.insert(new, i, v2);
-		end
-	end
-	return new
+    local new = {}
+    for i, v in next, {
+        ...
+    } do
+        for i2, v2 in next, v do
+            table.insert(new, i, v2);
+        end
+    end
+    return new
 end
 
 ---The string.indexOf() method returns the index within the calling String object of the first occurrence of the specified value, starting the search at fromIndex. Returns -1 if the value is not found.
@@ -62,22 +62,22 @@ end
 ---@param val any
 ---@return any
 table.indexOf = function(tbl, val)
-	if (type(tbl) == 'table') then
-		for i, v in next, tbl do
-			if (v == val) then
-				return i
-			end
-		end
-	end
+    if (type(tbl) == 'table') then
+        for i, v in next, tbl do
+            if (v == val) then
+                return i
+            end
+        end
+    end
 end
 
 ---The table.forEach() method executes a provided function once for each array element.
 ---@param tbl table
 ---@param ret function
 table.forEach = function(tbl, ret)
-	for i, v in next, tbl do
-		ret(i, v);
-	end
+    for i, v in next, tbl do
+        ret(i, v);
+    end
 end
 
 ---The table.filter() method creates a new array with all elements that pass the test implemented by the provided function.
@@ -85,15 +85,15 @@ end
 ---@param ret function
 ---@return table
 table.filter = function(tbl, ret)
-	if (type(tbl) == 'table') then
-		local new = {}
-		for i, v in next, tbl do
-			if (ret(i, v)) then
-				table.insert(new, #new + 1, v);
-			end
-		end
-		return new
-	end
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            if (ret(i, v)) then
+                table.insert(new, #new + 1, v);
+            end
+        end
+        return new
+    end
 end
 
 ---The table.map() method creates a new array populated with the results of calling a provided function on every element in the calling array
@@ -101,42 +101,42 @@ end
 ---@param ret function
 ---@return table
 table.map = function(tbl, ret)
-	if (type(tbl) == 'table') then
-		local new = {}
-		for i, v in next, tbl do
-			table.insert(new, #new + 1, ret(i, v));
-		end
-		return new
-	end
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            table.insert(new, #new + 1, ret(i, v));
+        end
+        return new
+    end
 end
 
 ---deepsearches a table with the callback on each value
 ---@param tbl table
 ---@param ret function
 table.deepsearch = function(tbl, ret)
-	if (type(tbl) == 'table') then
-		for i, v in next, tbl do
-			if (type(v) == 'table') then
-				table.deepsearch(v, ret);
-			end
-			ret(i, v);
-		end
-	end
+    if (type(tbl) == 'table') then
+        for i, v in next, tbl do
+            if (type(v) == 'table') then
+                table.deepsearch(v, ret);
+            end
+            ret(i, v);
+        end
+    end
 end
 
 ---The flat() method creates a new array with all sub-array elements concatenated into it recursively up to the specified depth
 ---@param tbl table
 ---@return table
 table.flat = function(tbl)
-	if (type(tbl) == 'table') then
-		local new = {}
-		table.deepsearch(tbl, function(i, v)
-			if (type(v) ~= 'table') then
-				new[#new + 1] = v
-			end
-		end)
-		return new
-	end
+    if (type(tbl) == 'table') then
+        local new = {}
+        table.deepsearch(tbl, function(i, v)
+            if (type(v) ~= 'table') then
+                new[#new + 1] = v
+            end
+        end)
+        return new
+    end
 end
 
 ---The flatMap() method returns a new array formed by applying a given callback function to each element of the array, and then flattening the result by one level. It is identical to a map() followed by a flat() of depth 1, but slightly more efficient than calling those two methods separately.
@@ -144,31 +144,31 @@ end
 ---@param ret function
 ---@return table
 table.flatMap = function(tbl, ret)
-	if (type(tbl) == 'table') then
-		local new = table.flat(table.map(tbl, ret));
-		return new
-	end
+    if (type(tbl) == 'table') then
+        local new = table.flat(table.map(tbl, ret));
+        return new
+    end
 end
 
 ---The table.shift() method removes the first element from an array and returns that removed element. This method changes the length of the array.
 ---@param tbl any
 table.shift = function(tbl)
-	if (type(tbl) == 'table') then
-		local firstVal = tbl[1]
-		tbl = table.pack(table.unpack(tbl, 2, #tbl));
-		tbl.n = nil
-		return tbl
-	end
+    if (type(tbl) == 'table') then
+        local firstVal = tbl[1]
+        tbl = table.pack(table.unpack(tbl, 2, #tbl));
+        tbl.n = nil
+        return tbl
+    end
 end
 
 table.keys = function(tbl)
-	if (type(tbl) == 'table') then
-		local new = {}
-		for i, v in next, tbl do
-			new[#new + 1] = i	
-		end
-		return new
-	end
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            new[#new + 1] = i	
+        end
+        return new
+    end
 end
 
 -- local OldEnv, Mt = getfenv() or function()
@@ -850,53 +850,53 @@ function Utils.ClearAllObjects(Object)
 end
 
 function Utils.Rainbow(TextObject)
-	local Text = TextObject.Text
-	local Frequency = 1 -- determines how quickly it repeats
-	local TotalCharacters = 0
-	local Strings = {}
-	local Destroyed = false
+    local Text = TextObject.Text
+    local Frequency = 1 -- determines how quickly it repeats
+    local TotalCharacters = 0
+    local Strings = {}
+    local Destroyed = false
 
-	TextObject.RichText = true
+    TextObject.RichText = true
 
-	for Character in string.gmatch(Text, ".") do
-		if string.match(Character, "%s") then
-			table.insert(Strings, Character)
-		else
-			TotalCharacters = TotalCharacters + 1
-			table.insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
-		end
-	end
+    for Character in string.gmatch(Text, ".") do
+        if string.match(Character, "%s") then
+            table.insert(Strings, Character)
+        else
+            TotalCharacters = TotalCharacters + 1
+            table.insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
+        end
+    end
 
-	coroutine.wrap(function()
-		while RunService.Heartbeat:Wait() do
+    coroutine.wrap(function()
+        while RunService.Heartbeat:Wait() do
             if (not getgenv().F_A) then break end
-			if (Destroyed) then break end
+            if (Destroyed) then break end
 
-			local String = ""
-			local Counter = TotalCharacters
+            local String = ""
+            local Counter = TotalCharacters
 
-			for _, CharacterTable in ipairs(Strings) do
-				local Concat = "" 
+            for _, CharacterTable in ipairs(Strings) do
+                local Concat = "" 
 
-				if (type(CharacterTable) == "table") then
-					Counter = Counter - 1
-					local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+                if (type(CharacterTable) == "table") then
+                    Counter = Counter - 1
+                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
 
-					CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
-				end
+                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+                end
 
-				String = String .. CharacterTable
-			end
+                String = String .. CharacterTable
+            end
 
-			TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
-		end
-	end)()
+            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+        end
+    end)()
 
     RobloxScroller.DescendantRemoving:Connect(function(v)
-		if (v == TextObject) then
-			Destroyed = true
-		end
-	end)
+        if (v == TextObject) then
+            Destroyed = true
+        end
+    end)
 end
 
 function Utils.Locate(Player, Color)
@@ -2195,17 +2195,17 @@ AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
 end)
 
 AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Caller, Args)
-	local Tools = {}
-	for i, v in next, table.tbl_concat(LocalPlayer.Character:GetChildren(), LocalPlayer.Backpack:GetChildren()) do
-		if (v:IsA("Tool")) then
-			Tools[#Tools + 1] = v
-		end
-	end
+    local Tools = {}
+    for i, v in next, table.tbl_concat(LocalPlayer.Character:GetChildren(), LocalPlayer.Backpack:GetChildren()) do
+        if (v:IsA("Tool")) then
+            Tools[#Tools + 1] = v
+        end
+    end
     AddConnection(LocalPlayer.Character.ChildAdded:Connect(function(x)
-		if not (table.find(Tools, x)) then
-			x:Destroy();
-		end
-	end))
+        if not (table.find(Tools, x)) then
+            x:Destroy();
+        end
+    end))
 end)
 
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)
@@ -3729,15 +3729,17 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
 end)
 
 local function RainbowChatOnAdded(v)
-	if (v:IsA("TextButton")) then
+    if (v:IsA("TextButton")) then
         local Player = Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
-        local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
-            return x:byte();    
-        end)]
-        if (Tag and Tag.Rainbow) then
-            Utils.Rainbow(v);
+        if (Player) then
+            local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
+                return x:byte();    
+            end)]
+            if (Tag and Tag.Rainbow) then
+                Utils.Rainbow(v);
+            end
         end
-	end
+    end
 end
 
 coroutine.wrap(function()

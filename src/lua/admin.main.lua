@@ -1374,17 +1374,17 @@ AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
 end)
 
 AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Caller, Args)
-	local Tools = {}
-	for i, v in next, table.tbl_concat(LocalPlayer.Character:GetChildren(), LocalPlayer.Backpack:GetChildren()) do
-		if (v:IsA("Tool")) then
-			Tools[#Tools + 1] = v
-		end
-	end
+    local Tools = {}
+    for i, v in next, table.tbl_concat(LocalPlayer.Character:GetChildren(), LocalPlayer.Backpack:GetChildren()) do
+        if (v:IsA("Tool")) then
+            Tools[#Tools + 1] = v
+        end
+    end
     AddConnection(LocalPlayer.Character.ChildAdded:Connect(function(x)
-		if not (table.find(Tools, x)) then
-			x:Destroy();
-		end
-	end))
+        if not (table.find(Tools, x)) then
+            x:Destroy();
+        end
+    end))
 end)
 
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)

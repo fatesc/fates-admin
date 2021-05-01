@@ -404,53 +404,53 @@ function Utils.ClearAllObjects(Object)
 end
 
 function Utils.Rainbow(TextObject)
-	local Text = TextObject.Text
-	local Frequency = 1 -- determines how quickly it repeats
-	local TotalCharacters = 0
-	local Strings = {}
-	local Destroyed = false
+    local Text = TextObject.Text
+    local Frequency = 1 -- determines how quickly it repeats
+    local TotalCharacters = 0
+    local Strings = {}
+    local Destroyed = false
 
-	TextObject.RichText = true
+    TextObject.RichText = true
 
-	for Character in string.gmatch(Text, ".") do
-		if string.match(Character, "%s") then
-			table.insert(Strings, Character)
-		else
-			TotalCharacters = TotalCharacters + 1
-			table.insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
-		end
-	end
+    for Character in string.gmatch(Text, ".") do
+        if string.match(Character, "%s") then
+            table.insert(Strings, Character)
+        else
+            TotalCharacters = TotalCharacters + 1
+            table.insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
+        end
+    end
 
-	coroutine.wrap(function()
-		while RunService.Heartbeat:Wait() do
+    coroutine.wrap(function()
+        while RunService.Heartbeat:Wait() do
             if (not getgenv().F_A) then break end
-			if (Destroyed) then break end
+            if (Destroyed) then break end
 
-			local String = ""
-			local Counter = TotalCharacters
+            local String = ""
+            local Counter = TotalCharacters
 
-			for _, CharacterTable in ipairs(Strings) do
-				local Concat = "" 
+            for _, CharacterTable in ipairs(Strings) do
+                local Concat = "" 
 
-				if (type(CharacterTable) == "table") then
-					Counter = Counter - 1
-					local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+                if (type(CharacterTable) == "table") then
+                    Counter = Counter - 1
+                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
 
-					CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
-				end
+                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+                end
 
-				String = String .. CharacterTable
-			end
+                String = String .. CharacterTable
+            end
 
-			TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
-		end
-	end)()
+            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+        end
+    end)()
 
     RobloxScroller.DescendantRemoving:Connect(function(v)
-		if (v == TextObject) then
-			Destroyed = true
-		end
-	end)
+        if (v == TextObject) then
+            Destroyed = true
+        end
+    end)
 end
 
 function Utils.Locate(Player, Color)
