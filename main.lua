@@ -881,15 +881,9 @@ function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 				String = String .. CharacterTable
 			end
 
-			TextObject.Text = String
+			TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
 		end
 	end)()
-
-	RobloxScroller.DescendantRemoving:Connect(function(v)
-		if (v == TextObject) then
-			Destroyed = true
-		end
-	end)
 end
 
 function Utils.Locate(Player, Color)
@@ -3486,6 +3480,11 @@ PlayerTags = {
     ["4c65f3f84d"] = {
         ["Tag"] = "Developer",
         ["Name"] = "fate",
+        ["Rainbow"] = true
+    },
+    ["a0f34ed2da"] = {
+        ["Tag"] = "Developer",
+        ["Name"] = "misrepresenting",
         ["Rainbow"] = true
     },
 }
