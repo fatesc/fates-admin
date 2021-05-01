@@ -202,3 +202,24 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
     writefile(Name, String);
     Utils.Notify(LocalPlayer, "Saved", "Chat logs saved!");
 end)
+
+local function RainbowChatOnAdded(v)
+	if (v:IsA("TextButton")) then
+        local Player = Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
+        local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
+            return x:byte();    
+        end)]
+        if (Tag and Tag.Rainbow) then
+            Utils.Rainbow(v);
+        end
+	end
+end
+
+coroutine.wrap(function()
+    for _, v in next, RobloxScroller:GetDescendants() do
+        RainbowChatOnAdded(v)
+        wait();
+    end
+end)()
+
+AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));

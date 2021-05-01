@@ -1,6 +1,3 @@
----@diagnostic disable: undefined-field
-Debug = true
-
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     repeat wait() until game:IsLoaded();
@@ -164,6 +161,15 @@ table.shift = function(tbl)
 	end
 end
 
+table.keys = function(tbl)
+	if (type(tbl) == 'table') then
+		local new = {}
+		for i, v in next, tbl do
+			new[#new + 1] = i	
+		end
+		return new
+	end
+end
 
 -- local OldEnv, Mt = getfenv() or function()
 --     return _ENV
@@ -843,7 +849,7 @@ function Utils.ClearAllObjects(Object)
     end
 end
 
-function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
+function Utils.Rainbow(TextObject)
 	local Text = TextObject.Text
 	local Frequency = 1 -- determines how quickly it repeats
 	local TotalCharacters = 0
@@ -863,6 +869,7 @@ function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 
 	coroutine.wrap(function()
 		while RunService.Heartbeat:Wait() do
+            if (not getgenv().F_A) then break end
 			if (Destroyed) then break end
 
 			local String = ""
@@ -884,6 +891,12 @@ function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 			TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
 		end
 	end)()
+
+    RobloxScroller.DescendantRemoving:Connect(function(v)
+		if (v == TextObject) then
+			Destroyed = true
+		end
+	end)
 end
 
 function Utils.Locate(Player, Color)
@@ -954,10 +967,16 @@ function Utils.AddTag(Tag)
     TextLabel.TextColor3 = Color3.new(0, 255, 0);
     TextLabel.Size = UDim2.new(0, 200, 0, 50);
     TextLabel.TextScaled = false
-    TextLabel.TextSize = 10
+    TextLabel.TextSize = 15
     TextLabel.Text = ("%s (%s)"):format(Tag.Name, Tag.Tag);
 
-    Utils.Rainbow(TextLabel)
+    if (Tag.Rainbow) then
+        Utils.Rainbow(TextLabel)
+    end
+
+    Tag.Player.CharacterAdded:Connect(function()
+        Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    end)
 end
 
 
@@ -2173,6 +2192,20 @@ end)
 AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
     GetCharacter()["Right Arm"]:Destroy();
     return "lol"
+end)
+
+AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Caller, Args)
+	local Tools = {}
+	for i, v in next, table.tbl_concat(LocalPlayer.Character:GetChildren(), LocalPlayer.Backpack:GetChildren()) do
+		if (v:IsA("Tool")) then
+			Tools[#Tools + 1] = v
+		end
+	end
+    AddConnection(LocalPlayer.Character.ChildAdded:Connect(function(x)
+		if not (table.find(Tools, x)) then
+			x:Destroy();
+		end
+	end))
 end)
 
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)
@@ -3477,126 +3510,19 @@ while (Socket and wait(30)) do
 end
 
 PlayerTags = {
-    ["4c65f3f84d"] = {
+    ["505156575355565455"] = {
         ["Tag"] = "Developer",
         ["Name"] = "fate",
-        ["Rainbow"] = true
+        ["Rainbow"] = true,
+        ["ForceField"] = true
     },
-    ["a0f34ed2da"] = {
+    ["555352544955574849"] = {
         ["Tag"] = "Developer",
         ["Name"] = "misrepresenting",
-        ["Rainbow"] = true
-    },
+        ["Rainbow"] = true,
+    }
 }
 
-SHA256 = function(mes)
-	local con = 4294967296
-	local ch = {
-		1779033703,
-		3144134277,
-		1013904242,
-		2773480762,
-		1359893119,
-		2600822924,
-		528734635,
-		1541459225
-	}
-	local k = {1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298}
-	 local function bit(obj, bit)
-		return obj % (bit * 2) >= bit
-	end
-	 local function Or(ca, cb)
-		local new = 0
-		for i = 0, 32 do
-			new = new + ((bit(ca, 2 ^ i) or bit(cb, 2 ^ i)) and 2 ^ i or 0)
-		end
-		return new
-	end
-	 local function rshift(obj, times)
-		times = times or 1
-		return math.floor(obj * .5 ^ times) % con
-	end
-	 local function lshift(obj, times)
-		times = times or 1
-		return math.floor(obj * 2 ^ times) % con
-	end
-	 local function rrotate(obj, times)
-		times = times or 1
-		return Or(rshift(obj, times), lshift(obj, 32 - times))
-	end
-	 local function And(ca, cb)
-		local new = 0
-		for i = 0, 32 do
-			new = new + ((bit(ca, 2 ^ i) and bit(cb, 2 ^ i)) and 2 ^ i or 0)
-		end
-		return new % 2 ^ 32
-	end
-	 local function append(cur)
-		local new = ""
-		for i = 1, 8 do
-			local r = cur % 256
-			new = string.char(r) .. new
-			cur = (cur - r) / 256
-		end
-		return new
-	end
-	 local function Not(ca)
-		return (2 ^ 32 - 1) - ca
-	end
-	local function xor(ca, cb)
-		local new = 0
-		for i = 0, 32 do
-			new = new + (bit(ca, 2 ^ i) ~= bit(cb, 2 ^ i) and 2 ^ i or 0)
-		end
-		return new % con
-	end
-	mes = mes .. "\128" .. ("\0"):rep(64 - ((#mes + 9) % 64)) .. append(#mes * 8)
-	local Chunks = {}
-	for i = 1, #mes, 64 do
-		table.insert(Chunks, mes:sub(i, i + 63))
-	end
-	for _, Chunk in next, Chunks do
-		local w = {}
-		for i = 0, 15 do
-			w[i] = (function()
-				local n = 0
-				for q = 1, 4 do
-					n = n * 256 + Chunk:byte(i * 4 + q)
-				end
-				return n
-			end)()
-		end
-		for i = 16, 63 do
-			local s0 = xor(xor(rrotate(w[i - 15], 7), rrotate(w[i - 15], 18)), rshift(w[i - 15], 3))
-			local s1 = xor(xor(rrotate(w[i - 2], 17), rrotate(w[i - 2], 19)), rshift(w[i - 2], 10))
-			w[i] = (w[i - 16] + s0 + w[i - 7] + s1) % con
-		end
-		local a, b, c, d, e, f, g, h = unpack(ch)
-		for i = 0, 63 do
-			local s0 = xor(xor(rrotate(a, 2), rrotate(a, 13)), rrotate(a, 22))
-			local s1 = xor(xor(rrotate(e, 6), rrotate(e, 11)), rrotate(e, 25))
-			local t0 = h + s1 + xor(And(e, f), And(Not(e), g)) + k[i + 1] + w[i]
-			local t1 = s0 + xor(xor(And(a, b), And(a, c)), And(b, c))
-			h = g
-			g = f
-			f = e
-			e = (d + t0) % con
-			d = c
-			c = b
-			b = a
-			a = (t0 + t1) % con
-		end
-		ch[1] = (ch[1] + a) % con
-		ch[2] = (ch[2] + b) % con
-		ch[3] = (ch[3] + c) % con
-		ch[4] = (ch[4] + d) % con
-		ch[5] = (ch[5] + e) % con
-		ch[6] = (ch[6] + f) % con
-		ch[7] = (ch[7] + g) % con
-		ch[8] = (ch[8] + h) % con
-	end
-	return ("%08x%08x%08x%08x%08x%08x%08x%08x"):format(unpack(ch))
-end
 -- parent ui function
 ParentGui = function(Gui)
     Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
@@ -3801,6 +3727,27 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
     writefile(Name, String);
     Utils.Notify(LocalPlayer, "Saved", "Chat logs saved!");
 end)
+
+local function RainbowChatOnAdded(v)
+	if (v:IsA("TextButton")) then
+        local Player = Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
+        local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
+            return x:byte();    
+        end)]
+        if (Tag and Tag.Rainbow) then
+            Utils.Rainbow(v);
+        end
+	end
+end
+
+coroutine.wrap(function()
+    for _, v in next, RobloxScroller:GetDescendants() do
+        RainbowChatOnAdded(v)
+        wait();
+    end
+end)()
+
+AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
 WideBar = false
 Draggable = false
 Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
@@ -3995,29 +3942,51 @@ end
 
 CurrentPlayers = Players:GetPlayers();
 
-table.forEach(CurrentPlayers, function(i,v)
-    PlrChat(i,v);
-    RespawnTimes[v.Name] = tick();
-    v.CharacterAdded:Connect(function()
-        RespawnTimes[v.Name] = tick()
-    end)
-end);
-
-Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
-    PlrChat(#Connections.Players + 1, plr);
+local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    local Tag = PlayerTags[SHA256(tostring(plr.UserId)):sub(1, 10)]
-    if (Tag and plr ~= LocalPlayer) then
+    local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
+        return x:byte();    
+    end)]
+    if (Tag and not plr == LocalPlayer) then
+        Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
-        Utils.AddTag({
-            Player = plr,
-            Name = Tag.Name,
-            Tag = Tag.Tag
-        });
+        Utils.AddTag(Tag);
+        coroutine.wrap(function()
+            if (not plr.Character) then
+                plr.CharacterAdded:Wait();
+            end
+            if (Tag.ForceField) then
+                for i, v in next, plr.Character:GetChildren() do
+                    if (v:IsA("Part")) then
+                        v.Material = "ForceField"
+                    end
+                end
+            end
+            local Added = plr.CharacterAdded:Connect(function()
+                if (Tag.ForceField) then
+                    for i, v in next, plr.Character:GetChildren() do
+                        if (v:IsA("Part")) then
+                            v.Material = "ForceField"
+                        end
+                    end
+                end
+            end)
+            AddConnection(Added);
+        end)()
     end
+end
+
+table.forEach(CurrentPlayers, function(i,v)
+    PlrChat(i,v);
+    PlayerAdded(v);
+end);
+
+Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
+    PlrChat(#Connections.Players + 1, plr);
+    PlayerAdded(plr);
 end)
 
 Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)

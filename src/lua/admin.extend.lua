@@ -152,6 +152,15 @@ table.shift = function(tbl)
 	end
 end
 
+table.keys = function(tbl)
+	if (type(tbl) == 'table') then
+		local new = {}
+		for i, v in next, tbl do
+			new[#new + 1] = i	
+		end
+		return new
+	end
+end
 
 -- local OldEnv, Mt = getfenv() or function()
 --     return _ENV

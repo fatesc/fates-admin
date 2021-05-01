@@ -403,7 +403,7 @@ function Utils.ClearAllObjects(Object)
     end
 end
 
-function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
+function Utils.Rainbow(TextObject)
 	local Text = TextObject.Text
 	local Frequency = 1 -- determines how quickly it repeats
 	local TotalCharacters = 0
@@ -423,6 +423,7 @@ function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 
 	coroutine.wrap(function()
 		while RunService.Heartbeat:Wait() do
+            if (not getgenv().F_A) then break end
 			if (Destroyed) then break end
 
 			local String = ""
@@ -441,11 +442,11 @@ function Utils.Rainbow(TextObject) -- @misrepresenting please fix this
 				String = String .. CharacterTable
 			end
 
-			TextObject.Text = String
+			TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
 		end
 	end)()
 
-	RobloxScroller.DescendantRemoving:Connect(function(v)
+    RobloxScroller.DescendantRemoving:Connect(function(v)
 		if (v == TextObject) then
 			Destroyed = true
 		end
@@ -520,10 +521,12 @@ function Utils.AddTag(Tag)
     TextLabel.TextColor3 = Color3.new(0, 255, 0);
     TextLabel.Size = UDim2.new(0, 200, 0, 50);
     TextLabel.TextScaled = false
-    TextLabel.TextSize = 10
+    TextLabel.TextSize = 15
     TextLabel.Text = ("%s (%s)"):format(Tag.Name, Tag.Tag);
 
-    Utils.Rainbow(TextLabel)
+    if (Tag.Rainbow) then
+        Utils.Rainbow(TextLabel)
+    end
 
     Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");

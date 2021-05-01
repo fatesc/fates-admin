@@ -1373,6 +1373,20 @@ AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
     return "lol"
 end)
 
+AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Caller, Args)
+	local Tools = {}
+	for i, v in next, table.tbl_concat(LocalPlayer.Character:GetChildren(), LocalPlayer.Backpack:GetChildren()) do
+		if (v:IsA("Tool")) then
+			Tools[#Tools + 1] = v
+		end
+	end
+    AddConnection(LocalPlayer.Character.ChildAdded:Connect(function(x)
+		if not (table.find(Tools, x)) then
+			x:Destroy();
+		end
+	end))
+end)
+
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)
     local Target, Option = GetPlayer(Args[1]), Args[2] or "" 
     local Backpack, Character = LocalPlayer.Backpack, GetCharacter();
@@ -2875,27 +2889,7 @@ end
 
 CurrentPlayers = Players:GetPlayers();
 
-table.forEach(CurrentPlayers, function(i,v)
-    PlrChat(i,v);
-    RespawnTimes[v.Name] = tick();
-    v.CharacterAdded:Connect(function()
-        RespawnTimes[v.Name] = tick()
-    end)
-    local Tag = PlayerTags[tostring(v.UserId):gsub(".", function(x)
-        return x:byte();    
-    end)]
-    if (Tag) then
-        Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
-        Utils.AddTag({
-            Player = v,
-            Name = Tag.Name,
-            Tag = Tag.Tag
-        });
-    end
-end);
-
-Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
-    PlrChat(#Connections.Players + 1, plr);
+local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
@@ -2903,14 +2897,43 @@ Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
         return x:byte();    
     end)]
-    if (Tag) then
+    if (Tag and not plr == LocalPlayer) then
+        Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
-        Utils.AddTag({
-            Player = plr,
-            Name = Tag.Name,
-            Tag = Tag.Tag
-        });
+        Utils.AddTag(Tag);
+        coroutine.wrap(function()
+            if (not plr.Character) then
+                plr.CharacterAdded:Wait();
+            end
+            if (Tag.ForceField) then
+                for i, v in next, plr.Character:GetChildren() do
+                    if (v:IsA("Part")) then
+                        v.Material = "ForceField"
+                    end
+                end
+            end
+            local Added = plr.CharacterAdded:Connect(function()
+                if (Tag.ForceField) then
+                    for i, v in next, plr.Character:GetChildren() do
+                        if (v:IsA("Part")) then
+                            v.Material = "ForceField"
+                        end
+                    end
+                end
+            end)
+            AddConnection(Added);
+        end)()
     end
+end
+
+table.forEach(CurrentPlayers, function(i,v)
+    PlrChat(i,v);
+    PlayerAdded(v);
+end);
+
+Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
+    PlrChat(#Connections.Players + 1, plr);
+    PlayerAdded(plr);
 end)
 
 Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)
