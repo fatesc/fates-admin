@@ -162,30 +162,6 @@ table.keys = function(tbl)
     end
 end
 
--- local OldEnv, Mt = getfenv() or function()
---     return _ENV
--- end, {
---     __index = function(self, key)
---         return table[key]
---     end
--- }
--- local NewEnv = setmetatable({}, {
---     __index = function(self, key)
---         return OldEnv[key]
---     end,
---     __newindex = function(self, key, val)
---         if (type(val) == 'table') then
---             setmetatable(val, Mt);
---         end
---         OldEnv[key] = val
---         return val
---     end
--- });
--- if (_ENV) then
---     _ENV = NewEnv
--- else
---     setfenv(1, NewEnv);
--- end
 local touched = {}
 firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then

@@ -171,30 +171,6 @@ table.keys = function(tbl)
     end
 end
 
--- local OldEnv, Mt = getfenv() or function()
---     return _ENV
--- end, {
---     __index = function(self, key)
---         return table[key]
---     end
--- }
--- local NewEnv = setmetatable({}, {
---     __index = function(self, key)
---         return OldEnv[key]
---     end,
---     __newindex = function(self, key, val)
---         if (type(val) == 'table') then
---             setmetatable(val, Mt);
---         end
---         OldEnv[key] = val
---         return val
---     end
--- });
--- if (_ENV) then
---     _ENV = NewEnv
--- else
---     setfenv(1, NewEnv);
--- end
 local touched = {}
 firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then
@@ -374,7 +350,6 @@ GetPlayer = function(str)
     end
     return Players
 end
-
 
 UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
 
@@ -779,6 +754,8 @@ function Utils.Notify(Caller, Title, Message, Time)
         Connections["CloneClose" .. #Connections] = Clone.Close.MouseButton1Click:Connect(function()
             TweenDestroy()
         end)
+
+        return TweenDestroy
     else
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote:FireServer(("/w %s [FA] %s: %s"):format(Caller.Name, Title, Message), "All");
@@ -974,9 +951,20 @@ function Utils.AddTag(Tag)
         Utils.Rainbow(TextLabel)
     end
 
-    Tag.Player.CharacterAdded:Connect(function()
+    AddConnection(Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    end))
+end
+
+function Utils.TextFont(Text, RGB)
+    RGB = table.concat(RGB, ",")
+    local New = {}
+    Text:gsub(".", function(x)
+        New[#New + 1] = x
     end)
+    return table.concat(table.map(New, function(i, letter)
+        return ('<font color="rgb(%s)">%s</font>'):format(RGB, letter)
+    end)) .. " "
 end
 
 
@@ -1182,7 +1170,8 @@ if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and
 
                 Utils.Hover(Clone, "BackgroundColor3");
                 Utils.ToolTip(Clone, Cmd.Name .. "\n" .. Cmd.Description);
-                Clone.CommandText.Text = Cmd.Name .. (#Cmd.Aliases > 0 and " (" ..table.concat(Cmd.Aliases, ", ") .. ")" or "");
+                Clone.CommandText.RichText = true
+                Clone.CommandText.Text = ("%s %s %s"):format(Cmd.Name, next(Cmd.Aliases) and ("(%s)"):format(table.concat(Cmd.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
                 Clone.Name = Cmd.Name
                 Clone.Visible = true
                 Clone.Parent = Commands.Frame.List
@@ -1191,8 +1180,6 @@ if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and
                 warn(("Error in plugin %s: %s"):format(v[1], Err));
             end
         else
-            print(Executed)
-            print(Err)
             warn(("Error in plugin %s: %s"):format(v[1], Err));
         end
     end
@@ -2142,18 +2129,10 @@ AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on"
     end
 end)
 
-AddCommand("time", {"settime"}, "sets the games time", {}, function(Caller, Args)
+AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}}, function(Caller, Args)
     local Time = Args[1] and Args[1]:lower() or 14
     local Times = {["night"]=0,["day"]=14,["dawn"]=6}
     Lighting.ClockTime = Times[Time] or Time
-end)
-
-AddCommand("toolfling", {}, "touch a player with your tool out to fling then", {1,3}, function()
-    GetHumanoid():UnequipTools();
-    local Tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool");
-    Tool.GripPos = Vector3.new(math.huge, math.huge, math.huge);
-    Tool.Parent = GetCharacter();
-    return "touch a player with your tool out"
 end)
 
 AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
@@ -2227,9 +2206,9 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
                     wait();
                 else
                     Tool:Activate();
-                    firetouchinterest(Tool.Hitbox or Tool.Handle, GetRoot(v), 0);
+                    firetouchinterest(Tool.Handle, GetRoot(v), 0);
                     wait();
-                    firetouchinterest(Tool.Hitbox or Tool.Handle, GetRoot(v), 1);
+                    firetouchinterest(Tool.Handle, GetRoot(v), 1);
                     wait();
                 end
             end
@@ -2382,7 +2361,7 @@ AddCommand("nostreamermode", {"unstreamermode"}, "removes all the changed names"
     end
 end)
 
-AddCommand("fireclickdetectors", {}, "fires all the click detectors", {3}, function(Caller, Args)
+AddCommand("fireclickdetectors", {"fcd"}, "fires all the click detectors", {3}, function(Caller, Args)
     local amount = 0
     local howmany = Args[1]
     for i, v in next, Workspace:GetDescendants() do
@@ -2395,7 +2374,7 @@ AddCommand("fireclickdetectors", {}, "fires all the click detectors", {3}, funct
     return ("fired %d amount of clickdetectors"):format(amount);
 end)
 
-AddCommand("firetouchinterests", {}, "touches all touch transmitters", {3}, function(Caller, Args)
+AddCommand("firetouchinterests", {"fti"}, "fires all the touch interests", {3}, function(Caller, Args)
     local amount = 0
     local howmany = Args[1]
     for i, v in next, Workspace:GetDescendants() do
@@ -2408,6 +2387,21 @@ AddCommand("firetouchinterests", {}, "touches all touch transmitters", {3}, func
         end
     end
     return ("fired %d amount of touchtransmitters"):format(amount);
+end)
+
+AddCommand("fireproximityprompts", {"fpp"}, "fires all the proximity prompts", {3}, function(Caller, Args)
+    local amount = 0
+    local howmany = Args[1]
+    for i, v in next, Workspace:GetDescendants() do
+        if (v:IsA("ProximityPrompt")) then
+            fireproximityprompt(v, 0);
+            wait();
+            fireproximityprompt(v, 1);
+            amount = amount + 1
+            if (howmany and amount == tonumber(howmany)) then break; end
+        end
+    end
+    return ("fired %d amount of proximityprompts"):format(amount);
 end)
 
 SoundService.RespectFilteringEnabled = false
@@ -2637,6 +2631,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
         end)
         Tbl[#Tbl + 1] = Esp
+        AddPlayerConnection(Player, Esp);
     end);
 
     AddConnection(PlayerAddedConnection);
@@ -2885,6 +2880,9 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
                 GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
             end
         end)
+        while (Socket and wait(30)) do
+            Socket:Send("ping");
+        end
     end
 end)
 
@@ -3242,6 +3240,11 @@ AddCommand("whisper", {}, "whispers something to another user", {"2"}, function(
     end
 end)
 
+AddCommand("advertise", {}, "advertises the script", {}, function()
+    local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+    ChatRemote:FireServer("I am using fates admin, join the server 5epGRYR", "All");
+end)
+
 AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, function(Caller)
     if (Caller == LocalPlayer) then
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
@@ -3386,12 +3389,17 @@ AddCommand("setprefix", {}, "changes your prefix", {"1"}, function(Caller, Args)
     end
 end)
 
+AddCommand("setcommandbarprefix", {"setcprefix"}, "sets your command bar prefix to whatever you input", {}, function()
+    ChooseNewPrefix = true
+    local CloseNotif = Utils.Notify(LocalPlayer, "New Prefix", "Input the new prefix you would like to have", 7);
+end)
+
 AddCommand("saveprefix", {}, "saves your prefix", {}, function(Caller, Args)
-    if (GetConfig().Prefix == Prefix) then
+    if (GetConfig().Prefix == Prefix and Enum.KeyCode[GetConfig().CommandBarPrefix] == CommandBarPrefix) then
         return "nothing to save, prefix is the same"
     else
-        SetConfig({["Prefix"]=Prefix});
-        return "saved prefix " .. Prefix
+        SetConfig({["Prefix"]=Prefix,["CommandBarPrefix"]=tostring(CommandBarPrefix):split(".")[3]});
+        return "saved prefix"
     end
 end)
 
@@ -3443,15 +3451,23 @@ PlrChat = function(i, plr)
         local message = raw
 
         if (ChatLogsEnabled) then
+            local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
+                return x:byte()
+            end)]
+
             local time = os.date("%X");
-            local Text = ("%s - [%s]: %s"):format(time, plr.Name, raw);
+            local Text = ("%s - [%s]: %s"):format(time, Tag and Tag.Name or plr.Name, raw);
             local Clone = ChatLogMessage:Clone();
 
             Clone.Text = Text
             Clone.Visible = true
             Clone.TextTransparency = 1
             Clone.Parent = ChatLogs.Frame.List
-            
+
+            if (Tag and Tag.Rainbow) then
+                Utils.Rainbow(Clone);
+            end
+
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
             })
@@ -3503,10 +3519,6 @@ PlrChat = function(i, plr)
             end
         end
     end)
-end
-
-while (Socket and wait(30)) do
-    Socket:Send("ping");
 end
 
 PlayerTags = {
@@ -3586,6 +3598,13 @@ Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(In
                     Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
                 })
             end
+        end
+    elseif (not GameProccesed and ChooseNewPrefix) then
+        CommandBarPrefix = Input.KeyCode
+        Utils.Notify(LocalPlayer, "New Prefix", "Your new prefix is: " .. tostring(Input.KeyCode):split(".")[3]);
+        ChooseNewPrefix = false
+        if (writefile) then
+            Utils.Notify(LocalPlayer, nil, "use command saveprefix to save your prefix");
         end
     end
 end)
@@ -3750,43 +3769,6 @@ coroutine.wrap(function()
 end)()
 
 AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
-WideBar = false
-Draggable = false
-Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
-    local Text = CommandBar.Input.Text:trim();
-    local CommandArgs = Text:split(" ");
-
-    CommandBarOpen = false 
-
-    if (not Draggable) then
-        Utils.TweenAllTrans(CommandBar, .5)
-        Utils.Tween(CommandBar, "Quint", "Out", .5, {
-            Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5); -- tween 5
-        })
-    end
-
-    local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
-    local Args = table.shift(CommandArgs);
-
-    if (LoadedCommand and Command ~= "") then
-        if (LoadedCommand.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
-        end
-
-        local Success, Err = pcall(function()
-            local Executed = LoadedCommand.Function()(LocalPlayer, Args, LoadedCommand.CmdExtra);
-            if (Executed) then
-                Utils.Notify(plr, "Command", Executed);
-            end
-            LastCommand = {Command, LocalPlayer, Args, LoadedCommand.CmdExtra}
-        end);
-        if (not Success and Debug) then
-            warn(Err);
-        end
-    else
-        Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
-    end
-end)
 
 -- auto correct
 Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
@@ -3941,6 +3923,43 @@ if (ChatBar) then
         end
     end)
 end
+WideBar = false
+Draggable = false
+Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
+    local Text = CommandBar.Input.Text:trim();
+    local CommandArgs = Text:split(" ");
+
+    CommandBarOpen = false 
+
+    if (not Draggable) then
+        Utils.TweenAllTrans(CommandBar, .5)
+        Utils.Tween(CommandBar, "Quint", "Out", .5, {
+            Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5); -- tween 5
+        })
+    end
+
+    local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
+    local Args = table.shift(CommandArgs);
+
+    if (LoadedCommand and Command ~= "") then
+        if (LoadedCommand.ArgsNeeded > #Args) then
+            return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+        end
+
+        local Success, Err = pcall(function()
+            local Executed = LoadedCommand.Function()(LocalPlayer, Args, LoadedCommand.CmdExtra);
+            if (Executed) then
+                Utils.Notify(plr, "Command", Executed);
+            end
+            LastCommand = {Command, LocalPlayer, Args, LoadedCommand.CmdExtra}
+        end);
+        if (not Success and Debug) then
+            warn(Err);
+        end
+    else
+        Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
+    end
+end)
 
 CurrentPlayers = Players:GetPlayers();
 

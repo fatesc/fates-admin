@@ -333,6 +333,8 @@ function Utils.Notify(Caller, Title, Message, Time)
         Connections["CloneClose" .. #Connections] = Clone.Close.MouseButton1Click:Connect(function()
             TweenDestroy()
         end)
+
+        return TweenDestroy
     else
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote:FireServer(("/w %s [FA] %s: %s"):format(Caller.Name, Title, Message), "All");
@@ -528,7 +530,18 @@ function Utils.AddTag(Tag)
         Utils.Rainbow(TextLabel)
     end
 
-    Tag.Player.CharacterAdded:Connect(function()
+    AddConnection(Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    end))
+end
+
+function Utils.TextFont(Text, RGB)
+    RGB = table.concat(RGB, ",")
+    local New = {}
+    Text:gsub(".", function(x)
+        New[#New + 1] = x
     end)
+    return table.concat(table.map(New, function(i, letter)
+        return ('<font color="rgb(%s)">%s</font>'):format(RGB, letter)
+    end)) .. " "
 end

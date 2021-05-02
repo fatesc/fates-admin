@@ -1321,18 +1321,10 @@ AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on"
     end
 end)
 
-AddCommand("time", {"settime"}, "sets the games time", {}, function(Caller, Args)
+AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}}, function(Caller, Args)
     local Time = Args[1] and Args[1]:lower() or 14
     local Times = {["night"]=0,["day"]=14,["dawn"]=6}
     Lighting.ClockTime = Times[Time] or Time
-end)
-
-AddCommand("toolfling", {}, "touch a player with your tool out to fling then", {1,3}, function()
-    GetHumanoid():UnequipTools();
-    local Tool = LocalPlayer.Backpack:FindFirstChildOfClass("Tool");
-    Tool.GripPos = Vector3.new(math.huge, math.huge, math.huge);
-    Tool.Parent = GetCharacter();
-    return "touch a player with your tool out"
 end)
 
 AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
@@ -1406,9 +1398,9 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
                     wait();
                 else
                     Tool:Activate();
-                    firetouchinterest(Tool.Hitbox or Tool.Handle, GetRoot(v), 0);
+                    firetouchinterest(Tool.Handle, GetRoot(v), 0);
                     wait();
-                    firetouchinterest(Tool.Hitbox or Tool.Handle, GetRoot(v), 1);
+                    firetouchinterest(Tool.Handle, GetRoot(v), 1);
                     wait();
                 end
             end
@@ -1561,7 +1553,7 @@ AddCommand("nostreamermode", {"unstreamermode"}, "removes all the changed names"
     end
 end)
 
-AddCommand("fireclickdetectors", {}, "fires all the click detectors", {3}, function(Caller, Args)
+AddCommand("fireclickdetectors", {"fcd"}, "fires all the click detectors", {3}, function(Caller, Args)
     local amount = 0
     local howmany = Args[1]
     for i, v in next, Workspace:GetDescendants() do
@@ -1574,7 +1566,7 @@ AddCommand("fireclickdetectors", {}, "fires all the click detectors", {3}, funct
     return ("fired %d amount of clickdetectors"):format(amount);
 end)
 
-AddCommand("firetouchinterests", {}, "touches all touch transmitters", {3}, function(Caller, Args)
+AddCommand("firetouchinterests", {"fti"}, "fires all the touch interests", {3}, function(Caller, Args)
     local amount = 0
     local howmany = Args[1]
     for i, v in next, Workspace:GetDescendants() do
@@ -1587,6 +1579,21 @@ AddCommand("firetouchinterests", {}, "touches all touch transmitters", {3}, func
         end
     end
     return ("fired %d amount of touchtransmitters"):format(amount);
+end)
+
+AddCommand("fireproximityprompts", {"fpp"}, "fires all the proximity prompts", {3}, function(Caller, Args)
+    local amount = 0
+    local howmany = Args[1]
+    for i, v in next, Workspace:GetDescendants() do
+        if (v:IsA("ProximityPrompt")) then
+            fireproximityprompt(v, 0);
+            wait();
+            fireproximityprompt(v, 1);
+            amount = amount + 1
+            if (howmany and amount == tonumber(howmany)) then break; end
+        end
+    end
+    return ("fired %d amount of proximityprompts"):format(amount);
 end)
 
 SoundService.RespectFilteringEnabled = false
@@ -1816,6 +1823,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
         end)
         Tbl[#Tbl + 1] = Esp
+        AddPlayerConnection(Player, Esp);
     end);
 
     AddConnection(PlayerAddedConnection);
@@ -2064,6 +2072,9 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
                 GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
             end
         end)
+        while (Socket and wait(30)) do
+            Socket:Send("ping");
+        end
     end
 end)
 
@@ -2421,6 +2432,11 @@ AddCommand("whisper", {}, "whispers something to another user", {"2"}, function(
     end
 end)
 
+AddCommand("advertise", {}, "advertises the script", {}, function()
+    local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+    ChatRemote:FireServer("I am using fates admin, join the server 5epGRYR", "All");
+end)
+
 AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, function(Caller)
     if (Caller == LocalPlayer) then
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
@@ -2565,12 +2581,17 @@ AddCommand("setprefix", {}, "changes your prefix", {"1"}, function(Caller, Args)
     end
 end)
 
+AddCommand("setcommandbarprefix", {"setcprefix"}, "sets your command bar prefix to whatever you input", {}, function()
+    ChooseNewPrefix = true
+    local CloseNotif = Utils.Notify(LocalPlayer, "New Prefix", "Input the new prefix you would like to have", 7);
+end)
+
 AddCommand("saveprefix", {}, "saves your prefix", {}, function(Caller, Args)
-    if (GetConfig().Prefix == Prefix) then
+    if (GetConfig().Prefix == Prefix and Enum.KeyCode[GetConfig().CommandBarPrefix] == CommandBarPrefix) then
         return "nothing to save, prefix is the same"
     else
-        SetConfig({["Prefix"]=Prefix});
-        return "saved prefix " .. Prefix
+        SetConfig({["Prefix"]=Prefix,["CommandBarPrefix"]=tostring(CommandBarPrefix):split(".")[3]});
+        return "saved prefix"
     end
 end)
 
@@ -2622,15 +2643,23 @@ PlrChat = function(i, plr)
         local message = raw
 
         if (ChatLogsEnabled) then
+            local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
+                return x:byte()
+            end)]
+
             local time = os.date("%X");
-            local Text = ("%s - [%s]: %s"):format(time, plr.Name, raw);
+            local Text = ("%s - [%s]: %s"):format(time, Tag and Tag.Name or plr.Name, raw);
             local Clone = ChatLogMessage:Clone();
 
             Clone.Text = Text
             Clone.Visible = true
             Clone.TextTransparency = 1
             Clone.Parent = ChatLogs.Frame.List
-            
+
+            if (Tag and Tag.Rainbow) then
+                Utils.Rainbow(Clone);
+            end
+
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
             })
@@ -2684,10 +2713,6 @@ PlrChat = function(i, plr)
     end)
 end
 
-while (Socket and wait(30)) do
-    Socket:Send("ping");
-end
-
 --[[
     require - tags
 ]]
@@ -2732,160 +2757,6 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
         Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
     end
 end)
-
--- auto correct
-Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
-    local Text = string.lower(CommandBar.Input.Text)
-    local Prediction = CommandBar.Input.Predict
-    local PredictionText = Prediction.Text
-
-    local Args = string.split(Text, " ")
-
-    Prediction.Text = ""
-    if (Text == "") then
-        return
-    end
-
-    local FoundCommand = false
-    local FoundAlias = false
-    CommandArgs = CommandArgs or {}
-    if (not CommandsTable[Args[1]]) then
-        for _, v in next, CommandsTable do
-            local CommandName = v.Name
-            local Aliases = v.Aliases
-            local FoundAlias
-    
-            if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
-                Prediction.Text = CommandName
-                CommandArgs = v.Args or {}
-                break
-            end
-    
-            for _, v2 in next, Aliases do
-                if (Utils.MatchSearch(Args[1], v2)) then
-                    FoundAlias = true
-                    Prediction.Text = v2
-                    CommandArgs = v2.Args or {}
-                    break
-                end
-    
-                if (FoundAlias) then
-                    break
-                end
-            end
-        end
-    end
-
-    for i, v in next, Args do -- make it get more players after i space out
-        if (i > 1 and v ~= "") then
-            local Predict = ""
-            if (#CommandArgs >= 1) then
-                for i2, v2 in next, CommandArgs do
-                    if (v2:lower() == "player") then
-                        Predict = Utils.GetPlayerArgs(v) or Predict;
-                    else
-                        Predict = Utils.MatchSearch(v, v2) and v2 or Predict
-                    end
-                end
-            else
-                Predict = Utils.GetPlayerArgs(v) or Predict;
-            end
-            Prediction.Text = string.sub(Text, 1, #Text - #Args[#Args]) .. Predict
-            local split = v:split(",");
-            if (next(split)) then
-                for i2, v2 in next, split do
-                    if (i2 > 1 and v2 ~= "") then
-                        local PlayerName = Utils.GetPlayerArgs(v2)
-                        Prediction.Text = string.sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
-                    end
-                end
-            end
-        end
-    end
-
-    if (string.find(Text, "\t")) then -- remove tab from preditction text also
-        CommandBar.Input.Text = PredictionText
-        CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 1
-    end
-end)
-
-if (ChatBar) then
-    Connections.ChatBarChanged = ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
-        local Text = string.lower(ChatBar.Text)
-        local Prediction = PredictionClone
-        local PredictionText = PredictionClone.Text
-    
-        local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
-    
-        Prediction.Text = ""
-        if (not Text:startsWith(Prefix)) then
-            return
-        end
-    
-        local FoundCommand = false
-        local FoundAlias = false
-        CommandArgs = CommandArgs or {}
-        if (not rawget(CommandsTable, Args[1])) then
-            for _, v in next, CommandsTable do
-                local CommandName = v.Name
-                local Aliases = v.Aliases
-                local FoundAlias
-        
-                if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
-                    Prediction.Text = Prefix .. CommandName
-                    FoundCommand = true
-                    CommandArgs = v.Args or {}
-                    break
-                end
-        
-                for _, v2 in next, Aliases do
-                    if (Utils.MatchSearch(Args[1], v2)) then
-                        FoundAlias = true
-                        Prediction.Text = v2
-                        CommandArgs = v.Args or {}
-                        break
-                    end
-        
-                    if (FoundAlias) then
-                        break
-                    end
-                end
-            end
-        end
-    
-        for i, v in next, Args do -- make it get more players after i space out
-            if (i > 1 and v ~= "") then
-                local Predict = ""
-                if (#CommandArgs >= 1) then
-                    for i2, v2 in next, CommandArgs do
-                        if (v2:lower() == "player") then
-                            Predict = Utils.GetPlayerArgs(v) or Predict;
-                        else
-                            Predict = Utils.MatchSearch(v, v2) and v2 or Predict
-                        end
-                    end
-                else
-                    Predict = Utils.GetPlayerArgs(v) or Predict;
-                end
-                Prediction.Text = string.sub(Text, 1, #Text - #Args[#Args]) .. Predict
-                local split = v:split(",");
-                if (next(split)) then
-                    for i2, v2 in next, split do
-                        if (i2 > 1 and v2 ~= "") then
-                            local PlayerName = Utils.GetPlayerArgs(v2)
-                            Prediction.Text = string.sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
-                        end
-                    end
-                end
-            end
-        end
-    
-        if (string.find(Text, "\t")) then -- remove tab from preditction text also
-            ChatBar.Text = PredictionText
-            ChatBar.CursorPosition = #ChatBar.Text + 2
-        end
-    end)
-end
 
 CurrentPlayers = Players:GetPlayers();
 

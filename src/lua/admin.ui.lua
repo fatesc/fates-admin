@@ -1,4 +1,3 @@
-
 UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
 
 
