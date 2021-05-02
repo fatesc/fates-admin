@@ -184,6 +184,10 @@ firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     end
 end
 
+hookfunction = hookfunction or function(func, newfunc)
+    func = newfunc
+end
+
 ---@type number
 local start = start or tick() or os.clock();
 
@@ -287,6 +291,7 @@ local Connections = {
 local CLI = false
 local ChatLogsEnabled = true
 local GlobalChatLogsEnabled = false
+local HttpLogsEnabled = true
 
 ---gets the player in your game from string
 ---@param str string
@@ -360,12 +365,11 @@ local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.Key
 
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
-local Animations = UI.Commands:Clone()
 local ChatLogs = UI.ChatLogs
 local GlobalChatLogs = UI.ChatLogs:Clone()
+local HttpLogs = UI.ChatLogs:Clone();
 local Notification = UI.Notification
 local Command = UI.Command
-local Animation = UI.Command:Clone()
 local ChatLogMessage = UI.Message
 local GlobalChatLogMessage = UI.Message:Clone()
 local NotificationBar = UI.NotificationBar
@@ -385,25 +389,20 @@ local CommandBarOpen = false
 local CommandBarTransparencyClone = CommandBar:Clone()
 local ChatLogsTransparencyClone = ChatLogs:Clone()
 local GlobalChatLogsTransparencyClone = GlobalChatLogs:Clone()
+local HttpLogsTransparencyClone = HttpLogs:Clone()
 local CommandsTransparencyClone
 local PredictionText = ""
 
 local UIParent = CommandBar.Parent
 GlobalChatLogs.Parent = UIParent
 GlobalChatLogMessage.Parent = UIParent
-Animations.Parent = UIParent
-Animations.Search.Text = "Search Animations"
-Animations.Search.PlaceholderText = "Search Animations"
-Animation.Parent = UIParent
 GlobalChatLogs.Name = "GlobalChatLogs"
 GlobalChatLogMessage.Name = "GlobalChatLogMessage"
-Animations.Name = "Animations"
-Animation.Name = "Animation"
-Stats.Name = "Stats"
-Stats.Parent = UIParent
-StatsBar.Name = "StatsBar"
-StatsBar.Parent = UIParent
-StatsBar.Position = UDim2.new(0, 600, 0, -150)
+
+HttpLogs.Parent = UIParent
+HttpLogs.Name = "HttpLogs"
+HttpLogs.Size = UDim2.new(0, 421, 0, 260);
+HttpLogs.Search.PlaceholderText = "Search"
 
 if (RobloxChatBarFrame) then
     PredictionClone = RobloxChatBarFrame.Frame.BoxFrame.Frame.TextLabel:Clone();
@@ -2896,6 +2895,95 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     end
 end)
 
+AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
+    local MessageClone = HttpLogs.Frame.List:Clone()
+
+    Utils.ClearAllObjects(HttpLogs.Frame.List)
+    HttpLogs.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(HttpLogs, .25, HttpLogsTransparencyClone)
+
+    HttpLogs.Frame.List:Destroy()
+    MessageClone.Parent = HttpLogs.Frame
+
+    for i, v in next, HttpLogs.Frame.List:GetChildren() do
+        if (not v:IsA("UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local HttpLogsListLayout = HttpLogs.Frame.List.UIListLayout
+
+    HttpLogsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        local CanvasPosition = HttpLogs.Frame.List.CanvasPosition
+        local CanvasSize = HttpLogs.Frame.List.CanvasSize
+        local AbsoluteSize = HttpLogs.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait() -- chatlogs updates absolutecontentsize before sizing frame
+           HttpLogs.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000) --ChatLogsListLayout.AbsoluteContentSize.Y + 100)
+        end
+    end)
+
+    Utils.Tween(HttpLogs.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    })
+end)
+
+if (hookfunction) then
+    local AddLog = function(reqType, url, body)
+        local Clone = ChatLogMessage:Clone();
+        Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
+        Clone.RichText = true
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = HttpLogs.Frame.List
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        });
+        HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+    end
+
+    local Request;
+    Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
+        AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+        return Request(reqtbl);
+    end));
+    local Httpget;
+    Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
+        AddLog("HttpGet", url);
+        return Httpget(self, url);
+    end));
+    local HttpgetAsync;
+    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
+        AddLog("HttpGetAsync", url);
+        return HttpgetAsync(self, url);
+    end));
+    local Httppost;
+    Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
+        AddLog("HttpPost", url);
+        return Httppost(self, url);
+    end));
+    local HttppostAsync;
+    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
+        AddLog("HttpPostAsync", url);
+        return HttppostAsync(self, url);
+    end));
+
+    local Clone = ChatLogMessage:Clone();
+    Clone.Text = "httpspy loaded"
+    Clone.RichText = true
+    Clone.Visible = true
+    Clone.TextTransparency = 1
+    Clone.Parent = HttpLogs.Frame.List
+    Utils.Tween(Clone, "Sine", "Out", .25, {
+        TextTransparency = 0
+    });
+    HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+end
+
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
     local BP = LocalPlayer.Backpack
     for i = 1, 4 do
@@ -3567,16 +3655,17 @@ Stats.Visible = false
 Utils.SetAllTrans(CommandBar)
 Utils.SetAllTrans(ChatLogs)
 Utils.SetAllTrans(GlobalChatLogs)
+Utils.SetAllTrans(HttpLogs);
 Commands.Visible = false
-Animations.Visible = false
 ChatLogs.Visible = false
 GlobalChatLogs.Visible = false
+HttpLogs.Visible = false
 
 -- make the ui draggable
 Utils.Draggable(Commands)
-Utils.Draggable(Animations)
 Utils.Draggable(ChatLogs)
 Utils.Draggable(GlobalChatLogs)
+Utils.Draggable(HttpLogs);
 
 -- parent ui
 ParentGui(UI)
@@ -3621,8 +3710,6 @@ end)
 
 -- smooth scroll commands
 Utils.SmoothScroll(Commands.Frame.List, .14)
-Utils.SmoothScroll(Animations.Frame.List, .14)
-
 -- fill commands with commands!
 for _, v in next, CommandsTable do -- auto size
     if (not Commands.Frame.List:FindFirstChild(v.Name)) then
@@ -3641,11 +3728,8 @@ end
 
 Utils.Click(Commands.Close, "TextColor3")
 Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
-Animations.Frame.List.CanvasSize = UDim2.fromOffset(0, Animations.Frame.List.UIListLayout.AbsoluteContentSize.Y)
 CommandsTransparencyClone = Commands:Clone()
-AnimationsTransparencyClone = Animations:Clone()
 Utils.SetAllTrans(Commands)
-Utils.SetAllTrans(Animations)
 Utils.Click(ChatLogs.Clear, "BackgroundColor3")
 Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")
@@ -3655,6 +3739,11 @@ Utils.Click(GlobalChatLogs.Clear, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Save, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Toggle, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Close, "TextColor3")
+
+Utils.Click(HttpLogs.Clear, "BackgroundColor3")
+Utils.Click(HttpLogs.Save, "BackgroundColor3")
+Utils.Click(HttpLogs.Toggle, "BackgroundColor3")
+Utils.Click(HttpLogs.Close, "TextColor3")
 
 -- close tween commands
 Connections.CommandsClose = Commands.Close.MouseButton1Click:Connect(function()
@@ -3691,9 +3780,17 @@ Connections.UI.GlobalChatLogsClose = GlobalChatLogs.Close.MouseButton1Click:Conn
     Tween.Completed:Wait()
     GlobalChatLogs.Visible = false
 end)
+Connections.UI.HttpLogsClose = HttpLogs.Close.MouseButton1Click:Connect(function()
+    local Tween = Utils.TweenAllTrans(GlobalChatLogs, .25)
+
+    Tween.Completed:Wait()
+    GlobalChatLogs.Visible = false
+end)
 
 ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
+HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
+
 
 -- enable chat logs
 Connections.UI.ChatLogsToggle = ChatLogs.Toggle.MouseButton1Click:Connect(function()
@@ -3704,6 +3801,10 @@ Connections.UI.GlobalChatLogsToggle = GlobalChatLogs.Toggle.MouseButton1Click:Co
     GlobalChatLogsEnabled = not GlobalChatLogsEnabled
     GlobalChatLogs.Toggle.Text = GlobalChatLogsEnabled and "Enabled" or "Disabled"
 end)
+Connections.UI.HttpLogsToggle = HttpLogs.Toggle.MouseButton1Click:Connect(function()
+    HttpLogsEnabled = not HttpLogsEnabled
+    HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
+end)
 
 -- clear chat logs
 Connections.UI.ChatLogsClear = ChatLogs.Clear.MouseButton1Click:Connect(function()
@@ -3713,6 +3814,10 @@ end)
 Connections.UI.GlobalChatLogsClear = GlobalChatLogs.Clear.MouseButton1Click:Connect(function()
     Utils.ClearAllObjects(GlobalChatLogs.Frame.List)
     GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
+end)
+Connections.UI.HttpLogsClear = HttpLogs.Clear.MouseButton1Click:Connect(function()
+    Utils.ClearAllObjects(HttpLogs.Frame.List)
+    HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end)
 
 -- chat logs search
@@ -3739,8 +3844,17 @@ Connections.UI.GlobalChatLogs = GlobalChatLogs.Search:GetPropertyChangedSignal("
             v.Visible = string.find(string.lower(Message), Text, 1, true)
         end
     end
+end)
 
-    -- GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+Connections.UI.HttpLogs = HttpLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
+    local Text = HttpLogs.Search.Text
+
+    for _, v in next, HttpLogs.Frame.List:GetChildren() do
+        if (not v:IsA("UIListLayout")) then
+            local Message = v.Text
+            v.Visible = string.find(string.lower(Message), Text, 1, true)
+        end
+    end
 end)
 
 Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
@@ -3755,6 +3869,10 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
     end
     writefile(Name, String);
     Utils.Notify(LocalPlayer, "Saved", "Chat logs saved!");
+end)
+
+Connections.UI.HttpLogs = HttpLogs.Save.MouseButton1Click:Connect(function()
+    print("saved");
 end)
 
 local function RainbowChatOnAdded(v)

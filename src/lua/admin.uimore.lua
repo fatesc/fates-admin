@@ -20,16 +20,17 @@ Stats.Visible = false
 Utils.SetAllTrans(CommandBar)
 Utils.SetAllTrans(ChatLogs)
 Utils.SetAllTrans(GlobalChatLogs)
+Utils.SetAllTrans(HttpLogs);
 Commands.Visible = false
-Animations.Visible = false
 ChatLogs.Visible = false
 GlobalChatLogs.Visible = false
+HttpLogs.Visible = false
 
 -- make the ui draggable
 Utils.Draggable(Commands)
-Utils.Draggable(Animations)
 Utils.Draggable(ChatLogs)
 Utils.Draggable(GlobalChatLogs)
+Utils.Draggable(HttpLogs);
 
 -- parent ui
 ParentGui(UI)
@@ -74,8 +75,6 @@ end)
 
 -- smooth scroll commands
 Utils.SmoothScroll(Commands.Frame.List, .14)
-Utils.SmoothScroll(Animations.Frame.List, .14)
-
 -- fill commands with commands!
 for _, v in next, CommandsTable do -- auto size
     if (not Commands.Frame.List:FindFirstChild(v.Name)) then
@@ -94,11 +93,8 @@ end
 
 Utils.Click(Commands.Close, "TextColor3")
 Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
-Animations.Frame.List.CanvasSize = UDim2.fromOffset(0, Animations.Frame.List.UIListLayout.AbsoluteContentSize.Y)
 CommandsTransparencyClone = Commands:Clone()
-AnimationsTransparencyClone = Animations:Clone()
 Utils.SetAllTrans(Commands)
-Utils.SetAllTrans(Animations)
 Utils.Click(ChatLogs.Clear, "BackgroundColor3")
 Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")
@@ -108,6 +104,11 @@ Utils.Click(GlobalChatLogs.Clear, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Save, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Toggle, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Close, "TextColor3")
+
+Utils.Click(HttpLogs.Clear, "BackgroundColor3")
+Utils.Click(HttpLogs.Save, "BackgroundColor3")
+Utils.Click(HttpLogs.Toggle, "BackgroundColor3")
+Utils.Click(HttpLogs.Close, "TextColor3")
 
 -- close tween commands
 Connections.CommandsClose = Commands.Close.MouseButton1Click:Connect(function()
@@ -144,9 +145,17 @@ Connections.UI.GlobalChatLogsClose = GlobalChatLogs.Close.MouseButton1Click:Conn
     Tween.Completed:Wait()
     GlobalChatLogs.Visible = false
 end)
+Connections.UI.HttpLogsClose = HttpLogs.Close.MouseButton1Click:Connect(function()
+    local Tween = Utils.TweenAllTrans(GlobalChatLogs, .25)
+
+    Tween.Completed:Wait()
+    GlobalChatLogs.Visible = false
+end)
 
 ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
+HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
+
 
 -- enable chat logs
 Connections.UI.ChatLogsToggle = ChatLogs.Toggle.MouseButton1Click:Connect(function()
@@ -157,6 +166,10 @@ Connections.UI.GlobalChatLogsToggle = GlobalChatLogs.Toggle.MouseButton1Click:Co
     GlobalChatLogsEnabled = not GlobalChatLogsEnabled
     GlobalChatLogs.Toggle.Text = GlobalChatLogsEnabled and "Enabled" or "Disabled"
 end)
+Connections.UI.HttpLogsToggle = HttpLogs.Toggle.MouseButton1Click:Connect(function()
+    HttpLogsEnabled = not HttpLogsEnabled
+    HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
+end)
 
 -- clear chat logs
 Connections.UI.ChatLogsClear = ChatLogs.Clear.MouseButton1Click:Connect(function()
@@ -166,6 +179,10 @@ end)
 Connections.UI.GlobalChatLogsClear = GlobalChatLogs.Clear.MouseButton1Click:Connect(function()
     Utils.ClearAllObjects(GlobalChatLogs.Frame.List)
     GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
+end)
+Connections.UI.HttpLogsClear = HttpLogs.Clear.MouseButton1Click:Connect(function()
+    Utils.ClearAllObjects(HttpLogs.Frame.List)
+    HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end)
 
 -- chat logs search
@@ -192,8 +209,17 @@ Connections.UI.GlobalChatLogs = GlobalChatLogs.Search:GetPropertyChangedSignal("
             v.Visible = string.find(string.lower(Message), Text, 1, true)
         end
     end
+end)
 
-    -- GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+Connections.UI.HttpLogs = HttpLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
+    local Text = HttpLogs.Search.Text
+
+    for _, v in next, HttpLogs.Frame.List:GetChildren() do
+        if (not v:IsA("UIListLayout")) then
+            local Message = v.Text
+            v.Visible = string.find(string.lower(Message), Text, 1, true)
+        end
+    end
 end)
 
 Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
@@ -208,6 +234,10 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
     end
     writefile(Name, String);
     Utils.Notify(LocalPlayer, "Saved", "Chat logs saved!");
+end)
+
+Connections.UI.HttpLogs = HttpLogs.Save.MouseButton1Click:Connect(function()
+    print("saved");
 end)
 
 local function RainbowChatOnAdded(v)

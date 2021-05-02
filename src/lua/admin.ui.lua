@@ -7,12 +7,11 @@ local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.Key
 
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
-local Animations = UI.Commands:Clone()
 local ChatLogs = UI.ChatLogs
 local GlobalChatLogs = UI.ChatLogs:Clone()
+local HttpLogs = UI.ChatLogs:Clone();
 local Notification = UI.Notification
 local Command = UI.Command
-local Animation = UI.Command:Clone()
 local ChatLogMessage = UI.Message
 local GlobalChatLogMessage = UI.Message:Clone()
 local NotificationBar = UI.NotificationBar
@@ -32,25 +31,20 @@ local CommandBarOpen = false
 local CommandBarTransparencyClone = CommandBar:Clone()
 local ChatLogsTransparencyClone = ChatLogs:Clone()
 local GlobalChatLogsTransparencyClone = GlobalChatLogs:Clone()
+local HttpLogsTransparencyClone = HttpLogs:Clone()
 local CommandsTransparencyClone
 local PredictionText = ""
 
 local UIParent = CommandBar.Parent
 GlobalChatLogs.Parent = UIParent
 GlobalChatLogMessage.Parent = UIParent
-Animations.Parent = UIParent
-Animations.Search.Text = "Search Animations"
-Animations.Search.PlaceholderText = "Search Animations"
-Animation.Parent = UIParent
 GlobalChatLogs.Name = "GlobalChatLogs"
 GlobalChatLogMessage.Name = "GlobalChatLogMessage"
-Animations.Name = "Animations"
-Animation.Name = "Animation"
-Stats.Name = "Stats"
-Stats.Parent = UIParent
-StatsBar.Name = "StatsBar"
-StatsBar.Parent = UIParent
-StatsBar.Position = UDim2.new(0, 600, 0, -150)
+
+HttpLogs.Parent = UIParent
+HttpLogs.Name = "HttpLogs"
+HttpLogs.Size = UDim2.new(0, 421, 0, 260);
+HttpLogs.Search.PlaceholderText = "Search"
 
 if (RobloxChatBarFrame) then
     PredictionClone = RobloxChatBarFrame.Frame.BoxFrame.Frame.TextLabel:Clone();

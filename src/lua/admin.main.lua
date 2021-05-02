@@ -117,6 +117,7 @@ local Connections = {
 local CLI = false
 local ChatLogsEnabled = true
 local GlobalChatLogsEnabled = false
+local HttpLogsEnabled = true
 
 ---gets the player in your game from string
 ---@param str string
@@ -2087,6 +2088,95 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         end
     end
 end)
+
+AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
+    local MessageClone = HttpLogs.Frame.List:Clone()
+
+    Utils.ClearAllObjects(HttpLogs.Frame.List)
+    HttpLogs.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(HttpLogs, .25, HttpLogsTransparencyClone)
+
+    HttpLogs.Frame.List:Destroy()
+    MessageClone.Parent = HttpLogs.Frame
+
+    for i, v in next, HttpLogs.Frame.List:GetChildren() do
+        if (not v:IsA("UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local HttpLogsListLayout = HttpLogs.Frame.List.UIListLayout
+
+    HttpLogsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        local CanvasPosition = HttpLogs.Frame.List.CanvasPosition
+        local CanvasSize = HttpLogs.Frame.List.CanvasSize
+        local AbsoluteSize = HttpLogs.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait() -- chatlogs updates absolutecontentsize before sizing frame
+           HttpLogs.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000) --ChatLogsListLayout.AbsoluteContentSize.Y + 100)
+        end
+    end)
+
+    Utils.Tween(HttpLogs.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    })
+end)
+
+if (hookfunction) then
+    local AddLog = function(reqType, url, body)
+        local Clone = ChatLogMessage:Clone();
+        Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
+        Clone.RichText = true
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = HttpLogs.Frame.List
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        });
+        HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+    end
+
+    local Request;
+    Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
+        AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+        return Request(reqtbl);
+    end));
+    local Httpget;
+    Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
+        AddLog("HttpGet", url);
+        return Httpget(self, url);
+    end));
+    local HttpgetAsync;
+    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
+        AddLog("HttpGetAsync", url);
+        return HttpgetAsync(self, url);
+    end));
+    local Httppost;
+    Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
+        AddLog("HttpPost", url);
+        return Httppost(self, url);
+    end));
+    local HttppostAsync;
+    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
+        AddLog("HttpPostAsync", url);
+        return HttppostAsync(self, url);
+    end));
+
+    local Clone = ChatLogMessage:Clone();
+    Clone.Text = "httpspy loaded"
+    Clone.RichText = true
+    Clone.Visible = true
+    Clone.TextTransparency = 1
+    Clone.Parent = HttpLogs.Frame.List
+    Utils.Tween(Clone, "Sine", "Out", .25, {
+        TextTransparency = 0
+    });
+    HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+end
 
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
     local BP = LocalPlayer.Backpack

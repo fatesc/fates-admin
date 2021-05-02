@@ -174,3 +174,7 @@ firetouchinterest = firetouchinterest or function(part1, part2, toggle)
         end
     end
 end
+
+hookfunction = hookfunction or function(func, newfunc)
+    func = newfunc
+end
