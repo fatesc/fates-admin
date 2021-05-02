@@ -2932,7 +2932,7 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
     })
 end)
 
-if (hookfunction) then
+if (hookfunction and syn) then
     local AddLog = function(reqType, url, body)
         local Clone = ChatLogMessage:Clone();
         Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
