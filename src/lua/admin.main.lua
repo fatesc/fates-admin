@@ -845,9 +845,9 @@ AddCommand("invisble", {"invis"}, "makes yourself invisible", {}, function()
     return "you are now invisible"
 end)
 
-AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1}, function(Caller, Args, Tbl)
+AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, function(Caller, Args, Tbl)
     local Amount = tonumber(Args[1])
-    local Speed = tonumber(Args[2]);
+    local Protected = Args[2] == "protect"
     if (not Amount) then
         return "amount must be a number"
     end
@@ -864,8 +864,18 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1}, function(Caller, A
         end
         GetCharacter().Humanoid:UnequipTools();
         ReplaceCharacter();
-        wait(game.Players.RespawnTime - (Speed or .05)); --todo: add the amount of tools divided by 100 or something like that
-        local OldPos = GetRoot().CFrame
+        local OldPos
+        if (Protected) then
+            local OldFallen = Workspace.FallenPartsDestroyHeight
+            delay(game.Players.RespawnTime - .3, function()
+                Workspace.FallenPartsDestroyHeight = -math.huge
+                OldPos = GetRoot().CFrame
+                GetRoot().CFrame = CFrame.new(0, 1e9, 0);
+                GetRoot().Anchored = true  
+            end)
+        end
+        wait(game.Players.RespawnTime - .05); --todo: add the amount of tools divided by 100 or something like that
+        local OldPos = OldPos or GetRoot().CFrame
         ReplaceHumanoid(Humanoid);
         
         local Tools = table.filter(LocalPlayer.Backpack:GetChildren(), function(i, v)
