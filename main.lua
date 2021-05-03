@@ -7,13 +7,6 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-if (getconnections) then
-    local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
-    for i, v in next, ErrorConnections do
-        v:Disable();
-    end
-end
-
 local table = {}
 for i,v in pairs(getfenv().table) do
     table[i] = v
@@ -429,11 +422,14 @@ if (RobloxChatBarFrame) then
                 local TextLabel = Frame2:WaitForChild('TextLabel', .1)
                 ChatBar = Frame2:WaitForChild('ChatBar', .1)
                 if TextLabel and ChatBar then
-                    PredictionClone = TextLabel:Clone();
-                    PredictionClone.Text = ""
-                    PredictionClone.TextTransparency = 0.3
-                    PredictionClone.Name = "Predict"
-                    ParentGui(PredictionClone, Frame2);
+                    -- PredictionClone = TextLabel:Clone();
+                    -- PredictionClone.Text = ""
+                    -- PredictionClone.TextTransparency = 0.3
+                    -- PredictionClone.Name = "Predict"
+                    -- if syn and syn.protect_gui then
+                    --     syn.protect_gui(PredictionClone)
+                    -- end
+                    -- PredictionClone.Parent = Frame2
                 end
             end
         end
@@ -895,11 +891,13 @@ function Utils.Rainbow(TextObject)
         end
     end)()
 
-    RobloxScroller.DescendantRemoving:Connect(function(v)
-        if (v == TextObject) then
-            Destroyed = true
-        end
-    end)
+    if RobloxScroller then
+        RobloxScroller.DescendantRemoving:Connect(function(v)
+            if (v == TextObject) then
+                Destroyed = true
+            end
+        end)
+    end
 end
 
 function Utils.Locate(Player, Color)
@@ -3956,7 +3954,7 @@ end)
 local function RainbowChatOnAdded(v)
     if (v:IsA("TextButton")) then
         local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
-        if (Player) then
+        if (Player and Player:IsA('Player')) then
             local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
                 return x:byte();    
             end)]
@@ -3968,13 +3966,17 @@ local function RainbowChatOnAdded(v)
 end
 
 coroutine.wrap(function()
-    for _, v in next, RobloxScroller:GetDescendants() do
-        RainbowChatOnAdded(v)
-        wait();
+    if RobloxScroller then
+        for _, v in next, RobloxScroller:GetDescendants() do
+            RainbowChatOnAdded(v)
+            wait();
+        end
     end
 end)()
 
-AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
+if RobloxScroller then
+    AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
+end
 
 -- auto correct
 Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
@@ -4052,83 +4054,83 @@ Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"
     end
 end)
 
-if (ChatBar) then
-    Connections.ChatBarChanged = ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
-        local Text = string.lower(ChatBar.Text)
-        local Prediction = PredictionClone
-        local PredictionText = PredictionClone.Text
+-- if (ChatBar) then
+--     Connections.ChatBarChanged = ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
+--         local Text = string.lower(ChatBar.Text)
+--         local Prediction = PredictionClone
+--         local PredictionText = PredictionClone.Text
     
-        local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
+--         local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
     
-        Prediction.Text = ""
-        if (not string.startsWith(Text, Prefix)) then
-            return
-        end
+--         Prediction.Text = ""
+--         if (not string.startsWith(Text, Prefix)) then
+--             return
+--         end
     
-        local FoundCommand = false
-        local FoundAlias = false
-        CommandArgs = CommandArgs or {}
-        if (not rawget(CommandsTable, Args[1])) then
-            for _, v in next, CommandsTable do
-                local CommandName = v.Name
-                local Aliases = v.Aliases
-                local FoundAlias
+--         local FoundCommand = false
+--         local FoundAlias = false
+--         CommandArgs = CommandArgs or {}
+--         if (not rawget(CommandsTable, Args[1])) then
+--             for _, v in next, CommandsTable do
+--                 local CommandName = v.Name
+--                 local Aliases = v.Aliases
+--                 local FoundAlias
         
-                if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
-                    Prediction.Text = Prefix .. CommandName
-                    FoundCommand = true
-                    CommandArgs = v.Args or {}
-                    break
-                end
+--                 if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
+--                     Prediction.Text = Prefix .. CommandName
+--                     FoundCommand = true
+--                     CommandArgs = v.Args or {}
+--                     break
+--                 end
         
-                for _, v2 in next, Aliases do
-                    if (Utils.MatchSearch(Args[1], v2)) then
-                        FoundAlias = true
-                        Prediction.Text = v2
-                        CommandArgs = v.Args or {}
-                        break
-                    end
+--                 for _, v2 in next, Aliases do
+--                     if (Utils.MatchSearch(Args[1], v2)) then
+--                         FoundAlias = true
+--                         Prediction.Text = v2
+--                         CommandArgs = v.Args or {}
+--                         break
+--                     end
         
-                    if (FoundAlias) then
-                        break
-                    end
-                end
-            end
-        end
+--                     if (FoundAlias) then
+--                         break
+--                     end
+--                 end
+--             end
+--         end
     
-        for i, v in next, Args do -- make it get more players after i space out
-            if (i > 1 and v ~= "") then
-                local Predict = ""
-                if (#CommandArgs >= 1) then
-                    for i2, v2 in next, CommandArgs do
-                        if (v2:lower() == "player") then
-                            Predict = Utils.GetPlayerArgs(v) or Predict;
-                        else
-                            Predict = Utils.MatchSearch(v, v2) and v2 or Predict
-                        end
-                    end
-                else
-                    Predict = Utils.GetPlayerArgs(v) or Predict;
-                end
-                Prediction.Text = string.sub(Text, 1, #Text - #Args[#Args]) .. Predict
-                local split = v:split(",");
-                if (next(split)) then
-                    for i2, v2 in next, split do
-                        if (i2 > 1 and v2 ~= "") then
-                            local PlayerName = Utils.GetPlayerArgs(v2)
-                            Prediction.Text = string.sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
-                        end
-                    end
-                end
-            end
-        end
+--         for i, v in next, Args do -- make it get more players after i space out
+--             if (i > 1 and v ~= "") then
+--                 local Predict = ""
+--                 if (#CommandArgs >= 1) then
+--                     for i2, v2 in next, CommandArgs do
+--                         if (v2:lower() == "player") then
+--                             Predict = Utils.GetPlayerArgs(v) or Predict;
+--                         else
+--                             Predict = Utils.MatchSearch(v, v2) and v2 or Predict
+--                         end
+--                     end
+--                 else
+--                     Predict = Utils.GetPlayerArgs(v) or Predict;
+--                 end
+--                 Prediction.Text = string.sub(Text, 1, #Text - #Args[#Args]) .. Predict
+--                 local split = v:split(",");
+--                 if (next(split)) then
+--                     for i2, v2 in next, split do
+--                         if (i2 > 1 and v2 ~= "") then
+--                             local PlayerName = Utils.GetPlayerArgs(v2)
+--                             Prediction.Text = string.sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
+--                         end
+--                     end
+--                 end
+--             end
+--         end
     
-        if (string.find(Text, "\t")) then -- remove tab from preditction text also
-            ChatBar.Text = PredictionText
-            ChatBar.CursorPosition = #ChatBar.Text + 2
-        end
-    end)
-end
+--         if (string.find(Text, "\t")) then -- remove tab from preditction text also
+--             ChatBar.Text = PredictionText
+--             ChatBar.CursorPosition = #ChatBar.Text + 2
+--         end
+--     end)
+-- end
 WideBar = false
 Draggable = false
 Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
