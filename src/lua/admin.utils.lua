@@ -296,10 +296,12 @@ function Utils.Notify(Caller, Title, Message, Time)
         local Clone = Notification:Clone()
     
         local function TweenDestroy()
-            local Tween = Utils.TweenAllTrans(Clone, .25)
+            if (Utils and Clone) then -- fix error when the script is killed and there is still notifications out
+                local Tween = Utils.TweenAllTrans(Clone, .25)
     
-            Tween.Completed:Wait()
-            Clone:Destroy() -- tween out then destroy
+                Tween.Completed:Wait()
+                Clone:Destroy();
+            end
         end
     
         Clone.Message.Text = Message

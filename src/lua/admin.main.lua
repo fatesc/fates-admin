@@ -377,6 +377,17 @@ end
     require - plugin
 ]]
 
+if (replaceclosure) then
+    local oldMove
+    oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
+        if (not GetCharacter() or not GetHumanoid()) then
+            -- we don't want the console to be spamming with warns
+            return
+        end
+        return oldMove(...)
+    end)
+end
+
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", ("There are currently %s commands."):format(#table.filter(CommandsTable, function(i,v)
         return table.indexOf(CommandsTable, v) == i
@@ -421,7 +432,9 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
             Humanoid = ReplaceHumanoid();
         end
     end
-
+    if (GetCharacter().Animate) then
+        GetCharacter().Animate.Disabled = true
+    end
     coroutine.wrap(function()
         for i, v in next, Target do
                 if (GetCharacter(v)) then
@@ -480,6 +493,10 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
             wait(.1);
             Humanoid2 = ReplaceHumanoid();
         end
+    end
+
+    if (GetCharacter().Animate) then
+        GetCharacter().Animate.Disabled = true
     end
 
     coroutine.wrap(function()
@@ -542,6 +559,9 @@ AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller
                 ReplaceCharacter();
                 wait(Players.RespawnTime - (#Target == 1 and 0.01 or .07));
                 OldPos = GetRoot().CFrame
+                if (GetCharacter().Animate) then
+                    GetCharacter().Animate.Disabled = true
+                end
                 local Humanoid2 = ReplaceHumanoid(Humanoid);
                 local TargetRoot = GetRoot(v)
                 if (TargetRoot) then
@@ -579,6 +599,9 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
     local Target = GetPlayer(Args[1]);
     repeat
         GetCharacter().Humanoid:UnequipTools();
+        if (GetCharacter().Animate) then
+            GetCharacter().Animate.Disabled = true
+        end
         local Humanoid = ReplaceHumanoid(Humanoid);
         Humanoid:ChangeState(15);
         for i, v in next, Target do
@@ -615,6 +638,9 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local TempRespawnTimes = {}
         for i, v in next, Target do
             TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
+        end
+        if (GetCharacter().Animate) then
+            GetCharacter().Animate.Disabled = true
         end
         ReplaceHumanoid();
         for i, v in next, Target do
@@ -680,6 +706,9 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     ReplaceCharacter();
     wait(Players.RespawnTime - (#Target == 1 and .01 or .3));
     local OldPos = GetRoot().CFrame
+    if (GetCharacter().Animate) then
+        GetCharacter().Animate.Disabled = true
+    end
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
         if (#Target == 1 and TempRespawnTimes[v.Name]) then
@@ -743,6 +772,9 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
     ReplaceCharacter();
     wait(Players.RespawnTime - (#Target == 1 and .01 or .3));
     local OldPos = GetRoot().CFrame
+    if (GetCharacter().Animate) then
+        GetCharacter().Animate.Disabled = true
+    end
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
         if (#Target == 1 and TempRespawnTimes[v.Name]) then
@@ -2585,7 +2617,7 @@ AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, fun
     ChangeLogs = table.map(ChangeLogs, function(i, v)
         return {
             ["Author"] = v.author.login,
-            ["Date"] = v.commit.committer.date:gsub("[]"),
+            ["Date"] = v.commit.committer.date:gsub("[T|Z]", " "),
             ["Message"] = v.commit.message
         }
     end)
