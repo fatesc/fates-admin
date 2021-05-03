@@ -7,24 +7,13 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-if (setreadonly) then
-    setreadonly(table, false);
-    setreadonly(string, false)
-else
-    local makewritable = function(global)
-        if (getfenv()[global]) then
-            local new = {}
-            local old = getfenv()[global]
-            for i, v in next, old do
-                new[i] = v
-            end
-            return new
-        end
-        return {}
-    end
-
-    table = makewritable("table");
-    string = makewritable("string");
+local table = {}
+for i,v in pairs(getfenv().table) do
+    table[i] = v
+end
+local string = {}
+for i,v in pairs(getfenv().string) do
+    string[i] = v
 end
 
 ---Returns true if the sequence of elements of searchString converted to a String is the same as the corresponding elements of this object (converted to a String) starting at position. Otherwise returns fals
@@ -211,7 +200,7 @@ Lighting = game:GetService("Lighting");
 
 LocalPlayer = Players.LocalPlayer
 Mouse = LocalPlayer:GetMouse();
-PlayerGui = LocalPlayer.PlayerGui
+PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
 ---gets a players character if none arguments passed it will return your character
 ---@param Plr table
 ---@return any
@@ -303,7 +292,7 @@ GetPlayer = function(str)
     if (not str) then
         return {}
     end
-    str = str:trim():lower();
+    str = string.trim(str):lower();
     if (str:find(",")) then
         return table.flatMap(str:split(","), function(i, v)
             return GetPlayer(v);
@@ -378,11 +367,17 @@ local StatsBar = UI.NotificationBar:Clone();
 
 local RobloxChat = PlayerGui:FindFirstChild("Chat")
 if (RobloxChat) then
-    local RobloxChatFrame = RobloxChat:WaitForChild("Frame")
-    RobloxChatChannelParentFrame = RobloxChatFrame:WaitForChild("ChatChannelParentFrame")
-    RobloxChatBarFrame = RobloxChatFrame:WaitForChild("ChatBarParentFrame")
-    RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay")
-    RobloxScroller = RobloxFrameMessageLogDisplay:WaitForChild("Scroller")
+    local RobloxChatFrame = RobloxChat:WaitForChild("Frame", .1)
+    if RobloxChatFrame then
+        RobloxChatChannelParentFrame = RobloxChatFrame:WaitForChild("ChatChannelParentFrame", .1)
+        RobloxChatBarFrame = RobloxChatFrame:WaitForChild("ChatBarParentFrame", .1)
+        if RobloxChatChannelParentFrame then
+            RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay", .1)
+            if RobloxFrameMessageLogDisplay then
+                RobloxScroller = RobloxFrameMessageLogDisplay:WaitForChild("Scroller", .1)
+            end
+        end
+    end
 end
 
 local CommandBarOpen = false
@@ -405,13 +400,27 @@ HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
 
 if (RobloxChatBarFrame) then
-    PredictionClone = RobloxChatBarFrame.Frame.BoxFrame.Frame.TextLabel:Clone();
-    PredictionClone.Text = ""
-    PredictionClone.TextTransparency = 0.3
-    PredictionClone.Name = "Predict"
-    PredictionClone.Parent = RobloxChatBarFrame.Frame.BoxFrame.Frame
-    
-    ChatBar = RobloxChatBarFrame.Frame.BoxFrame.Frame.ChatBar
+    local Frame1 = RobloxChatBarFrame:WaitForChild('Frame', .1)
+    if Frame1 then
+        local BoxFrame = Frame1:WaitForChild('BoxFrame', .1)
+        if BoxFrame then
+            local Frame2 = BoxFrame:WaitForChild('Frame', .1)
+            if Frame2 then
+                local TextLabel = Frame2:WaitForChild('TextLabel', .1)
+                ChatBar = Frame2:WaitForChild('ChatBar', .1)
+                if TextLabel and ChatBar then
+                    PredictionClone = TextLabel:Clone();
+                    PredictionClone.Text = ""
+                    PredictionClone.TextTransparency = 0.3
+                    PredictionClone.Name = "Predict"
+                    if syn and syn.protect_gui then
+                        syn.protect_gui(PredictionClone)
+                    end
+                    PredictionClone.Parent = Frame2
+                end
+            end
+        end
+    end
 end
 
 
@@ -2413,7 +2422,7 @@ AddCommand("fireproximityprompts", {"fpp"}, "fires all the proximity prompts", {
     return ("fired %d amount of proximityprompts"):format(amount);
 end)
 
-SoundService.RespectFilteringEnabled = false
+--SoundService.RespectFilteringEnabled = false -- I don't know if this is necessary but it makes it detectable
 
 AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -3582,15 +3591,15 @@ PlrChat = function(i, plr)
             Socket:Send(HttpService:JSONEncode(Message));
         end
 
-        if (raw:startsWith("/e")) then
+        if (string.startsWith(raw, "/e")) then
             raw = raw:sub(4, #raw);
-        elseif (raw:startsWith(Prefix)) then
+        elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1, #raw);
         else
             return
         end
 
-        message = raw:trim();
+        message = string.trim(raw);
         
         if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = message:split(" ");
@@ -3983,7 +3992,7 @@ if (ChatBar) then
         local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
     
         Prediction.Text = ""
-        if (not Text:startsWith(Prefix)) then
+        if (not string.startsWith(Text, Prefix)) then
             return
         end
     
@@ -4054,7 +4063,7 @@ end
 WideBar = false
 Draggable = false
 Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
-    local Text = CommandBar.Input.Text:trim();
+    local Text = string.trim(CommandBar.Input.Text);
     local CommandArgs = Text:split(" ");
 
     CommandBarOpen = false 
