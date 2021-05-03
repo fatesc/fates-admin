@@ -1258,7 +1258,6 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
 
     coroutine.wrap(function()
         for i, v in next, Target do
-            repeat
                 if (GetCharacter(v)) then
                     if (isSat(v)) then
                         Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
@@ -1277,9 +1276,9 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                     Tool.CanBeDropped = true
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    for i, v in next, Tool:GetDescendants() do
-                        if (v:IsA("Sound")) then
-                            v:Destroy();
+                    for i2, v2 in next, Tool:GetDescendants() do
+                        if (v2:IsA("Sound")) then
+                            v2:Destroy();
                         end
                     end
                     CFrameTool(Tool, GetRoot(v).CFrame)
@@ -1288,7 +1287,6 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                 else
                     Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
                 end
-            until true
         end
     end)()
     Humanoid:ChangeState(15);
@@ -1424,7 +1422,7 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
                     v2.Parent = GetCharacter();
                     local OldSize = v2.Handle.Size
                     v2.Handle.Size = Vector3.new(0.5, 0.5, 0.5);
-                    for i = 1, 3 do
+                    for i3 = 1, 3 do
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, v2.Handle, 0);
                             firetouchinterest(TargetRoot, v2.Handle, 1);
@@ -1482,12 +1480,12 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                     Tool.CanBeDropped = true
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    for i, v in next, Tool:GetDescendants() do
-                        if (v:IsA("Sound")) then
-                            v:Destroy();
+                    for i2, v2 in next, Tool:GetDescendants() do
+                        if (v2:IsA("Sound")) then
+                            v2:Destroy();
                         end
                     end
-                    for i = 1, 3 do
+                    for i2 = 1, 3 do
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, Tool.Handle, 0);
                             firetouchinterest(TargetRoot, Tool.Handle, 1);
@@ -1707,14 +1705,14 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
             end)
         end
         wait(game.Players.RespawnTime - .05); --todo: add the amount of tools divided by 100 or something like that
-        local OldPos = OldPos or GetRoot().CFrame
+        OldPos = OldPos or GetRoot().CFrame
         ReplaceHumanoid(Humanoid);
         
         local Tools = table.filter(LocalPlayer.Backpack:GetChildren(), function(i, v)
             return v:IsA("Tool");
         end)
         
-        for i, v in next, Tools do
+        for i2, v in next, Tools do
             v.CanBeDropped = true
             v.Parent = LocalPlayer.Character
             v.Parent = Workspace
@@ -1723,7 +1721,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos;
     
-        for i, v in next, Duped do
+        for i2, v in next, Duped do
             if (v.Handle) then
                 firetouchinterest(v.Handle, GetRoot(), 1);
                 firetouchinterest(v.Handle, GetRoot(), 0);
@@ -1761,7 +1759,7 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
     Utils.Notify(Caller, nil, "Tools are now saved");
     GetHumanoid().Died:Wait();
     GetHumanoid():UnequipTools();
-    local Tools = LocalPlayer.Backpack:GetChildren();
+    Tools = LocalPlayer.Backpack:GetChildren();
     wait(Players.RespawnTime - wait()); -- * #Tools);
     for i, v in next, Tools do
         if (v:IsA("Tool") and v:FindFirstChild("Handle")) then
@@ -1802,7 +1800,7 @@ AddCommand("givetools", {}, "gives tools to a player", {"1", 3, 1}, function(Cal
         for i2, v2 in next, LocalPlayer.Backpack:GetChildren() do
             if (v2:IsA("Tool")) then
                 v2.Parent = GetCharacter();
-                for i = 1, 3 do
+                for i3 = 1, 3 do
                     if (THumanoidRootPart) then
                         firetouchinterest(THumanoidRootPart, v2.Handle, 0);
                         firetouchinterest(THumanoidRootPart, v2.Handle, 1);
@@ -1948,7 +1946,7 @@ AddCommand("loopdelete", {"ld"}, "loop of delete command", {"1"}, function(Calle
             v.Character.Parent = Lighting
         end
         local Connection = v.CharacterAdded:Connect(function()
-            v:WaitForChild("HumanoidRootPart").Parent.Parent = Lighting -- wait until the characters hrp is added then parent char to lighting
+            v.Character.Parent = Lighting
         end)
         Tbl[v.Name] = Connection
         AddPlayerConnection(v, Connection);
@@ -2136,28 +2134,38 @@ end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, Tbl)
     local Option = Args[1]
+    local ShowName = function(v)
+        if (v.Name ~= v.DisplayName) then
+            -- v.DisplayName = v.Name
+            if (v.Character) then
+                v.Character.Humanoid.DisplayName = v.Name
+            end
+            local Connection = v.CharacterAdded:Connect(function()
+                v.Character:WaitForChild("Humanoid").DisplayName = v.Name
+            end)
+            Tbl[v.Name] = {v.DisplayName, Connection}
+            AddPlayerConnection(v, Connection);
+        end
+    end
     if (Option:lower() == "off") then
         for i, v in next, Players:GetPlayers() do
-            if (v.Name ~= v.DisplayName) then
-                -- v.DisplayName = v.Name
-                if (v.Character) then
-                    v.Character.Humanoid.DisplayName = v.Name
-                end
-                local Connection = v.CharacterAdded:Connect(function()
-                    v.Character:WaitForChild("Humanoid").DisplayName = v.Name
-                end)
-                Tbl[v.Name] = {v.DisplayName, Connection}
-                AddPlayerConnection(v, Connection);
-            end
+            ShowName(v)
         end
+        local PlayerAdded = Players.PlayerAdded:Connect(ShowName);
+        AddConnection(PlayerAdded);
+        Tbl[#Tbl + 1] = PlayerAdded
         return "people with a displayname displaynames will be shown"
     elseif (Option:lower() == "on") then
         for i, v in next, LoadCommand("displaynames").CmdExtra do
-            if (i.Character) then
-                i.Character.Humanoid.DisplayName = v[1]
+            if (type(v) == 'userdata' and v.Disconnect) then
+                v:Disconnect();
+            else
+                if (i.Character) then
+                    i.Character.Humanoid.DisplayName = v[1]
+                end
+                v[2]:Disconnect();
+                v = nil
             end
-            v[2]:Disconnect();
-            v = nil
         end
         return "people with a displayname displaynames will be removed"
     end
@@ -2183,10 +2191,10 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
             Root.CFrame = (TargetRoot.CFrame - (Vector3.new(0, 1e6, 0) * step)) + (TargetRoot.Velocity * (step * 30))
             Root.Velocity = Vector3.new(0, 1e6, 0)
         end)
-        local start = tick();
+        local starttime = tick();
         repeat
             wait();
-        until (TargetPos - TargetRoot.Position).magnitude >= 60 or tick() - start >= 3.5
+        until (TargetPos - TargetRoot.Position).magnitude >= 60 or tick() - starttime >= 3.5
         Stepped:Disconnect();
     end
     wait();
@@ -2232,7 +2240,7 @@ AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "m
             if (v.Character:FindFirstChild("ForceField")) then
                 repeat wait() until not v.Character:FindFirstChild("ForceField");
             end
-            for i = 1, 5 do
+            for i2 = 1, 5 do
                 if (Option:lower() == "manual") then
                     GetRoot().CFrame = GetRoot(v).CFrame * CFrame.new(0, -3, 0);
                     Tool:Activate();
@@ -2289,7 +2297,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
     end)
 
     local AuraConnection = RunService.Heartbeat:Connect(function()
-        local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+        Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
         if (Tool and Tool.Handle) then
             for i, v in next, PlayersTbl do
                 if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
@@ -2376,11 +2384,11 @@ AddCommand("streamermode", {}, "changes names of everyone to something random", 
 
     table.forEach(game:GetDescendants(), Hide);
 
-    local Hide = game.DescendantAdded:Connect(function(x)
+    local DescendantAdded = game.DescendantAdded:Connect(function(x)
         Hide(nil, x);
     end)
-    Tbl[#Tbl + 1] = Hide
-    
+    Tbl[#Tbl + 1] = DescendantAdded
+    AddConnection(DescendantAdded);
     return "streamer mode enabled"
 end)
 
@@ -3406,6 +3414,22 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min or max)", {{"mi
     end
 end)
 
+AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, function()
+    local ChangeLogs = HttpService:JSONDecode(game:HttpGetAsync("https://api.github.com/repos/fatesc/fates-admin/commits?per_page=100&path=main.lua"));
+    ChangeLogs = table.map(ChangeLogs, function(i, v)
+        return {
+            ["Author"] = v.author.login,
+            ["Date"] = v.commit.committer.date:gsub("[]"),
+            ["Message"] = v.commit.message
+        }
+    end)
+    for i, v in next, ChangeLogs do
+        print(("Author: %s\nDate: %s\nMessage: %s"):format(v.Author, v.Date, v.Message));
+    end
+
+    return "changelogs loaded, press f9"
+end)
+
 AddCommand("whitelist", {"wl"}, "whitelists a user so they can use commands", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
@@ -4113,7 +4137,7 @@ local PlayerAdded = function(plr)
     local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
         return x:byte();    
     end)]
-    if (Tag and not plr == LocalPlayer) then
+    if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
