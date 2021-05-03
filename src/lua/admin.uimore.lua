@@ -1,19 +1,3 @@
--- parent ui function
-ParentGui = function(Gui)
-    Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
-
-    if ((not is_sirhurt_closure) and (syn and syn.protect_gui)) then
-        -- syn.protect_gui(Gui); reminder to myself to add back
-        Gui.Parent = CoreGui
-    elseif (CoreGui:FindFirstChild("RobloxGui")) then
-        Gui.Parent = CoreGui.RobloxGui
-    else
-        Gui.Parent = CoreGui
-    end
-    Guis[#Guis + 1] = Gui 
-    return Gui
-end
-
 -- make all elements not visible
 Notification.Visible = false
 Stats.Visible = false
@@ -348,7 +332,7 @@ if (ChatBar) then
         local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
     
         Prediction.Text = ""
-        if (not Text:startsWith(Prefix)) then
+        if (not string.startsWith(Text, Prefix)) then
             return
         end
     

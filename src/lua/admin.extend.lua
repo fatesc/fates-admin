@@ -1,21 +1,17 @@
-if (setreadonly) then
-    setreadonly(table, false);
-    setreadonly(string, false)
-else
-    local makewritable = function(global)
-        if (getfenv()[global]) then
-            local new = {}
-            local old = getfenv()[global]
-            for i, v in next, old do
-                new[i] = v
-            end
-            return new
-        end
-        return {}
+if (getconnections) then
+    local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
+    for i, v in next, ErrorConnections do
+        v:Disable();
     end
+end
 
-    table = makewritable("table");
-    string = makewritable("string");
+local table = {}
+for i,v in pairs(getfenv().table) do
+    table[i] = v
+end
+local string = {}
+for i,v in pairs(getfenv().string) do
+    string[i] = v
 end
 
 ---Returns true if the sequence of elements of searchString converted to a String is the same as the corresponding elements of this object (converted to a String) starting at position. Otherwise returns fals

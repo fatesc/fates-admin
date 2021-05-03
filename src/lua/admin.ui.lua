@@ -1,8 +1,21 @@
-UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
-
-
 Guis = {}
-local ParentGui
+ParentGui = function(Gui, Parent)
+    Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
+
+    if ((not is_sirhurt_closure) and (syn and syn.protect_gui)) then
+        syn.protect_gui(Gui);
+        Gui.Parent = Parent or CoreGui
+    elseif (CoreGui:FindFirstChild("RobloxGui")) then
+        Gui.Parent = Parent or CoreGui.RobloxGui
+    else
+        Gui.Parent = Parent or CoreGui
+    end
+    Guis[#Guis + 1] = Gui
+    return Gui
+end
+UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
+ParentGui(UI)
+
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
 local CommandBar = UI.CommandBar
@@ -20,11 +33,17 @@ local StatsBar = UI.NotificationBar:Clone();
 
 local RobloxChat = PlayerGui:FindFirstChild("Chat")
 if (RobloxChat) then
-    local RobloxChatFrame = RobloxChat:WaitForChild("Frame")
-    RobloxChatChannelParentFrame = RobloxChatFrame:WaitForChild("ChatChannelParentFrame")
-    RobloxChatBarFrame = RobloxChatFrame:WaitForChild("ChatBarParentFrame")
-    RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay")
-    RobloxScroller = RobloxFrameMessageLogDisplay:WaitForChild("Scroller")
+    local RobloxChatFrame = RobloxChat:WaitForChild("Frame", .1)
+    if RobloxChatFrame then
+        RobloxChatChannelParentFrame = RobloxChatFrame:WaitForChild("ChatChannelParentFrame", .1)
+        RobloxChatBarFrame = RobloxChatFrame:WaitForChild("ChatBarParentFrame", .1)
+        if RobloxChatChannelParentFrame then
+            RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay", .1)
+            if RobloxFrameMessageLogDisplay then
+                RobloxScroller = RobloxFrameMessageLogDisplay:WaitForChild("Scroller", .1)
+            end
+        end
+    end
 end
 
 local CommandBarOpen = false
@@ -47,15 +66,25 @@ HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
 
 if (RobloxChatBarFrame) then
-    PredictionClone = RobloxChatBarFrame.Frame.BoxFrame.Frame.TextLabel:Clone();
-    PredictionClone.Text = ""
-    PredictionClone.TextTransparency = 0.3
-    PredictionClone.Name = "Predict"
-    PredictionClone.Parent = RobloxChatBarFrame.Frame.BoxFrame.Frame
-    
-    ChatBar = RobloxChatBarFrame.Frame.BoxFrame.Frame.ChatBar
+    local Frame1 = RobloxChatBarFrame:WaitForChild('Frame', .1)
+    if Frame1 then
+        local BoxFrame = Frame1:WaitForChild('BoxFrame', .1)
+        if BoxFrame then
+            local Frame2 = BoxFrame:WaitForChild('Frame', .1)
+            if Frame2 then
+                local TextLabel = Frame2:WaitForChild('TextLabel', .1)
+                ChatBar = Frame2:WaitForChild('ChatBar', .1)
+                if TextLabel and ChatBar then
+                    PredictionClone = TextLabel:Clone();
+                    PredictionClone.Text = ""
+                    PredictionClone.TextTransparency = 0.3
+                    PredictionClone.Name = "Predict"
+                    ParentGui(PredictionClone, Frame2);
+                end
+            end
+        end
+    end
 end
-
 
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5)

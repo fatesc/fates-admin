@@ -37,7 +37,7 @@ Lighting = game:GetService("Lighting");
 
 LocalPlayer = Players.LocalPlayer
 Mouse = LocalPlayer:GetMouse();
-PlayerGui = LocalPlayer.PlayerGui
+PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
 ---gets a players character if none arguments passed it will return your character
 ---@param Plr table
 ---@return any
@@ -129,7 +129,7 @@ GetPlayer = function(str)
     if (not str) then
         return {}
     end
-    str = str:trim():lower();
+    str = string.trim(str):lower();
     if (str:find(",")) then
         return table.flatMap(str:split(","), function(i, v)
             return GetPlayer(v);
@@ -1607,9 +1607,9 @@ AddCommand("fireproximityprompts", {"fpp"}, "fires all the proximity prompts", {
     return ("fired %d amount of proximityprompts"):format(amount);
 end)
 
-SoundService.RespectFilteringEnabled = false
 
 AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args)
+    SoundService.RespectFilteringEnabled = false
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         for i2, v2 in next, v.Character:GetDescendants() do
@@ -1618,6 +1618,7 @@ AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args
             end
         end
     end
+    SoundService.RespectFilteringEnabled = true
 end)
 
 AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Caller, Args, Tbl)
@@ -1625,6 +1626,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
     local filterBoomboxes = function(i,v)
         return v:FindFirstChild("Handle") and v.Handle:FindFirstChildWhichIsA("Sound");
     end
+    SoundService.RespectFilteringEnabled = false
     for i, v in next, Target do
         local Tools = table.tbl_concat(table.filter(v.Character:GetDescendants(), filterBoomboxes), table.filter(v.Backpack:GetChildren(), filterBoomboxes));
         for i2, v2 in next, Tools do
@@ -1639,6 +1641,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
                         break
                     end
                 end
+                SoundService.RespectFilteringEnabled = true
             end)()
             Tbl[v.Name] = Connection
             AddPlayerConnection(v, Connection);
@@ -1667,6 +1670,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
     if (not next(Boombox)) then
         return "you need a boombox to forceplay"
     end
+    SoundService.RespectFilteringEnabled = false
     Boombox = Boombox[1]
     Boombox.Parent = GetCharacter();
     local Sound = Boombox.Handle.Sound
@@ -1679,6 +1683,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
             Boombox.Handle.Sound.Playing = true
             RunService.Heartbeat:Wait();
         end
+        SoundService.RespectFilteringEnabled = true
     end)()
     return "now forceplaying ".. Id
 end)
@@ -2776,15 +2781,15 @@ PlrChat = function(i, plr)
             Socket:Send(HttpService:JSONEncode(Message));
         end
 
-        if (raw:startsWith("/e")) then
+        if (string.startsWith(raw, "/e")) then
             raw = raw:sub(4, #raw);
-        elseif (raw:startsWith(Prefix)) then
+        elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1, #raw);
         else
             return
         end
 
-        message = raw:trim();
+        message = string.trim(raw);
         
         if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = message:split(" ");
@@ -2823,7 +2828,7 @@ end
 WideBar = false
 Draggable = false
 Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
-    local Text = CommandBar.Input.Text:trim();
+    local Text = string.trim(CommandBar.Input.Text);
     local CommandArgs = Text:split(" ");
 
     CommandBarOpen = false 

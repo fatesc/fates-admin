@@ -7,6 +7,13 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
+if (getconnections) then
+    local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
+    for i, v in next, ErrorConnections do
+        v:Disable();
+    end
+end
+
 local table = {}
 for i,v in pairs(getfenv().table) do
     table[i] = v
@@ -345,11 +352,24 @@ GetPlayer = function(str)
     return Players
 end
 
-UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
-
-
 Guis = {}
-local ParentGui
+ParentGui = function(Gui, Parent)
+    Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
+
+    if ((not is_sirhurt_closure) and (syn and syn.protect_gui)) then
+        syn.protect_gui(Gui);
+        Gui.Parent = Parent or CoreGui
+    elseif (CoreGui:FindFirstChild("RobloxGui")) then
+        Gui.Parent = Parent or CoreGui.RobloxGui
+    else
+        Gui.Parent = Parent or CoreGui
+    end
+    Guis[#Guis + 1] = Gui
+    return Gui
+end
+UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
+ParentGui(UI)
+
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
 local CommandBar = UI.CommandBar
@@ -413,16 +433,12 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Text = ""
                     PredictionClone.TextTransparency = 0.3
                     PredictionClone.Name = "Predict"
-                    if syn and syn.protect_gui then
-                        syn.protect_gui(PredictionClone)
-                    end
-                    PredictionClone.Parent = Frame2
+                    ParentGui(PredictionClone, Frame2);
                 end
             end
         end
     end
 end
-
 
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
@@ -2422,9 +2438,9 @@ AddCommand("fireproximityprompts", {"fpp"}, "fires all the proximity prompts", {
     return ("fired %d amount of proximityprompts"):format(amount);
 end)
 
---SoundService.RespectFilteringEnabled = false -- I don't know if this is necessary but it makes it detectable
 
 AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args)
+    SoundService.RespectFilteringEnabled = false
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         for i2, v2 in next, v.Character:GetDescendants() do
@@ -2433,6 +2449,7 @@ AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args
             end
         end
     end
+    SoundService.RespectFilteringEnabled = true
 end)
 
 AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Caller, Args, Tbl)
@@ -2440,6 +2457,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
     local filterBoomboxes = function(i,v)
         return v:FindFirstChild("Handle") and v.Handle:FindFirstChildWhichIsA("Sound");
     end
+    SoundService.RespectFilteringEnabled = false
     for i, v in next, Target do
         local Tools = table.tbl_concat(table.filter(v.Character:GetDescendants(), filterBoomboxes), table.filter(v.Backpack:GetChildren(), filterBoomboxes));
         for i2, v2 in next, Tools do
@@ -2454,6 +2472,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
                         break
                     end
                 end
+                SoundService.RespectFilteringEnabled = true
             end)()
             Tbl[v.Name] = Connection
             AddPlayerConnection(v, Connection);
@@ -2482,6 +2501,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
     if (not next(Boombox)) then
         return "you need a boombox to forceplay"
     end
+    SoundService.RespectFilteringEnabled = false
     Boombox = Boombox[1]
     Boombox.Parent = GetCharacter();
     local Sound = Boombox.Handle.Sound
@@ -2494,6 +2514,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
             Boombox.Handle.Sound.Playing = true
             RunService.Heartbeat:Wait();
         end
+        SoundService.RespectFilteringEnabled = true
     end)()
     return "now forceplaying ".. Id
 end)
@@ -3641,22 +3662,6 @@ PlayerTags = {
         ["Rainbow"] = true,
     }
 }
-
--- parent ui function
-ParentGui = function(Gui)
-    Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
-
-    if ((not is_sirhurt_closure) and (syn and syn.protect_gui)) then
-        -- syn.protect_gui(Gui); reminder to myself to add back
-        Gui.Parent = CoreGui
-    elseif (CoreGui:FindFirstChild("RobloxGui")) then
-        Gui.Parent = CoreGui.RobloxGui
-    else
-        Gui.Parent = CoreGui
-    end
-    Guis[#Guis + 1] = Gui 
-    return Gui
-end
 
 -- make all elements not visible
 Notification.Visible = false
