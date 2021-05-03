@@ -1183,7 +1183,11 @@ if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and
     local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
-        return {v:split("\\")[2], loadfile(v)}
+        if identifyexecutor and identifyexecutor() == "ScriptWare" then
+            return {v:split("\\")[2], loadfile("fates-admin/plugins"..v)}
+        else
+            return {v:split("\\")[2], loadfile(v)}
+        end
     end)
 
     for i, v in next, Plugins do
