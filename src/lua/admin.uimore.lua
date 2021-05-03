@@ -226,7 +226,7 @@ end)
 
 local function RainbowChatOnAdded(v)
     if (v:IsA("TextButton")) then
-        local Player = Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
+        local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
         if (Player) then
             local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
                 return x:byte();    

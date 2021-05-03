@@ -1216,9 +1216,11 @@ end
 if (replaceclosure) then
     local oldMove
     oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
-        if (not GetCharacter() or not GetHumanoid()) then
-            -- we don't want the console to be spamming with warns
-            return
+        if (GetCharacter and GetHumanoid) then
+            if (not GetCharacter() or not GetHumanoid()) then
+                -- we don't want the console to be spamming with warns
+                return
+            end
         end
         return oldMove(...)
     end)
@@ -3949,7 +3951,7 @@ end)
 
 local function RainbowChatOnAdded(v)
     if (v:IsA("TextButton")) then
-        local Player = Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
+        local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
         if (Player) then
             local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
                 return x:byte();    

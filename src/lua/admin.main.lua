@@ -380,9 +380,11 @@ end
 if (replaceclosure) then
     local oldMove
     oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
-        if (not GetCharacter() or not GetHumanoid()) then
-            -- we don't want the console to be spamming with warns
-            return
+        if (GetCharacter and GetHumanoid) then
+            if (not GetCharacter() or not GetHumanoid()) then
+                -- we don't want the console to be spamming with warns
+                return
+            end
         end
         return oldMove(...)
     end)
