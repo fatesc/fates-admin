@@ -7,13 +7,6 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-if (getconnections) then
-    local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
-    for i, v in next, ErrorConnections do
-        v:Disable();
-    end
-end
-
 local table = {}
 for i,v in pairs(getfenv().table) do
     table[i] = v
@@ -368,7 +361,6 @@ ParentGui = function(Gui, Parent)
     return Gui
 end
 UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
-UI.Parent = nil;
 ParentGui(UI)
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
@@ -388,14 +380,14 @@ local StatsBar = UI.NotificationBar:Clone();
 
 local RobloxChat = PlayerGui:FindFirstChild("Chat")
 if (RobloxChat) then
-    local RobloxChatFrame = RobloxChat:WaitForChild("Frame", .1)
+    local RobloxChatFrame = RobloxChat:FindFirstChild("Frame") or RobloxChat:WaitForChild("Frame", .1)
     if RobloxChatFrame then
-        RobloxChatChannelParentFrame = RobloxChatFrame:WaitForChild("ChatChannelParentFrame", .1)
-        RobloxChatBarFrame = RobloxChatFrame:WaitForChild("ChatBarParentFrame", .1)
+        RobloxChatChannelParentFrame = RobloxChatFrame:FindFirstChild("ChatChannelParentFrame") or RobloxChatFrame:WaitForChild("ChatChannelParentFrame", .1)
+        RobloxChatBarFrame = RobloxChatFrame:FindFirstChild("ChatBarParentFrame") or RobloxChatFrame:WaitForChild("ChatBarParentFrame", .1)
         if RobloxChatChannelParentFrame then
-            RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay", .1)
+            RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:FindFirstChild("Frame_MessageLogDisplay") or RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay", .1)
             if RobloxFrameMessageLogDisplay then
-                RobloxScroller = RobloxFrameMessageLogDisplay:WaitForChild("Scroller", .1)
+                RobloxScroller = RobloxFrameMessageLogDisplay:FindFirstChild("Scroller") or RobloxFrameMessageLogDisplay:WaitForChild("Scroller", .1)
             end
         end
     end
@@ -421,21 +413,27 @@ HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
 
 if (RobloxChatBarFrame) then
-    local Frame1 = RobloxChatBarFrame:WaitForChild('Frame', .1)
+    local Frame1 = RobloxChatBarFrame:FindFirstChild("Frame") or RobloxChatBarFrame:WaitForChild('Frame', .1)
     if Frame1 then
-        local BoxFrame = Frame1:WaitForChild('BoxFrame', .1)
+        local BoxFrame = Frame1:FindFirstChild("BoxFrame") or Frame1:WaitForChild('BoxFrame', .1)
         if BoxFrame then
-            local Frame2 = BoxFrame:WaitForChild('Frame', .1)
+            local Frame2 = BoxFrame:FindFirstChild("Frame") or BoxFrame:WaitForChild('Frame', .1)
             if Frame2 then
-                local TextLabel = Frame2:WaitForChild('TextLabel', .1)
-                ChatBar = Frame2:WaitForChild('ChatBar', .1)
-                if TextLabel and ChatBar then
-                    PredictionClone = TextLabel:Clone();
-					PredictionClone.Parent = nil;
+                local TextLabel = Frame2:FindFirstChild("TextLabel") or Frame2:WaitForChild('TextLabel', .1)
+                ChatBar = Frame2:FindFirstChild("ChatBar") or Frame2:WaitForChild('ChatBar', .1)
+                if TextLabel and TextLabel:IsA('TextLabel') then
+                    PredictionClone = Instance.new('TextLabel')
+                    PredictionClone.BackgroundTransparency = TextLabel.BackgroundTransparency
+                    PredictionClone.Font = TextLabel.Font
                     PredictionClone.Text = ""
+                    PredictionClone.TextScaled = TextLabel.TextScaled
+                    PredictionClone.TextSize = TextLabel.TextSize
+                    PredictionClone.TextStrokeTransparency = TextLabel.TextStrokeTransparency
+                    PredictionClone.TextXAlignment = TextLabel.TextXAlignment
+                    PredictionClone.TextYAlignment = TextLabel.TextYAlignment
                     PredictionClone.TextTransparency = 0.3
                     PredictionClone.Name = "Predict"
-                    ParentGui(PredictionClone, Frame2);
+                    ParentGui(PredictionClone, Frame2)
                 end
             end
         end
@@ -897,11 +895,13 @@ function Utils.Rainbow(TextObject)
         end
     end)()
 
-    RobloxScroller.DescendantRemoving:Connect(function(v)
-        if (v == TextObject) then
-            Destroyed = true
-        end
-    end)
+    if RobloxScroller then
+        RobloxScroller.DescendantRemoving:Connect(function(v)
+            if (v == TextObject) then
+                Destroyed = true
+            end
+        end)
+    end
 end
 
 function Utils.Locate(Player, Color)
@@ -3958,7 +3958,7 @@ end)
 local function RainbowChatOnAdded(v)
     if (v:IsA("TextButton")) then
         local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
-        if (Player) then
+        if (Player and Player:IsA('Player')) then
             local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
                 return x:byte();    
             end)]
@@ -3970,13 +3970,17 @@ local function RainbowChatOnAdded(v)
 end
 
 coroutine.wrap(function()
-    for _, v in next, RobloxScroller:GetDescendants() do
-        RainbowChatOnAdded(v)
-        wait();
+    if RobloxScroller then
+        for _, v in next, RobloxScroller:GetDescendants() do
+            RainbowChatOnAdded(v)
+            wait();
+        end
     end
 end)()
 
-AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
+if RobloxScroller then
+    AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
+end
 
 -- auto correct
 Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
