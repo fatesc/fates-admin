@@ -1219,18 +1219,21 @@ elseif (isfolder) then
     WriteConfig();
 end
 
-if (replaceclosure) then
-    local oldMove
-    oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
-        if (GetCharacter and GetHumanoid) then
-            if (not GetCharacter() or not GetHumanoid()) then
-                -- we don't want the console to be spamming with warns
-                return
-            end
-        end
-        return oldMove(...)
-    end)
-end
+-- if (replaceclosure) then
+--     local oldMove
+--     oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
+--         if (GetCharacter and GetHumanoid) then
+--             if (not GetCharacter() or not GetHumanoid()) then
+--                 -- we don't want the console to be spamming with warns
+--                 return
+--             end
+--         end
+--         return oldMove(...)
+--     end)
+-- end
+
+-- I am not fixing this idc if it spams console
+-- cry about it
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", ("There are currently %s commands."):format(#table.filter(CommandsTable, function(i,v)
@@ -4058,7 +4061,7 @@ Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"
     end
 end)
 
-if (ChatBar) then
+if (ChatBar and PredictionClone) then
     Connections.ChatBarChanged = ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
         local Text = string.lower(ChatBar.Text)
         local Prediction = PredictionClone
