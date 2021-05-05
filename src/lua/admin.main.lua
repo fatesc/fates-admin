@@ -2170,7 +2170,7 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
     })
 end)
 
-if (hookfunction and syn) then
+if (hookfunction) then
     local AddLog = function(reqType, url, body)
         local Clone = ChatLogMessage:Clone();
         Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
@@ -2184,31 +2184,35 @@ if (hookfunction and syn) then
         HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
     end
 
-    local Request;
-    Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
-        AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
-        return Request(reqtbl);
-    end));
-    local Httpget;
-    Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
-        AddLog("HttpGet", url);
-        return Httpget(self, url);
-    end));
-    local HttpgetAsync;
-    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
-        AddLog("HttpGetAsync", url);
-        return HttpgetAsync(self, url);
-    end));
-    local Httppost;
-    Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
-        AddLog("HttpPost", url);
-        return Httppost(self, url);
-    end));
-    local HttppostAsync;
-    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
-        AddLog("HttpPostAsync", url);
-        return HttppostAsync(self, url);
-    end));
+    local Methods = {
+        ["HttpGet"] = game,
+        ["HttpPost"] = game,
+        ["HttpGetAsync"] = game,
+        ["HttpPostAsync"] = true
+    }
+
+    for i, v in next, Methods do
+        local Method;
+        Method = hookfunction(v[i], newcclosure and newcclosure(function(self, url)
+            AddLog(i, url);
+            return Method(self, url);
+        end) or function(self, url)
+            AddLog(i, url);
+            return Method(self, url);
+        end);
+    end
+
+    if (syn.request or request) then
+        local Request;
+        Request = hookfunction(syn and syn.request or request, newcclosure and newcclosure(function(reqtbl)
+            AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+            return Request(reqtbl);
+        end) or function(reqtbl)
+            AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+            return Request(reqtbl);
+        end);
+    end
+
 
     local Clone = ChatLogMessage:Clone();
     Clone.Text = "httpspy loaded"

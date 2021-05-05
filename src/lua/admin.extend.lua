@@ -172,5 +172,11 @@ firetouchinterest = firetouchinterest or function(part1, part2, toggle)
 end
 
 hookfunction = hookfunction or function(func, newfunc)
-    func = newfunc
+    if (replaceclosure) then
+        replaceclosure(func, newfunc);
+        return newfunc
+    end
+
+    func = newcclosure and newcclosure(newfunc) or newfunc
+    return newfunc
 end
