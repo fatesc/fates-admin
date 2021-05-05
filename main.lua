@@ -7,7 +7,7 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-if (getconnections) then
+if (getconnections and not syn) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     for i, v in next, ErrorConnections do
         v:Disable();
@@ -43,9 +43,7 @@ end
 ---@return table
 table.tbl_concat = function(...)
     local new = {}
-    for i, v in next, {
-        ...
-    } do
+    for i, v in next, {...} do
         for i2, v2 in next, v do
             table.insert(new, i, v2);
         end
@@ -181,7 +179,11 @@ firetouchinterest = firetouchinterest or function(part1, part2, toggle)
 end
 
 hookfunction = hookfunction or function(func, newfunc)
-    func = newfunc
+    if (replaceclosure) then
+        replaceclosure(func, newfunc);
+    end
+
+    func = newcclosure and newcclosure(newfunc) or newfunc
 end
 
 ---@type number
@@ -1215,7 +1217,7 @@ end
 
 if (replaceclosure) then
     local oldMove
-    oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
+    oldMove = replaceclosure(LocalPlayer.Move, function(...)
         if (GetCharacter and GetHumanoid) then
             if (not GetCharacter() or not GetHumanoid()) then
                 -- we don't want the console to be spamming with warns
