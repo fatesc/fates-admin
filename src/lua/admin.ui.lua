@@ -14,7 +14,6 @@ ParentGui = function(Gui, Parent)
     return Gui
 end
 UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
-ParentGui(UI)
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 

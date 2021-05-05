@@ -17,7 +17,7 @@ Utils.Draggable(GlobalChatLogs)
 Utils.Draggable(HttpLogs);
 
 -- parent ui
-ParentGui(UI)
+ParentGui(UI);
 Connections.UI = {}
 -- tweencommand bar on prefix
 Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(Input, GameProccesed)
