@@ -139,7 +139,9 @@ GetPlayer = function(str)
 
     local PlayerArgs = {
         ["all"] = function()
-            return CurrentPlayers
+            return table.filter(CurrentPlayers, function(i, v) -- removed all arg (but not really) due to commands getting messed up and people getting confused
+                return v ~= LocalPlayer
+            end)
         end,
         ["others"] = function()
             return table.filter(CurrentPlayers, function(i, v)
@@ -377,18 +379,18 @@ end
     require - plugin
 ]]
 
-if (replaceclosure) then
-    local oldMove
-    oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
-        if (GetCharacter and GetHumanoid) then
-            if (not GetCharacter() or not GetHumanoid()) then
-                -- we don't want the console to be spamming with warns
-                return
-            end
-        end
-        return oldMove(...)
-    end)
-end
+-- if (replaceclosure) then
+--     local oldMove
+--     oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
+--         if (GetCharacter and GetHumanoid) then
+--             if (not GetCharacter() or not GetHumanoid()) then
+--                 -- we don't want the console to be spamming with warns
+--                 return
+--             end
+--         end
+--         return oldMove(...)
+--     end)
+-- end
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", ("There are currently %s commands."):format(#table.filter(CommandsTable, function(i,v)
@@ -2188,7 +2190,7 @@ if (hookfunction) then
         ["HttpGet"] = game,
         ["HttpPost"] = game,
         ["HttpGetAsync"] = game,
-        ["HttpPostAsync"] = true
+        ["HttpPostAsync"] = game
     }
 
     for i, v in next, Methods do
@@ -2807,9 +2809,7 @@ PlrChat = function(i, plr)
         local message = raw
 
         if (ChatLogsEnabled) then
-            local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
-                return x:byte()
-            end)]
+            local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
             local Text = ("%s - [%s]: %s"):format(time, Tag and Tag.Name or plr.Name, raw);
@@ -2929,35 +2929,33 @@ local PlayerAdded = function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
-        return x:byte();    
-    end)]
+    local Tag = Utils.CheckTag(plr);
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
-        coroutine.wrap(function()
-            if (not plr.Character) then
-                plr.CharacterAdded:Wait();
+        if (not plr.Character) then
+            plr.CharacterAdded:Wait();
+        end
+        if (Tag.ForceField) then
+            for i, v in next, GetCharacter(plr) do
+                if (v:IsA("Part")) then
+                    v.Material = "ForceField"
+                end
             end
+        end
+        local Added = plr.CharacterAdded:Connect(function()
             if (Tag.ForceField) then
-                for i, v in next, plr.Character:GetChildren() do
+                plr.Character:WaitForChild("Head");
+                plr.Character:WaitForChild("Torso", 2);
+                for i, v in next, GetCharacter(plr) do
                     if (v:IsA("Part")) then
                         v.Material = "ForceField"
                     end
                 end
             end
-            local Added = plr.CharacterAdded:Connect(function()
-                if (Tag.ForceField) then
-                    for i, v in next, plr.Character:GetChildren() do
-                        if (v:IsA("Part")) then
-                            v.Material = "ForceField"
-                        end
-                    end
-                end
-            end)
-            AddConnection(Added);
-        end)()
+        end)
+        AddConnection(Added);
     end
 end
 

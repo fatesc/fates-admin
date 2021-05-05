@@ -8,7 +8,7 @@ if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and
     for i, v in next, Plugins do
         local Executed, Cmd, Error = pcall(v[2]);
         if (Executed and not Err) then
-            local Executed, Err = pcall(function()
+            local Success, Err = pcall(function()
                 AddCommand(Cmd.Name, Cmd.Aliases, Cmd.Description .. ", Plugin made by: " .. Cmd.Author, Cmd.Requirements, Cmd.Func);
 
                 local Clone = Command:Clone()

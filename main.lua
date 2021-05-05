@@ -7,7 +7,7 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-if (getconnections and not syn) then
+if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     for i, v in next, ErrorConnections do
         v:Disable();
@@ -181,9 +181,11 @@ end
 hookfunction = hookfunction or function(func, newfunc)
     if (replaceclosure) then
         replaceclosure(func, newfunc);
+        return newfunc
     end
 
     func = newcclosure and newcclosure(newfunc) or newfunc
+    return newfunc
 end
 
 ---@type number
@@ -314,7 +316,9 @@ GetPlayer = function(str)
 
     local PlayerArgs = {
         ["all"] = function()
-            return CurrentPlayers
+            return table.filter(CurrentPlayers, function(i, v) -- removed all arg (but not really) due to commands getting messed up and people getting confused
+                return v ~= LocalPlayer
+            end)
         end,
         ["others"] = function()
             return table.filter(CurrentPlayers, function(i, v)
@@ -370,7 +374,6 @@ ParentGui = function(Gui, Parent)
     return Gui
 end
 UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
-ParentGui(UI)
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
@@ -435,7 +438,7 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Text = ""
                     PredictionClone.TextTransparency = 0.3
                     PredictionClone.Name = "Predict"
-                    ParentGui(PredictionClone, Frame2);
+                    ParentGui(PredictionClone);
                 end
             end
         end
@@ -804,7 +807,7 @@ end
 
 function Utils.GetPlayerArgs(Arg)
     Arg = Arg:lower()
-    local SpecialCases = {"all", "others", "claimed", "random", "me", "nearest", "farthest"}
+    local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
 
     return Utils.StringFind(SpecialCases, Arg) or (function()
         for _, v in ipairs(Players:GetPlayers()) do
@@ -839,7 +842,7 @@ function Utils.ToolTip(Object, Message)
         end
     end)
 
-    game.Players.LocalPlayer:GetMouse().Move:Connect(function()
+    LocalPlayer:GetMouse().Move:Connect(function()
         if (Clone) then
             Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
         end
@@ -872,30 +875,33 @@ function Utils.Rainbow(TextObject)
         end
     end
 
-    coroutine.wrap(function()
-        while RunService.Heartbeat:Wait() do
-            if (not getgenv().F_A) then break end
-            if (Destroyed) then break end
+    local Heartbeat = RunService.Heartbeat:Connect(function()
+        if (Destroyed) then Heartbeat:Disconnect(); end
 
-            local String = ""
-            local Counter = TotalCharacters
+        local String = ""
+        local Counter = TotalCharacters
 
-            for _, CharacterTable in ipairs(Strings) do
-                local Concat = "" 
+        for _, CharacterTable in ipairs(Strings) do
+            local Concat = "" 
 
-                if (type(CharacterTable) == "table") then
-                    Counter = Counter - 1
-                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+            if (type(CharacterTable) == "table") then
+                Counter = Counter - 1
+                local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
 
-                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
-                end
-
-                String = String .. CharacterTable
+                CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
             end
 
-            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+            String = String .. CharacterTable
         end
-    end)()
+
+        TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+    end)
+    
+    AddConnection(Heartbeat);
+
+    delay(150, function()
+        Heartbeat:Disconnect();
+    end)
 
     RobloxScroller.DescendantRemoving:Connect(function(v)
         if (v == TextObject) then
@@ -925,31 +931,48 @@ function Utils.Locate(Player, Color)
             TextLabel.TextSize = 10
             TextLabel.Text = Player.Name
 
-            local Color = Instance.new("TextLabel", Billboard);
-            Color.Name = HttpService:GenerateGUID();
-            Color.TextStrokeTransparency = 0.6
-            Color.BackgroundTransparency = 1
-            Color.TextColor3 = Color3.new(152, 152, 152);
-            Color.Size = UDim2.new(0, 200, 0, 50);
-            Color.TextScaled = false
-            Color.TextSize = 8
+            local ColorLabel = Instance.new("TextLabel", Billboard);
+            ColorLabel.Name = HttpService:GenerateGUID();
+            ColorLabel.TextStrokeTransparency = 0.6
+            ColorLabel.BackgroundTransparency = 1
+            ColorLabel.TextColor3 = Color3.new(152, 152, 152);
+            ColorLabel.Size = UDim2.new(0, 200, 0, 50);
+            ColorLabel.TextScaled = false
+            ColorLabel.TextSize = 8
 
             local EspLoop = RunService.Heartbeat:Connect(function()
                 local Humanoid = GetCharacter(Player) and GetHumanoid(Player);
                 local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player);
                 if (Humanoid and HumanoidRootPart) then
                     local Distance = math.floor((Workspace.CurrentCamera.CFrame.p - HumanoidRootPart.CFrame.p).Magnitude)
-                    Color.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
+                    ColorLabel.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
                 else
                     EspLoop:Disconnect();
                     Billboard:Destroy();
                 end
             end)
             AddConnection(EspLoop);
+            AddConnection(Players.PlayerRemoving:Connect(function(Plr)
+                if (Plr == Player) then
+                    EspLoop:Disconnect();
+                    Billboard:Destroy();
+                end
+            end))
         end
     end)()
 
     return Billboard
+end
+
+function Utils.CheckTag(Plr)
+    if (not Plr or not Plr:IsA("Player")) then
+        return nil
+    end
+    local UserId = tostring(Plr.UserId);
+    local Tag = PlayerTags[UserId:gsub(".", function(x)
+        return x:byte();
+    end)]
+    return Tag or nil
 end
 
 function Utils.AddTag(Tag)
@@ -979,8 +1002,17 @@ function Utils.AddTag(Tag)
         Utils.Rainbow(TextLabel)
     end
 
-    AddConnection(Tag.Player.CharacterAdded:Connect(function()
+    local Added = Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    end)
+
+    AddConnection(Added)
+
+    AddConnection(Player.PlayerRemoving:Connect(function(plr)
+        if (plr == Tag.Player) then
+            Added:Disconnect();
+            Billboard:Destroy();
+        end
     end))
 end
 
@@ -1191,7 +1223,7 @@ if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and
     for i, v in next, Plugins do
         local Executed, Cmd, Error = pcall(v[2]);
         if (Executed and not Err) then
-            local Executed, Err = pcall(function()
+            local Success, Err = pcall(function()
                 AddCommand(Cmd.Name, Cmd.Aliases, Cmd.Description .. ", Plugin made by: " .. Cmd.Author, Cmd.Requirements, Cmd.Func);
 
                 local Clone = Command:Clone()
@@ -1215,18 +1247,18 @@ elseif (isfolder) then
     WriteConfig();
 end
 
-if (replaceclosure) then
-    local oldMove
-    oldMove = replaceclosure(LocalPlayer.Move, function(...)
-        if (GetCharacter and GetHumanoid) then
-            if (not GetCharacter() or not GetHumanoid()) then
-                -- we don't want the console to be spamming with warns
-                return
-            end
-        end
-        return oldMove(...)
-    end)
-end
+-- if (replaceclosure) then
+--     local oldMove
+--     oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
+--         if (GetCharacter and GetHumanoid) then
+--             if (not GetCharacter() or not GetHumanoid()) then
+--                 -- we don't want the console to be spamming with warns
+--                 return
+--             end
+--         end
+--         return oldMove(...)
+--     end)
+-- end
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", ("There are currently %s commands."):format(#table.filter(CommandsTable, function(i,v)
@@ -3008,7 +3040,7 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
     })
 end)
 
-if (hookfunction and syn) then
+if (hookfunction) then
     local AddLog = function(reqType, url, body)
         local Clone = ChatLogMessage:Clone();
         Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
@@ -3022,31 +3054,35 @@ if (hookfunction and syn) then
         HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
     end
 
-    local Request;
-    Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
-        AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
-        return Request(reqtbl);
-    end));
-    local Httpget;
-    Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
-        AddLog("HttpGet", url);
-        return Httpget(self, url);
-    end));
-    local HttpgetAsync;
-    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
-        AddLog("HttpGetAsync", url);
-        return HttpgetAsync(self, url);
-    end));
-    local Httppost;
-    Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
-        AddLog("HttpPost", url);
-        return Httppost(self, url);
-    end));
-    local HttppostAsync;
-    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
-        AddLog("HttpPostAsync", url);
-        return HttppostAsync(self, url);
-    end));
+    local Methods = {
+        ["HttpGet"] = game,
+        ["HttpPost"] = game,
+        ["HttpGetAsync"] = game,
+        ["HttpPostAsync"] = game
+    }
+
+    for i, v in next, Methods do
+        local Method;
+        Method = hookfunction(v[i], newcclosure and newcclosure(function(self, url)
+            AddLog(i, url);
+            return Method(self, url);
+        end) or function(self, url)
+            AddLog(i, url);
+            return Method(self, url);
+        end);
+    end
+
+    if (syn.request or request) then
+        local Request;
+        Request = hookfunction(syn and syn.request or request, newcclosure and newcclosure(function(reqtbl)
+            AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+            return Request(reqtbl);
+        end) or function(reqtbl)
+            AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+            return Request(reqtbl);
+        end);
+    end
+
 
     local Clone = ChatLogMessage:Clone();
     Clone.Text = "httpspy loaded"
@@ -3641,9 +3677,7 @@ PlrChat = function(i, plr)
         local message = raw
 
         if (ChatLogsEnabled) then
-            local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
-                return x:byte()
-            end)]
+            local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
             local Text = ("%s - [%s]: %s"):format(time, Tag and Tag.Name or plr.Name, raw);
@@ -3722,6 +3756,11 @@ PlayerTags = {
         ["Tag"] = "Developer",
         ["Name"] = "misrepresenting",
         ["Rainbow"] = true,
+    },
+    ["495656525454515248"] = {
+        ["Tag"] = "Cool",
+        ["Name"] = "David",
+        ["Rainbow"] = true,
     }
 }
 
@@ -3744,7 +3783,7 @@ Utils.Draggable(GlobalChatLogs)
 Utils.Draggable(HttpLogs);
 
 -- parent ui
-ParentGui(UI)
+ParentGui(UI);
 Connections.UI = {}
 -- tweencommand bar on prefix
 Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(Input, GameProccesed)
@@ -4172,35 +4211,33 @@ local PlayerAdded = function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
-        return x:byte();    
-    end)]
+    local Tag = Utils.CheckTag(plr);
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
-        coroutine.wrap(function()
-            if (not plr.Character) then
-                plr.CharacterAdded:Wait();
+        if (not plr.Character) then
+            plr.CharacterAdded:Wait();
+        end
+        if (Tag.ForceField) then
+            for i, v in next, GetCharacter(plr) do
+                if (v:IsA("Part")) then
+                    v.Material = "ForceField"
+                end
             end
+        end
+        local Added = plr.CharacterAdded:Connect(function()
             if (Tag.ForceField) then
-                for i, v in next, plr.Character:GetChildren() do
+                plr.Character:WaitForChild("Head");
+                plr.Character:WaitForChild("Torso", 2);
+                for i, v in next, GetCharacter(plr) do
                     if (v:IsA("Part")) then
                         v.Material = "ForceField"
                     end
                 end
             end
-            local Added = plr.CharacterAdded:Connect(function()
-                if (Tag.ForceField) then
-                    for i, v in next, plr.Character:GetChildren() do
-                        if (v:IsA("Part")) then
-                            v.Material = "ForceField"
-                        end
-                    end
-                end
-            end)
-            AddConnection(Added);
-        end)()
+        end)
+        AddConnection(Added);
     end
 end
 

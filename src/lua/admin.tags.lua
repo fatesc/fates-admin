@@ -9,5 +9,10 @@ PlayerTags = {
         ["Tag"] = "Developer",
         ["Name"] = "misrepresenting",
         ["Rainbow"] = true,
+    },
+    ["495656525454515248"] = {
+        ["Tag"] = "Cool",
+        ["Name"] = "David",
+        ["Rainbow"] = true,
     }
 }

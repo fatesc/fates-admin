@@ -78,7 +78,7 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Text = ""
                     PredictionClone.TextTransparency = 0.3
                     PredictionClone.Name = "Predict"
-                    ParentGui(PredictionClone, Frame2);
+                    ParentGui(PredictionClone);
                 end
             end
         end

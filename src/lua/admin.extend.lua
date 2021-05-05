@@ -34,9 +34,7 @@ end
 ---@return table
 table.tbl_concat = function(...)
     local new = {}
-    for i, v in next, {
-        ...
-    } do
+    for i, v in next, {...} do
         for i2, v2 in next, v do
             table.insert(new, i, v2);
         end
