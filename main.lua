@@ -1,6 +1,6 @@
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
-    repeat wait() until game:IsLoaded();
+    game.Loaded:Wait();
 end
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
@@ -10,7 +10,8 @@ end
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     for i, v in next, ErrorConnections do
-        v:Disable();
+        -- v:Disable();
+        error = warn
     end
 end
 
