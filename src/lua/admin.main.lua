@@ -2832,10 +2832,10 @@ end)
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl) 
     local Speed = tonumber(Args[1]) or 5
     local Time = tonumber(Args[2]) or .05
-    LoadCommand("blink").CmdExtra[1] = false
-    Tbl[1] = true
+    LoadCommand("blink").CmdExtra[1] = Speed
     coroutine.wrap(function()
-        while (LoadCommand("blink").CmdExtra[1] and wait(Time)) do
+        while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
+            local Speed = LoadCommand("blink").CmdExtra[1]
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
             end 
@@ -2858,7 +2858,7 @@ AddCommand("unblink", {"noblinkws", "unblink", "noblink"}, "stops cframe speed",
     if (not next(Blink)) then
         return "blink is already disabled"
     end
-    LoadCommand("blink").CmdExtra[1] = false
+    LoadCommand("blink").CmdExtra = {}
     return "blink mode disabled"
 end)
 
