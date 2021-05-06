@@ -504,7 +504,6 @@ function Utils.Locate(Player, Color)
             AddConnection(EspLoop);
             AddConnection(Players.PlayerRemoving:Connect(function(Plr)
                 if (Plr == Player) then
-                    EspLoop:Disconnect();
                     Billboard:Destroy();
                 end
             end))
