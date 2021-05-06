@@ -9,9 +9,9 @@ end
 
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
-    for i, v in next, ErrorConnections do
-        -- v:Disable();
-        error = warn
+    if (next(ErrorConnections)) then
+        getfenv().error = warn
+        getgenv().error = warn
     end
 end
 
