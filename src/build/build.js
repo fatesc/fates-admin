@@ -16,7 +16,10 @@ const matches = ([...script.matchAll(reg)]);
 let output = script
 for (const match of matches) {
     const module = match[1].split("-")[1].trim();
-    output = output.replace(/--\[\[\r?\n(.*?)\]\]/is, readFileSync(`${file}.${module}.lua`, "utf8"));
+    let fileR = readFileSync(`${file}.${module}.lua`, "utf8")
+    let writeOut = `--IMPORT [${module}]\n${fileR}\n--END IMPORT [${module}]\n`
+    output = output.replace(/--\[\[\r?\n(.*?)\]\]/is, writeOut);
+
     console.log(`added ${module}`);
 }
 writeFileSync(out, output);

