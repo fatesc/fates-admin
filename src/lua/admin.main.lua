@@ -357,27 +357,41 @@ end
 ---@param Connection any
 ---@param Tbl table
 AddPlayerConnection = function(Player, Connection, Tbl)
-    if (Connections) then
-        if (Tbl) then
-            Tbl[#Tbl + 1] = Connection
-        else
-            Connections.Players[Player.Name].Connections[#Connections.Players[Player.Name].Connections + 1] = Connection
-        end
+    if (Tbl) then
+        Tbl[#Tbl + 1] = Connection
+    else
+        Connections.Players[Player.Name].Connections[#Connections.Players[Player.Name].Connections + 1] = Connection
     end
+    return Connection    
 end
 
 ---add a connection to the connections table
 ---@param Connection any
 ---@param Tbl table
-AddConnection = function(Connection, Tbl)
-    if (Connections) then
-        if (Tbl) then
-            Tbl[#Tbl + 1] = Connection
-        else
-            Connections[#Connections + 1] = Connection
+---@param TblOnly boolean
+AddConnection = function(Connection, Tbl, TblOnly)
+    if (Tbl) then
+        Tbl[#Tbl + 1] = Connection
+        if (TblOnly) then
+            return Connection
         end
     end
+    Connections[#Connections + 1] = Connection
     return Connection
+end
+
+---disables all connections in a running command
+---@param Cmd string
+DisableAllCmdConnections = function(Cmd)
+    local Command = LoadCommand(Cmd)
+    if (Command and Command.CmdExtra) then
+        for i, v in next, table.flat(Command.CmdExtra) do
+            if (type(v) == 'userdata' and v.Disconnect) then
+                v:Disconnect();
+            end
+        end
+    end
+    return Command
 end
 
 local WASDKeys = {
@@ -1051,15 +1065,13 @@ AddCommand("grabtools", {"gt"}, "grabs tools in the workspace", {3}, function(Ca
 end)
 
 AddCommand("autograbtools", {"agt", "loopgrabtools", "lgt"}, "once a tool is added to workspace it will be grabbed", {3}, function(Caller, Args, Tbl)
-    local Connection = Workspace.ChildAdded:Connect(function(child)
+    AddConnection(Workspace.ChildAdded:Connect(function(child)
         if (child:IsA("Tool") and child:FindFirstChild("Handle")) then
             firetouchinterest(child.Handle, GetRoot(), 1);
             firetouchinterest(child.Handle, GetRoot(), 0);
             GetCharacter().Humanoid:UnequipTools();
         end
-    end)
-    AddPlayerConnection(LocalPlayer, Connection);
-    Tbl[#Tbl + 1] = Connection
+    end), Tbl)
     return "tools will be grabbed automatically"
 end)
 
@@ -1195,7 +1207,7 @@ end)
 AddCommand("load", {"loadstring"}, "loads whatever you want", {"1"}, function(Caller, Args)
     local Code = table.concat(Args, " ");
     local Success, Err = pcall(function()
-        loadstring(("%s\n%s\n%s"):format("local oldprint=print print=function(...)getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '))return oldprint(...)end", Code, "print = oldprint"))();
+        loadstring(("%s\nprint(%s);\n%s"):format("local oldprint=print print=function(...)getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '))return oldprint(...)end", Code, "print = oldprint"))();
     end)
     if (not Success and Err) then
         return Err
@@ -1207,16 +1219,7 @@ end)
 AddCommand("load2", {"loadstring2"}, "loads whatever you want but outputs in chat", {"1"}, function(Caller, Args)
     local Code = table.concat(Args, " ");
     local Success, Err = pcall(function()
-        loadstring(("%s\n%s\n%s"):format([[
-            local oldprint = print
-            local oldwarn = warn
-            print = function(...)
-                ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(("[FA] Load Output: %s"):format(table.concat({...}, " ")), "All");
-                getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '))
-                return oldprint(...)
-            end
-            warn = print
-            ]], Code, "print = oldprint; warn = oldwarn"))();
+        loadstring(("%s\nprint(%s);\n%s"):format([[local oldprint=print local oldwarn=warn;print=function(...)ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(("[FA] Load Output: %s"):format(table.concat({...}, " ")), "All");getgenv().F_A.Utils.Notify(game.Players.LocalPlayer,'Command',table.concat({...},' '));return oldprint(...)end warn = print]], Code, "print=oldprint;warn=oldwarn"))();
     end)
     if (not Success and Err) then
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
@@ -1233,26 +1236,20 @@ AddCommand("sit", {}, "makes you sit", {3}, function(Caller, Args, Tbl)
 end)
 
 AddCommand("infinitejump", {"infjump"}, "infinite jump no cooldown", {3}, function(Caller, Args, Tbl)
-    local InfJump = UserInputService.JumpRequest:Connect(function()
+    AddConnection(UserInputService.JumpRequest:Connect(function()
         if (GetHumanoid()) then
             GetHumanoid():ChangeState(3);
         end
-    end)
-    Tbl[#Tbl + 1] = InfJump
-    AddConnection(InfJump);
+    end), Tbl);
     return "infinite jump enabled"
 end)
 
 AddCommand("noinfinitejump", {"uninfjump", "noinfjump"}, "removes infinite jump", {}, function()
     local InfJump = LoadCommand("infjump").CmdExtra
-    if (not next(InjJump)) then
+    if (not next(InfJump)) then
         return "you are not infinite jumping"
     end
-    for i, v in next, LoadCommand("infjump").CmdExtra do
-        if (type(v) == 'userdata' and v.Disconnect) then
-            v:Disconnect();
-        end
-    end
+    DisableAllCmdConnections("infinitejump");
     return "infinite jump disabled"
 end)
 
@@ -1260,17 +1257,13 @@ AddCommand("headsit", {"hsit"}, "sits on the players head", {"1"}, function(Call
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         LocalPlayer.Character.Humanoid.Sit = true
-        local Sit = LocalPlayer.Character.Humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
+        AddConnection(LocalPlayer.Character.Humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
             LocalPlayer.Character.Humanoid.Sit = true
-        end)
+        end), Tbl);
         local Root = GetRoot();
-        local Loop = RunService.Heartbeat:Connect(function()
+        AddConnection(RunService.Heartbeat:Connect(function()
             Root.CFrame = v.Character.Head.CFrame * CFrame.new(0, 0, 1);
-        end)
-        Tbl[#Tbl + 1] = Sit
-        Tbl[#Tbl + 1] = Loop
-        AddPlayerConnection(LocalPlayer, Loop);
-        AddPlayerConnection(LocalPlayer, Sit);
+        end), Tbl);
     end
 end)
 
@@ -1368,9 +1361,7 @@ AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on"
         for i, v in next, Players:GetPlayers() do
             ShowName(v)
         end
-        local PlayerAdded = Players.PlayerAdded:Connect(ShowName);
-        AddConnection(PlayerAdded);
-        Tbl[#Tbl + 1] = PlayerAdded
+        AddConnection(Players.PlayerAdded:Connect(ShowName));
         return "people with a displayname displaynames will be shown"
     elseif (Option:lower() == "on") then
         for i, v in next, LoadCommand("displaynames").CmdExtra do
@@ -1501,11 +1492,7 @@ AddCommand("noreach", {"noswordreach"}, "removes sword reach", {}, function()
 end)
 
 AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl)
-    for i, v in next, LoadCommand("swordaura").CmdExtra do
-        if (type(v) == 'userdata' and v.Disconnect) then
-            v:Disconnect();
-        end
-    end
+    DisableAllCmdConnections("swordaura");
 
     local SwordDistance = tonumber(Args[1]) or 10
     local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
@@ -1513,7 +1500,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
         return v ~= LocalPlayer
     end)
 
-    local AuraConnection = RunService.Heartbeat:Connect(function()
+    AddConnection(RunService.Heartbeat:Connect(function()
         Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
         if (Tool and Tool.Handle) then
             for i, v in next, PlayersTbl do
@@ -1532,21 +1519,15 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
                 end
             end
         end
-    end)
+    end), Tbl);
 
-    local PlayerAddedConnection = Players.PlayerAdded:Connect(function(Plr)
+    AddConnection(Players.PlayerAdded:Connect(function(Plr)
         PlayersTbl[#PlayersTbl + 1] = Plr
-    end)
-    local PlayerRemovingConnection = Players.PlayerRemoving:Connect(function(Plr)
+    end), Tbl);
+    AddConnection(Players.PlayerRemoving:Connect(function(Plr)
         table.remove(PlayersTbl, table.indexOf(PlayersTbl, Plr))
-    end)
+    end), Tbl);
 
-    AddConnection(AuraConnection);
-    AddConnection(PlayerAddedConnection);
-    AddConnection(PlayerRemovingConnection);
-    Tbl[#Tbl + 1] = AuraConnection
-    Tbl[#Tbl + 1] = PlayerAddedConnection
-    Tbl[#Tbl + 1] = PlayerRemovingConnection
     return "sword aura enabled with distance " .. SwordDistance
 end)
 
@@ -1556,11 +1537,7 @@ AddCommand("noswordaura", {"noaura"}, "stops the sword aura", {}, function()
     if (not next(Aura)) then
         return "sword aura is not enabled"
     end
-    for i, v in next, Aura do
-        if (type(v) == 'userdata' and v.Disconnect) then
-            v:Disconnect();
-        end
-    end
+    DisableAllCmdConnections("swordaura");
     return "sword aura disabled"
 end)
 
@@ -1601,11 +1578,9 @@ AddCommand("streamermode", {}, "changes names of everyone to something random", 
 
     table.forEach(game:GetDescendants(), Hide);
 
-    local DescendantAdded = game.DescendantAdded:Connect(function(x)
+    AddConnection(game.DescendantAdded:Connect(function(x)
         Hide(nil, x);
-    end)
-    Tbl[#Tbl + 1] = DescendantAdded
-    AddConnection(DescendantAdded);
+    end), Tbl);
     return "streamer mode enabled"
 end)
 
@@ -1849,14 +1824,11 @@ end)
 
 AddCommand("cameralock", {"calock"}, "locks your camera on the the players head", {"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1])[1];
-    local CameraLock = RunService.Heartbeat:Connect(function()
+    AddConnection(RunService.Heartbeat:Connect(function()
         if (GetCharacter(Target) and GetRoot(Target)) then
             Workspace.CurrentCamera.CoordinateFrame = CFrame.new(Workspace.CurrentCamera.CoordinateFrame.p, GetCharacter(Target).Head.CFrame.p);
         end
-    end)
-    Tbl[#Tbl + 1] = CameraLock
-    AddConnection(CameraLock);
-    AddPlayerConnection(LocalPlayer, CameraLock);
+    end), Tbl);
     return "now locking camera to " .. Target.Name
 end)
 
@@ -1865,11 +1837,7 @@ AddCommand("uncameralock", {"nocalock"}, "unlocks your camera", {}, function(Cal
     if (not next(Looping)) then
         return "you aren't cameralocked"
     end
-    for i, v in next, Looping do
-        if (type(v) == 'userdata' and v.Disconnect) then
-            v:Disconnect();
-        end
-    end
+    DisableAllCmdConnections("cameralock");
     return "cameralock disabled"
 end)
 
@@ -1877,29 +1845,23 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
     Tbl.Billboards = {}
     table.forEach(Players:GetPlayers(), function(i,v)
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
-        local Esp = v.CharacterAdded:Connect(function()
+        AddConnection(v.CharacterAdded:Connect(function()
             v.Character:WaitForChild("HumanoidRootPart");
             v.Character:WaitForChild("Head");
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
-        end)
-        Tbl[#Tbl + 1] = Esp
+        end), Tbl);
     end);
 
     PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
-        local Esp = Player.CharacterAdded:Connect(function()
+        AddConnection(Player.CharacterAdded:Connect(function()
             Player.Character:WaitForChild("HumanoidRootPart");
             Player.Character:WaitForChild("Head");
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
-        end)
-        Tbl[#Tbl + 1] = Esp
-        AddPlayerConnection(Player, Esp);
+        end), Tbl);
     end);
-
-    AddConnection(PlayerAddedConnection);
-    Tbl[#Tbl + 1] = PlayerAddedConnection
 
     return "esp enabled"
 end)
@@ -2293,11 +2255,7 @@ AddCommand("unloopgoto", {"unloopto"}, "removes loop teleportation to the other 
     if (not next(Looping)) then
         return "you aren't loop teleporting to anyone"
     end
-    for i, v in next, Looping do
-        if (type(v) == 'userdata' and v.Disconnect) then
-            v:Disconnect();
-        end
-    end
+    DisableAllCmdConnections("loopgoto");
     return "loopgoto disabled"
 end)
 
@@ -2478,7 +2436,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
         GetHumanoid().PlatformStand = false
         speed = 0
     end
-    e1 = Mouse.KeyDown:connect(function(key)
+    e1 = AddConnection(Mouse.KeyDown:connect(function(key)
         if not hrp or not hrp.Parent then flying=false e1:disconnect() e2:disconnect() return end
         if key=="w" then
             keys.w=true
@@ -2489,8 +2447,8 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
         elseif key=="d" then
             keys.d=true
         end
-    end)
-    e2 = Mouse.KeyUp:connect(function(key)
+    end))
+    e2 = AddConnection(Mouse.KeyUp:connect(function(key)
         if key=="w" then
             keys.w=false
         elseif key=="s" then
@@ -2500,7 +2458,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
         elseif key=="d" then
             keys.d=false
         end
-    end)
+    end))
     Tbl[#Tbl + 1] = flying
     start();
 end)
@@ -2699,12 +2657,10 @@ end)
 AddCommand("killscript", {}, "kills the script", {}, function(Caller)
     if (Caller == LocalPlayer) then
         table.deepsearch(Connections, function(i,v)
-            if (type(v) == 'userdata') then
+            if (type(v) == 'userdata' and v.Disconnect) then
                 v:Disconnect();
-                v = nil
             end
-        end)
-
+        end);
         UI:Destroy();
         getgenv().F_A = nil
         for i, v in next, getfenv() do
@@ -2818,7 +2774,7 @@ AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     LoadCommand("blink").CmdExtra[1] = Speed
     coroutine.wrap(function()
         while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
-            local Speed = LoadCommand("blink").CmdExtra[1]
+            Speed = LoadCommand("blink").CmdExtra[1]
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
             end

@@ -20,7 +20,7 @@ Utils.Draggable(HttpLogs);
 ParentGui(UI);
 Connections.UI = {}
 -- tweencommand bar on prefix
-Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(Input, GameProccesed)
+AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     if (Input.KeyCode == CommandBarPrefix and (not GameProccesed)) then
         CommandBarOpen = not CommandBarOpen
 
@@ -55,7 +55,7 @@ Connections.UI.CommandBarInput = UserInputService.InputBegan:Connect(function(In
             Utils.Notify(LocalPlayer, nil, "use command saveprefix to save your prefix");
         end
     end
-end)
+end), Connections.UI, true);
 
 -- smooth scroll commands
 Utils.SmoothScroll(Commands.Frame.List, .14)
@@ -95,15 +95,15 @@ Utils.Click(HttpLogs.Toggle, "BackgroundColor3")
 Utils.Click(HttpLogs.Close, "TextColor3")
 
 -- close tween commands
-Connections.CommandsClose = Commands.Close.MouseButton1Click:Connect(function()
+AddConnection(Commands.Close.MouseButton1Click:Connect(function()
     local Tween = Utils.TweenAllTrans(Commands, .25)
 
     Tween.Completed:Wait()
     Commands.Visible = false
-end)
+end), Connections.UI, true);
 
 -- command search
-Connections.UI.CommandsSearch = Commands.Search:GetPropertyChangedSignal("Text"):Connect(function()
+AddConnection(Commands.Search:GetPropertyChangedSignal("Text"):Connect(function()
     local Text = Commands.Search.Text
     for _, v in next, Commands.Frame.List:GetChildren() do
         if (v:IsA("Frame")) then
@@ -114,27 +114,27 @@ Connections.UI.CommandsSearch = Commands.Search:GetPropertyChangedSignal("Text")
     end
 
     Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
-end)
+end), Connections.UI, true);
 
 -- close chatlogs
-Connections.UI.ChatLogsClose = ChatLogs.Close.MouseButton1Click:Connect(function()
+AddConnection(ChatLogs.Close.MouseButton1Click:Connect(function()
     local Tween = Utils.TweenAllTrans(ChatLogs, .25)
 
     Tween.Completed:Wait()
     ChatLogs.Visible = false
-end)
-Connections.UI.GlobalChatLogsClose = GlobalChatLogs.Close.MouseButton1Click:Connect(function()
+end), Connections.UI, true);
+AddConnection(GlobalChatLogs.Close.MouseButton1Click:Connect(function()
     local Tween = Utils.TweenAllTrans(GlobalChatLogs, .25)
 
     Tween.Completed:Wait()
     GlobalChatLogs.Visible = false
-end)
-Connections.UI.HttpLogsClose = HttpLogs.Close.MouseButton1Click:Connect(function()
+end), Connections.UI, true);
+AddConnection(HttpLogs.Close.MouseButton1Click:Connect(function()
     local Tween = Utils.TweenAllTrans(GlobalChatLogs, .25)
 
     Tween.Completed:Wait()
     GlobalChatLogs.Visible = false
-end)
+end), Connections.UI, true);
 
 ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
@@ -142,35 +142,35 @@ HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 
 
 -- enable chat logs
-Connections.UI.ChatLogsToggle = ChatLogs.Toggle.MouseButton1Click:Connect(function()
+AddConnection(ChatLogs.Toggle.MouseButton1Click:Connect(function()
     ChatLogsEnabled = not ChatLogsEnabled
     ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
-end)
-Connections.UI.GlobalChatLogsToggle = GlobalChatLogs.Toggle.MouseButton1Click:Connect(function()
+end), Connections.UI, true);
+AddConnection(GlobalChatLogs.Toggle.MouseButton1Click:Connect(function()
     GlobalChatLogsEnabled = not GlobalChatLogsEnabled
     GlobalChatLogs.Toggle.Text = GlobalChatLogsEnabled and "Enabled" or "Disabled"
-end)
-Connections.UI.HttpLogsToggle = HttpLogs.Toggle.MouseButton1Click:Connect(function()
+end), Connections.UI, true);
+AddConnection(HttpLogs.Toggle.MouseButton1Click:Connect(function()
     HttpLogsEnabled = not HttpLogsEnabled
     HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
-end)
+end), Connections.UI, true);
 
 -- clear chat logs
-Connections.UI.ChatLogsClear = ChatLogs.Clear.MouseButton1Click:Connect(function()
+AddConnection(ChatLogs.Clear.MouseButton1Click:Connect(function()
     Utils.ClearAllObjects(ChatLogs.Frame.List)
     ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
-end)
-Connections.UI.GlobalChatLogsClear = GlobalChatLogs.Clear.MouseButton1Click:Connect(function()
+end), Connections.UI, true);
+AddConnection(GlobalChatLogs.Clear.MouseButton1Click:Connect(function()
     Utils.ClearAllObjects(GlobalChatLogs.Frame.List)
     GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
-end)
-Connections.UI.HttpLogsClear = HttpLogs.Clear.MouseButton1Click:Connect(function()
+end), Connections.UI, true);
+AddConnection(HttpLogs.Clear.MouseButton1Click:Connect(function()
     Utils.ClearAllObjects(HttpLogs.Frame.List)
     HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
-end)
+end), Connections.UI, true);
 
 -- chat logs search
-Connections.UI.ChatLogs = ChatLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
+AddConnection(ChatLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
     local Text = ChatLogs.Search.Text
 
     for _, v in next, ChatLogs.Frame.List:GetChildren() do
@@ -181,9 +181,9 @@ Connections.UI.ChatLogs = ChatLogs.Search:GetPropertyChangedSignal("Text"):Conne
     end
 
     ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y)
-end)
+end), Connections.UI, true);
 
-Connections.UI.GlobalChatLogs = GlobalChatLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
+AddConnection(GlobalChatLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
     local Text = GlobalChatLogs.Search.Text
 
     for _, v in next, GlobalChatLogs.Frame.List:GetChildren() do
@@ -193,9 +193,9 @@ Connections.UI.GlobalChatLogs = GlobalChatLogs.Search:GetPropertyChangedSignal("
             v.Visible = string.find(string.lower(Message), Text, 1, true)
         end
     end
-end)
+end), Connections.UI, true);
 
-Connections.UI.HttpLogs = HttpLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
+AddConnection(HttpLogs.Search:GetPropertyChangedSignal("Text"):Connect(function()
     local Text = HttpLogs.Search.Text
 
     for _, v in next, HttpLogs.Frame.List:GetChildren() do
@@ -204,9 +204,9 @@ Connections.UI.HttpLogs = HttpLogs.Search:GetPropertyChangedSignal("Text"):Conne
             v.Visible = string.find(string.lower(Message), Text, 1, true)
         end
     end
-end)
+end), Connections.UI, true);
 
-Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
+AddConnection(ChatLogs.Save.MouseButton1Click:Connect(function()
     local GameName = MarketplaceService:GetProductInfo(game.PlaceId).Name
     local String =  ("Fates Admin Chatlogs for %s (%s)\n\n"):format(GameName, os.date());
     local TimeSaved = tostring(os.date("%x")):gsub("/","-") .. " " .. tostring(os.date("%X")):gsub(":","-");
@@ -218,11 +218,11 @@ Connections.UI.ChatLogsSave = ChatLogs.Save.MouseButton1Click:Connect(function()
     end
     writefile(Name, String);
     Utils.Notify(LocalPlayer, "Saved", "Chat logs saved!");
-end)
+end), Connections.UI, true);
 
-Connections.UI.HttpLogs = HttpLogs.Save.MouseButton1Click:Connect(function()
+AddConnection(HttpLogs.Save.MouseButton1Click:Connect(function()
     print("saved");
-end)
+end), Connections.UI, true);
 
 local function RainbowChatOnAdded(v)
     if (v:IsA("TextButton")) then
@@ -248,7 +248,7 @@ end)()
 AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
 
 -- auto correct
-Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
+AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
     local Text = string.lower(CommandBar.Input.Text)
     local Prediction = CommandBar.Input.Predict
     local PredictionText = Prediction.Text
@@ -321,10 +321,10 @@ Connections.CommandBarChanged = CommandBar.Input:GetPropertyChangedSignal("Text"
         CommandBar.Input.Text = PredictionText
         CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 1
     end
-end)
+end))
 
 if (ChatBar) then
-    Connections.ChatBarChanged = ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
+    AddConnection(ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
         local Text = string.lower(ChatBar.Text)
         local Prediction = PredictionClone
         local PredictionText = PredictionClone.Text
@@ -398,5 +398,5 @@ if (ChatBar) then
             ChatBar.Text = PredictionText
             ChatBar.CursorPosition = #ChatBar.Text + 2
         end
-    end)
+    end))
 end
