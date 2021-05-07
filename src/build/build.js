@@ -28,5 +28,5 @@ console.log(`script built: ${out}`);
 
 const Min = Minify(output, {RenameVariables:true, RenameGlobals: false, SolveMath: false});
 const mainFile = join(__dirname, "../../main.lua");
-writeFileSync(mainFile, Min.replace(/-.*\n.*\n.*\]/, "").trimStart());
+writeFileSync(mainFile, `--[[\n\tfates admin - ${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear()}\n]]\n\n` + Min.replace(/-.*\n.*\n.*\]/, "").trimStart());
 console.log(`minified output build: ${mainFile}`);

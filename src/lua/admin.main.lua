@@ -2386,91 +2386,63 @@ AddCommand("enableanims", {"anims"}, "enables character animations", {3}, functi
     return "animations enabled"
 end)
 
--- this fly is not mine as you can tell
-AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
-    local hrp = GetRoot();
-    flying = true
-    flyspeed = tonumber(Args[1]) or 0.3
-    local keys = {
-        a = false,
-        d = false,
-        w = false,
-        s = false
-    }
-    local function start()
-        local pos = Instance.new("BodyPosition", hrp)
-        local gyro = Instance.new("BodyGyro", hrp)
-        pos.maxForce = Vector3.new(math.huge, math.huge, math.huge)
-        pos.position = hrp.Position
-        gyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-        gyro.cframe = hrp.CFrame
-        repeat
-            wait();
-            GetHumanoid().PlatformStand = true
-            local new = gyro.cframe - gyro.cframe.p + pos.position
-            if not keys.w and not keys.s and not keys.a and not keys.d then
-                speed = 1
-            end
-            if (keys.w or keys.s) then
-                new = keys.w and (new+Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) or (new-Workspace.CurrentCamera.CoordinateFrame.lookVector*speed)
-                speed = speed + (0.01 * (flyspeed or 0.3))
-            end
-            if (keys.d or keys.a) then
-                new = new * CFrame.new(keys.d and speed or -speed,0,0)
-                speed = speed + (0.01 * (flyspeed or 0.3))
-            end
-            if (speed > 5 * flyspeed or 0.3) then
-                speed = 5 * (flyspeed or 0.3)
-            end
-            pos.position = new.p
-            if (keys.w or keys.s) then
-                gyro.cframe = Workspace.CurrentCamera.CoordinateFrame*CFrame.Angles(-math.rad(speed*15),0,0)
-            else
-                gyro.cframe = Workspace.CurrentCamera.CoordinateFrame
-            end
-        until not flying
-
-        if gyro then gyro:Destroy() end
-        if pos then pos:Destroy() end
-        flying = false
-        GetHumanoid().PlatformStand = false
-        speed = 0
+AddCommand("fly", {"cframefly"}, "fly your character", {3}, function(Caller, Args, Tbl)
+    LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 5
+    local Speed = LoadCommand("fly").CmdExtra[1]
+    for i, v in next, GetRoot():GetChildren() do
+        if (v:IsA("BodyPosition") or v:IsA("BodyGyro")) then
+            v:Destroy();
+        end
     end
-    e1 = AddConnection(Mouse.KeyDown:connect(function(key)
-        if not hrp or not hrp.Parent then flying=false e1:disconnect() e2:disconnect() return end
-        if key=="w" then
-            keys.w=true
-        elseif key=="s" then
-            keys.s=true
-        elseif key=="a" then
-            keys.a=true
-        elseif key=="d" then
-            keys.d=true
+    local BodyPos = Instance.new("BodyPosition", GetRoot());
+    local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
+    BodyGyro.CFrame = GetRoot().CFrame
+    BodyGyro.D = 0
+    BodyPos.maxForce = Vector3.new(1, 1, 1) * 9e9
+    BodyPos.D = 400
+    coroutine.wrap(function()
+        BodyPos.Position = GetRoot().Position
+        while (next(LoadCommand("fly").CmdExtra) and wait()) do
+            Speed = LoadCommand("fly").CmdExtra[1]
+            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame 
+            if (WASDKeys["W"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
+                BodyPos.Position = GetRoot().Position
+            end
+            if (WASDKeys["A"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
+                BodyPos.Position = GetRoot().Position
+            end
+            if (WASDKeys["S"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
+                BodyPos.Position = GetRoot().Position
+            end
+            if (WASDKeys["D"]) then
+                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
+                BodyPos.Position = GetRoot().Position
+            end
+            BodyGyro.CFrame = CoordinateFrame
+            BodyPos.Position = GetRoot().CFrame.Position
         end
-    end))
-    e2 = AddConnection(Mouse.KeyUp:connect(function(key)
-        if key=="w" then
-            keys.w=false
-        elseif key=="s" then
-            keys.s=false
-        elseif key=="a" then
-            keys.a=false
-        elseif key=="d" then
-            keys.d=false
-        end
-    end))
-    Tbl[#Tbl + 1] = flying
-    start();
+    end)();
+
+    return "now flying"
 end)
 
 AddCommand("flyspeed", {"fs"}, "changes the fly speed", {3, "1"}, function(Caller, Args)
     local Speed = tonumber(Args[1]);
-    flyspeed = Speed or flyspeed
+    LoadCommand("fly").CmdExtra[1] = Speed or LoadCommand("fly2").CmdExtra[1]
     return Speed and "your fly speed is now " .. Speed or "flyspeed must be a number"
 end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
-    flying = false
+    LoadCommand("fly").CmdExtra = {}
+    for i, v in next, GetRoot():GetChildren() do
+        if (v:IsA("BodyPosition") or v:IsA("BodyGyro")) then
+            v:Destroy();
+        end
+    end
     return "stopped flying"
 end)
 
@@ -2659,6 +2631,8 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         table.deepsearch(Connections, function(i,v)
             if (type(v) == 'userdata' and v.Disconnect) then
                 v:Disconnect();
+            elseif (type(v) == 'boolean') then
+                v = false
             end
         end);
         UI:Destroy();
