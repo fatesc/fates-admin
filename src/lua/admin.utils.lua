@@ -380,7 +380,7 @@ end
 
 function Utils.GetPlayerArgs(Arg)
     Arg = Arg:lower()
-    local SpecialCases = {"all", "others", "claimed", "random", "me", "nearest", "farthest"}
+    local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
 
     return Utils.StringFind(SpecialCases, Arg) or (function()
         for _, v in ipairs(Players:GetPlayers()) do
@@ -415,7 +415,7 @@ function Utils.ToolTip(Object, Message)
         end
     end)
 
-    game.Players.LocalPlayer:GetMouse().Move:Connect(function()
+    LocalPlayer:GetMouse().Move:Connect(function()
         if (Clone) then
             Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
         end
@@ -448,30 +448,33 @@ function Utils.Rainbow(TextObject)
         end
     end
 
-    coroutine.wrap(function()
-        while RunService.Heartbeat:Wait() do
-            if (not getgenv().F_A) then break end
-            if (Destroyed) then break end
+    local Heartbeat = RunService.Heartbeat:Connect(function()
+        if (Destroyed) then Heartbeat:Disconnect(); end
 
-            local String = ""
-            local Counter = TotalCharacters
+        local String = ""
+        local Counter = TotalCharacters
 
-            for _, CharacterTable in ipairs(Strings) do
-                local Concat = "" 
+        for _, CharacterTable in ipairs(Strings) do
+            local Concat = "" 
 
-                if (type(CharacterTable) == "table") then
-                    Counter = Counter - 1
-                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+            if (type(CharacterTable) == "table") then
+                Counter = Counter - 1
+                local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
 
-                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
-                end
-
-                String = String .. CharacterTable
+                CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
             end
 
-            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+            String = String .. CharacterTable
         end
-    end)()
+
+        TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+    end)
+    
+    AddConnection(Heartbeat);
+
+    delay(150, function()
+        Heartbeat:Disconnect();
+    end)
 
     RobloxScroller.DescendantRemoving:Connect(function(v)
         if (v == TextObject) then
@@ -501,31 +504,47 @@ function Utils.Locate(Player, Color)
             TextLabel.TextSize = 10
             TextLabel.Text = Player.Name
 
-            local Color = Instance.new("TextLabel", Billboard);
-            Color.Name = HttpService:GenerateGUID();
-            Color.TextStrokeTransparency = 0.6
-            Color.BackgroundTransparency = 1
-            Color.TextColor3 = Color3.new(152, 152, 152);
-            Color.Size = UDim2.new(0, 200, 0, 50);
-            Color.TextScaled = false
-            Color.TextSize = 8
+            local ColorLabel = Instance.new("TextLabel", Billboard);
+            ColorLabel.Name = HttpService:GenerateGUID();
+            ColorLabel.TextStrokeTransparency = 0.6
+            ColorLabel.BackgroundTransparency = 1
+            ColorLabel.TextColor3 = Color3.new(152, 152, 152);
+            ColorLabel.Size = UDim2.new(0, 200, 0, 50);
+            ColorLabel.TextScaled = false
+            ColorLabel.TextSize = 8
 
             local EspLoop = RunService.Heartbeat:Connect(function()
                 local Humanoid = GetCharacter(Player) and GetHumanoid(Player);
                 local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player);
                 if (Humanoid and HumanoidRootPart) then
                     local Distance = math.floor((Workspace.CurrentCamera.CFrame.p - HumanoidRootPart.CFrame.p).Magnitude)
-                    Color.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
+                    ColorLabel.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
                 else
                     EspLoop:Disconnect();
                     Billboard:Destroy();
                 end
             end)
             AddConnection(EspLoop);
+            AddConnection(Players.PlayerRemoving:Connect(function(Plr)
+                if (Plr == Player) then
+                    Billboard:Destroy();
+                end
+            end))
         end
     end)()
 
     return Billboard
+end
+
+function Utils.CheckTag(Plr)
+    if (not Plr or not Plr:IsA("Player")) then
+        return nil
+    end
+    local UserId = tostring(Plr.UserId);
+    local Tag = PlayerTags[UserId:gsub(".", function(x)
+        return x:byte();
+    end)]
+    return Tag or nil
 end
 
 function Utils.AddTag(Tag)
@@ -555,8 +574,17 @@ function Utils.AddTag(Tag)
         Utils.Rainbow(TextLabel)
     end
 
-    AddConnection(Tag.Player.CharacterAdded:Connect(function()
+    local Added = Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    end)
+
+    AddConnection(Added)
+
+    AddConnection(Player.PlayerRemoving:Connect(function(plr)
+        if (plr == Tag.Player) then
+            Added:Disconnect();
+            Billboard:Destroy();
+        end
     end))
 end
 

@@ -1,6 +1,6 @@
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
-    repeat wait() until game:IsLoaded();
+    game.Loaded:Wait();
 end
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
@@ -139,7 +139,9 @@ GetPlayer = function(str)
 
     local PlayerArgs = {
         ["all"] = function()
-            return CurrentPlayers
+            return table.filter(CurrentPlayers, function(i, v) -- removed all arg (but not really) due to commands getting messed up and people getting confused
+                return v ~= LocalPlayer
+            end)
         end,
         ["others"] = function()
             return table.filter(CurrentPlayers, function(i, v)
@@ -181,6 +183,10 @@ end
 
 --[[
     require - ui
+]]
+
+--[[
+    require - tags
 ]]
 
 --[[
@@ -295,7 +301,7 @@ local AddCommand = function(name, aliases, description, options, func)
     return Success
 end
 
---- gets the function of the command 
+--- gets the function of the command
 ---@param name string
 LoadCommand = function(name)
     local Command = rawget(CommandsTable, name);
@@ -371,6 +377,7 @@ AddConnection = function(Connection, Tbl)
             Connections[#Connections + 1] = Connection
         end
     end
+    return Connection
 end
 
 local WASDKeys = {
@@ -395,8 +402,6 @@ AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
         WASDKeys[KeyCode] = false
     end
 end));
-
-
 
 --[[
     require - plugin
@@ -432,7 +437,7 @@ AddCommand("jumppower", {"jp"}, "changes your jumpower to the second argument", 
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.JumpPower
     Humanoid.JumpPower = Args[1] or 50
-    return "your jumppower is now " .. Humanoid.JumpPower 
+    return "your jumppower is now " .. Humanoid.JumpPower
 end)
 
 AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument", {}, function(Caller, Args, Tbl)
@@ -612,7 +617,7 @@ AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller
         end
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
-    until not next(LoadCommand("loopkill").CmdExtra) or not GetPlayer(Args[1]) 
+    until not next(LoadCommand("loopkill").CmdExtra) or not GetPlayer(Args[1])
 end)
 
 AddCommand("unloopkill", {"unlkill"}, "unloopkills a user", {3,"1"}, function(Caller, Args)
@@ -686,11 +691,11 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                         Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
                         do break end
                     end
-    
+
                     if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
                         do break end
                     end
-    
+
                     local TargetRoot = GetRoot(v);
                     local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
                     if (not Tool) then
@@ -708,7 +713,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, Tool.Handle, 0);
                             firetouchinterest(TargetRoot, Tool.Handle, 1);
-                            CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));	
+                            CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
                         end
                     end
                 else
@@ -906,7 +911,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
     if (not Amount) then
         return "amount must be a number"
     end
-    
+
     GetCharacter().Humanoid:UnequipTools();
     local ToolAmount = #table.filter(LocalPlayer.Backpack:GetChildren(), function(i, v)
         return v:IsA("Tool");
@@ -926,17 +931,17 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
                 Workspace.FallenPartsDestroyHeight = -math.huge
                 OldPos = GetRoot().CFrame
                 GetRoot().CFrame = CFrame.new(0, 1e9, 0);
-                GetRoot().Anchored = true  
+                GetRoot().Anchored = true
             end)
         end
         wait(game.Players.RespawnTime - .05); --todo: add the amount of tools divided by 100 or something like that
         OldPos = OldPos or GetRoot().CFrame
         ReplaceHumanoid(Humanoid);
-        
+
         local Tools = table.filter(LocalPlayer.Backpack:GetChildren(), function(i, v)
             return v:IsA("Tool");
         end)
-        
+
         for i2, v in next, Tools do
             v.CanBeDropped = true
             v.Parent = LocalPlayer.Character
@@ -945,7 +950,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         end
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos;
-    
+
         for i2, v in next, Duped do
             if (v.Handle) then
                 firetouchinterest(v.Handle, GetRoot(), 1);
@@ -979,7 +984,7 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
         v.Parent = Workspace
         firetouchinterest(Workspace:WaitForChild(v.Name).Handle, GetRoot(), 1);
         firetouchinterest(v.Handle, GetRoot(), 0);
-        Char:WaitForChild(v.Name).Parent = LocalPlayer.Backpack	
+        Char:WaitForChild(v.Name).Parent = LocalPlayer.Backpack
     end
     Utils.Notify(Caller, nil, "Tools are now saved");
     GetHumanoid().Died:Wait();
@@ -1242,7 +1247,7 @@ end)
 
 AddCommand("infinitejump", {"infjump"}, "infinite jump no cooldown", {3}, function(Caller, Args, Tbl)
     local InfJump = UserInputService.JumpRequest:Connect(function()
-        if (GetHumanoid()) then 
+        if (GetHumanoid()) then
             GetHumanoid():ChangeState(3);
         end
     end)
@@ -1341,7 +1346,7 @@ AddCommand("ping", {}, "shows you your ping", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local x = 0	
+    local x = 0
     local a = tick();
     local fpsget = function()
         x = (1 / (tick() - a));
@@ -1412,7 +1417,7 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
         local TargetPos = TargetRoot.Position
         local Stepped = RunService.Stepped:Connect(function(step)
             step = step - Workspace.DistributedGameTime
-        
+
             Root.CFrame = (TargetRoot.CFrame - (Vector3.new(0, 1e6, 0) * step)) + (TargetRoot.Velocity * (step * 30))
             Root.Velocity = Vector3.new(0, 1e6, 0)
         end)
@@ -1455,7 +1460,7 @@ AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Call
 end)
 
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)
-    local Target, Option = GetPlayer(Args[1]), Args[2] or "" 
+    local Target, Option = GetPlayer(Args[1]), Args[2] or ""
     local Backpack, Character = LocalPlayer.Backpack, GetCharacter();
     local Tool = Character:FindFirstChild("ClassicSword") or Backpack:FindFirstChild("ClassicSword") or Backpack:FindFirstChildOfClass("Tool") or Character:FindFirstChildOfClass("Tool")
     Tool.Parent = Character
@@ -1514,7 +1519,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
             v:Disconnect();
         end
     end
-    
+
     local SwordDistance = tonumber(Args[1]) or 10
     local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
     local PlayersTbl = table.filter(Players:GetPlayers(), function(i, v)
@@ -1592,7 +1597,7 @@ AddCommand("unfreeze", {}, "unfreezes your character", {3}, function(Caller, Arg
     return "freeze disabled"
 end)
 
-AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, Tbl) 
+AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, Tbl)
     local Rand = function(len) return HttpService:GenerateGUID():sub(2, len):gsub("-", "") end
     local Hide = function(a, v)
         if (v and v:IsA("TextLabel") or v:IsA("TextButton")) then
@@ -1604,7 +1609,7 @@ AddCommand("streamermode", {}, "changes names of everyone to something random", 
                 end
                 v.Text = NewName
             end
-        end	
+        end
     end
 
     table.forEach(game:GetDescendants(), Hide);
@@ -1908,7 +1913,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
 
     AddConnection(PlayerAddedConnection);
     Tbl[#Tbl + 1] = PlayerAddedConnection
-    
+
     return "esp enabled"
 end)
 
@@ -1998,7 +2003,7 @@ AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, fu
             if (Prompt.Text == "Disconnected") then
                 syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()")
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
-            end            
+            end
         end
     end)
     AddConnection(RejoinConnection);
@@ -2050,7 +2055,7 @@ AddCommand("removealias", {}, "removes an alias from a command", {}, function(Ca
     if (not CommandsTable[Alias]) then
         return Alias .. " is not an alias"
     end
-    
+
     if (CommandsTable[Alias].Name ~= Alias) then
         local Cmd = CommandsTable[Alias]
         CommandsTable[Alias] = nil
@@ -2289,7 +2294,7 @@ AddCommand("loopgoto", {"loopto"}, "loop teleports yourself to the other charact
     local Connection = RunService.Heartbeat:Connect(function()
         GetRoot().CFrame = GetRoot(Target).CFrame * CFrame.new(0, 0, 2);
     end)
-    
+
     Tbl[Target.Name] = Connection
     AddPlayerConnection(LocalPlayer, Connection);
     AddConnection(Connection);
@@ -2336,7 +2341,7 @@ AddCommand("notruesight", {"nots"}, "removes truesight", {}, function(Caller, Ar
     for i, v in next, showing do
         i.Transparency = v
     end
-    
+
     return ("%d items hidden in %.3f (s)"):format(#showing, (tick() or os.clock()) - time);
 end)
 
@@ -2446,7 +2451,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
         d = false,
         w = false,
         s = false
-    } 
+    }
     local function start()
         local pos = Instance.new("BodyPosition", hrp)
         local gyro = Instance.new("BodyGyro", hrp)
@@ -2461,11 +2466,11 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
             if not keys.w and not keys.s and not keys.a and not keys.d then
                 speed = 1
             end
-            if (keys.w or keys.s) then 
-                new = keys.w and (new+Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) or (new-Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) 
+            if (keys.w or keys.s) then
+                new = keys.w and (new+Workspace.CurrentCamera.CoordinateFrame.lookVector*speed) or (new-Workspace.CurrentCamera.CoordinateFrame.lookVector*speed)
                 speed = speed + (0.01 * (flyspeed or 0.3))
             end
-            if (keys.d or keys.a) then 
+            if (keys.d or keys.a) then
                 new = new * CFrame.new(keys.d and speed or -speed,0,0)
                 speed = speed + (0.01 * (flyspeed or 0.3))
             end
@@ -2479,7 +2484,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
                 gyro.cframe = Workspace.CurrentCamera.CoordinateFrame
             end
         until not flying
-        
+
         if gyro then gyro:Destroy() end
         if pos then pos:Destroy() end
         flying = false
@@ -2509,7 +2514,7 @@ AddCommand("fly", {}, "flies your character", {3}, function(Caller, Args, Tbl)
             keys.d=false
         end
     end)
-    Tbl[#Tbl + 1] = flying	 
+    Tbl[#Tbl + 1] = flying
     start();
 end)
 
@@ -2712,7 +2717,7 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = nil
             end
         end)
-        
+
         UI:Destroy();
         getgenv().F_A = nil
         for i, v in next, getfenv() do
@@ -2815,11 +2820,12 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     CommandBar.Input.Text = ""
     return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
+
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
     PredictionClone.Parent = Frame2
 end)
 
-AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl) 
+AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     local Speed = tonumber(Args[1]) or 5
     local Time = tonumber(Args[2]) or .05
     LoadCommand("blink").CmdExtra[1] = Speed
@@ -2828,11 +2834,11 @@ AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
             local Speed = LoadCommand("blink").CmdExtra[1]
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
-            end 
+            end
             if (WASDKeys["A"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
             end
-            if (WASDKeys["S"]) then 
+            if (WASDKeys["S"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
             end
             if (WASDKeys["D"]) then
@@ -2859,11 +2865,10 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
                 if (v.Name == LocalPlayer.Name) then
                     LocalPlayer["\107\105\99\107"](LocalPlayer, table.concat(table.shift(Args), " "));
                 end
-            end        
+            end
         end
     end)
 end)
-
 
 ---@param i any
 ---@param plr any
@@ -2873,13 +2878,11 @@ PlrChat = function(i, plr)
         Connections.Players[plr.Name].Connections = {}
     end
     Connections.Players[plr.Name].ChatCon = plr.Chatted:Connect(function(raw)
-        
+
         local message = raw
 
         if (ChatLogsEnabled) then
-            local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
-                return x:byte()
-            end)]
+            local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
             local Text = ("%s - [%s]: %s"):format(time, Tag and Tag.Name or plr.Name, raw);
@@ -2909,7 +2912,7 @@ PlrChat = function(i, plr)
             }
             Socket:Send(HttpService:JSONEncode(Message));
         end
-
+        local something = false
         if (string.startsWith(raw, "/e")) then
             raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
@@ -2922,7 +2925,7 @@ PlrChat = function(i, plr)
         end
 
         message = string.trim(raw);
-        
+
         if (table.find(AdminUsers, plr) or plr == LocalPlayer or something) then
             local CommandArgs = message:split(" ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
@@ -2951,10 +2954,6 @@ PlrChat = function(i, plr)
 end
 
 --[[
-    require - tags
-]]
-
---[[
     require - uimore
 ]]
 WideBar = false
@@ -2963,7 +2962,7 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
     local Text = string.trim(CommandBar.Input.Text);
     local CommandArgs = Text:split(" ");
 
-    CommandBarOpen = false 
+    CommandBarOpen = false
 
     if (not Draggable) then
         Utils.TweenAllTrans(CommandBar, .5)
@@ -3002,35 +3001,11 @@ local PlayerAdded = function(plr)
     plr.CharacterAdded:Connect(function()
         RespawnTimes[plr.Name] = tick();
     end)
-    local Tag = PlayerTags[tostring(plr.UserId):gsub(".", function(x)
-        return x:byte();    
-    end)]
+    local Tag = Utils.CheckTag(plr);
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr
         Utils.Notify(LocalPlayer, "Admin", ("%s (%s) has joined"):format(Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
-        -- coroutine.wrap(function() -- removed in latest commit
-        --     if (not plr.Character) then
-        --         plr.CharacterAdded:Wait();
-        --     end
-        --     if (Tag.ForceField) then
-        --         for i, v in next, plr.Character:GetChildren() do
-        --             if (v:IsA("Part")) then
-        --                 v.Material = "ForceField"
-        --             end
-        --         end
-        --     end
-        --     local Added = plr.CharacterAdded:Connect(function()
-        --         if (Tag.ForceField) then
-        --             for i, v in next, plr.Character:GetChildren() do
-        --                 if (v:IsA("Part")) then
-        --                     v.Material = "ForceField"
-        --                 end
-        --             end
-        --         end
-        --     end)
-        --     AddConnection(Added);
-        -- end)()
     end
 end
 

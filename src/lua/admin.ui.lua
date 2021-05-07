@@ -14,7 +14,6 @@ ParentGui = function(Gui, Parent)
     return Gui
 end
 UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
-ParentGui(UI)
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
@@ -65,12 +64,13 @@ HttpLogs.Name = "HttpLogs"
 HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
 
+local Frame2
 if (RobloxChatBarFrame) then
     local Frame1 = RobloxChatBarFrame:WaitForChild('Frame', .1)
     if Frame1 then
         local BoxFrame = Frame1:WaitForChild('BoxFrame', .1)
         if BoxFrame then
-            local Frame2 = BoxFrame:WaitForChild('Frame', .1)
+            Frame2 = BoxFrame:WaitForChild('Frame', .1)
             if Frame2 then
                 local TextLabel = Frame2:WaitForChild('TextLabel', .1)
                 ChatBar = Frame2:WaitForChild('ChatBar', .1)
@@ -79,7 +79,6 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Text = ""
                     PredictionClone.TextTransparency = 0.3
                     PredictionClone.Name = "Predict"
-                    ParentGui(PredictionClone, Frame2);
                 end
             end
         end

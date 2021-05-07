@@ -1,7 +1,8 @@
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
-    for i, v in next, ErrorConnections do
-        v:Disable();
+    if (next(ErrorConnections)) then
+        getfenv().error = warn
+        getgenv().error = warn
     end
 end
 
@@ -34,9 +35,7 @@ end
 ---@return table
 table.tbl_concat = function(...)
     local new = {}
-    for i, v in next, {
-        ...
-    } do
+    for i, v in next, {...} do
         for i2, v2 in next, v do
             table.insert(new, i, v2);
         end
@@ -172,5 +171,11 @@ firetouchinterest = firetouchinterest or function(part1, part2, toggle)
 end
 
 hookfunction = hookfunction or function(func, newfunc)
-    func = newfunc
+    if (replaceclosure) then
+        replaceclosure(func, newfunc);
+        return newfunc
+    end
+
+    func = newcclosure and newcclosure(newfunc) or newfunc
+    return newfunc
 end
