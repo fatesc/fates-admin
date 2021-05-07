@@ -1,26 +1,3 @@
-PlayerTags = {
-    ["505156575355565455"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "fate",
-        ["Rainbow"] = true,
-    },
-    ["555352544955574849"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "misrepresenting",
-        ["Rainbow"] = true,
-    },
-    ["495656525454515248"] = {
-        ["Tag"] = "Cool",
-        ["Name"] = "David",
-        ["Rainbow"] = true,
-    },
-    ["49565649565652"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "Owner",
-        ["Rainbow"] = true
-    }
-}
-
 Utils = {}
 
 function Utils.Tween(Object, Style, Direction, Time, Goal)
@@ -258,7 +235,7 @@ function Utils.SetAllTrans(Object)
         local IsImage = v:IsA("ImageLabel") or v:IsA("ImageButton")
         local IsScrollingFrame = v:IsA("ScrollingFrame")
 
-        if (not v:IsA("UIListLayout")) then	
+        if (not v:IsA("UIListLayout")) then
             v.BackgroundTransparency = 1
 
             if (IsText) then
@@ -315,24 +292,24 @@ function Utils.Notify(Caller, Title, Message, Time)
     if (not Caller or Caller == LocalPlayer) then
         local Notification = UI.Notification
         local NotificationBar = UI.NotificationBar
-    
+
         local Clone = Notification:Clone()
-    
+
         local function TweenDestroy()
             if (Utils and Clone) then -- fix error when the script is killed and there is still notifications out
                 local Tween = Utils.TweenAllTrans(Clone, .25)
-    
+
                 Tween.Completed:Wait()
                 Clone:Destroy();
             end
         end
-    
+
         Clone.Message.Text = Message
         Clone.Title.Text = Title or "Notification"
         Utils.SetAllTrans(Clone)
         Utils.Click(Clone.Close, "TextColor3")
         Clone.Visible = true -- tween
-    
+
         if (Message:len() >= 35) then
             Clone.AutomaticSize = Enum.AutomaticSize.Y
             Clone.Message.AutomaticSize = Enum.AutomaticSize.Y
@@ -341,20 +318,20 @@ function Utils.Notify(Caller, Title, Message, Time)
             Clone.Message.TextYAlignment = Enum.TextYAlignment.Top
             Clone.DropShadow.AutomaticSize = Enum.AutomaticSize.Y
         end
-    
+
         Clone.Parent = NotificationBar
-    
+
         coroutine.wrap(function()
             local Tween = Utils.TweenAllTransToObject(Clone, .5, Notification)
-    
+
             Tween.Completed:Wait();
             wait(Time or 5);
-    
+
             if (Clone) then
                 TweenDestroy();
             end
         end)()
-    
+
         Connections["CloneClose" .. #Connections] = Clone.Close.MouseButton1Click:Connect(function()
             TweenDestroy()
         end)
@@ -390,7 +367,7 @@ function Utils.GetPlayerArgs(Arg)
                 return Name
             end
         end
-    end)()	
+    end)()
 end
 
 function Utils.ToolTip(Object, Message)
@@ -455,7 +432,7 @@ function Utils.Rainbow(TextObject)
         local Counter = TotalCharacters
 
         for _, CharacterTable in ipairs(Strings) do
-            local Concat = "" 
+            local Concat = ""
 
             if (type(CharacterTable) == "table") then
                 Counter = Counter - 1
@@ -469,7 +446,7 @@ function Utils.Rainbow(TextObject)
 
         TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
     end)
-    
+
     AddConnection(Heartbeat);
 
     delay(150, function()
