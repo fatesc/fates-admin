@@ -407,19 +407,6 @@ end));
     require - plugin
 ]]
 
-if (replaceclosure) then
-    local oldMove
-    oldMove = replaceclosure(game.Players.LocalPlayer.Move, function(...)
-        if (GetCharacter and GetHumanoid) then
-            if (not GetCharacter() or not GetHumanoid()) then
-                -- we don't want the console to be spamming with warns
-                return
-            end
-        end
-        return oldMove(...)
-    end)
-end
-
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", ("There are currently %s commands."):format(#table.filter(CommandsTable, function(i,v)
         return table.indexOf(CommandsTable, v) == i

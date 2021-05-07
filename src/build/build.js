@@ -1,5 +1,6 @@
 const { readFileSync, writeFileSync } = require("fs");
 const { join } = require("path");
+const { Minify } = require("./luamin");
 
 const option = process.argv.slice(2)[0]
 
@@ -24,3 +25,8 @@ for (const match of matches) {
 }
 writeFileSync(out, output);
 console.log(`script built: ${out}`);
+
+const Min = Minify(output, {RenameVariables:true, RenameGlobals: false, SolveMath: false});
+const mainFile = join(__dirname, "../../main.lua");
+writeFileSync(mainFile, Min.replace(/-.*\n.*\n.*\]/, "").trimStart());
+console.log(`minified output build: ${mainFile}`);
