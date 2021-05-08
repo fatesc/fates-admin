@@ -478,6 +478,11 @@ PlayerTags = {
         ["Tag"] = "Developer",
         ["Name"] = "Owner",
         ["Rainbow"] = true
+    },
+    ["495357485451505151"] = {
+        ["Tag"] = "Contributor",
+        ["Name"] = "Josh",
+        ["Rainbow"] = true
     }
 }
 
