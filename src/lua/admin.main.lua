@@ -2927,12 +2927,18 @@ local PlayerAdded = function(plr)
 end
 
 table.forEach(CurrentPlayers, function(i,v)
-    PlrChat(i,v);
-    PlayerAdded(v);
+    spawn(function()
+        PlrChat(i,v);
+    end)
+    spawn(function()
+        PlayerAdded(v);
+    end)
 end);
 
 Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
-    PlrChat(#Connections.Players + 1, plr);
+    spawn(function()
+        PlrChat(#Connections.Players + 1, plr);
+    end)
     PlayerAdded(plr);
 end)
 
