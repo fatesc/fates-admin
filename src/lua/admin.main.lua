@@ -362,7 +362,7 @@ AddPlayerConnection = function(Player, Connection, Tbl)
     else
         Connections.Players[Player.Name].Connections[#Connections.Players[Player.Name].Connections + 1] = Connection
     end
-    return Connection    
+    return Connection
 end
 
 ---add a connection to the connections table
@@ -2405,7 +2405,7 @@ AddCommand("fly", {"cframefly"}, "fly your character", {3}, function(Caller, Arg
         BodyPos.Position = GetRoot().Position
         while (next(LoadCommand("fly").CmdExtra) and wait()) do
             Speed = LoadCommand("fly").CmdExtra[1]
-            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame 
+            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
                 BodyPos.Position = GetRoot().Position
@@ -2787,7 +2787,6 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
     end)
 end)
 
-<<<<<<< HEAD
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
 	local Target = GetPlayer(Args[1])[1];
 	local Radius = tonumber(Args[3]) or 7
@@ -2808,8 +2807,6 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     return "orbit stopped"
 end)
 
-=======
->>>>>>> parent of 64c8591 (orbit)
 ---@param i any
 ---@param plr any
 PlrChat = function(i, plr)

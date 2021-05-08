@@ -165,7 +165,7 @@ table.keys = function(tbl)
     if (type(tbl) == 'table') then
         local new = {}
         for i, v in next, tbl do
-            new[#new + 1] = i	
+            new[#new + 1] = i
         end
         return new
     end
@@ -1237,7 +1237,7 @@ AddPlayerConnection = function(Player, Connection, Tbl)
     else
         Connections.Players[Player.Name].Connections[#Connections.Players[Player.Name].Connections + 1] = Connection
     end
-    return Connection    
+    return Connection
 end
 
 ---add a connection to the connections table
@@ -3313,7 +3313,7 @@ AddCommand("fly", {"cframefly"}, "fly your character", {3}, function(Caller, Arg
         BodyPos.Position = GetRoot().Position
         while (next(LoadCommand("fly").CmdExtra) and wait()) do
             Speed = LoadCommand("fly").CmdExtra[1]
-            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame 
+            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
                 BodyPos.Position = GetRoot().Position
@@ -3694,8 +3694,6 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
         end
     end)
 end)
-
-<<<<<<< HEAD
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
 	local Target = GetPlayer(Args[1])[1];
 	local Radius = tonumber(Args[3]) or 7
@@ -3716,8 +3714,6 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     return "orbit stopped"
 end)
 
-=======
->>>>>>> parent of 64c8591 (orbit)
 ---@param i any
 ---@param plr any
 PlrChat = function(i, plr)
@@ -4033,7 +4029,7 @@ local function RainbowChatOnAdded(v)
         local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
         if (Player) then
             local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
-                return x:byte();    
+                return x:byte();
             end)]
             if (Tag and Tag.Rainbow) then
                 Utils.Rainbow(v);
@@ -4072,13 +4068,13 @@ AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function
             local CommandName = v.Name
             local Aliases = v.Aliases
             local FoundAlias
-    
+
             if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
                 Prediction.Text = CommandName
                 CommandArgs = v.Args or {}
                 break
             end
-    
+
             for _, v2 in next, Aliases do
                 if (Utils.MatchSearch(Args[1], v2)) then
                     FoundAlias = true
@@ -4086,7 +4082,7 @@ AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function
                     CommandArgs = v2.Args or {}
                     break
                 end
-    
+
                 if (FoundAlias) then
                     break
                 end
@@ -4132,14 +4128,14 @@ if (ChatBar) then
         local Text = string.lower(ChatBar.Text)
         local Prediction = PredictionClone
         local PredictionText = PredictionClone.Text
-    
+
         local Args = string.split(table.concat(table.shift(Text:split(""))), " ");
-    
+
         Prediction.Text = ""
         if (not string.startsWith(Text, Prefix)) then
             return
         end
-    
+
         local FoundCommand = false
         local FoundAlias = false
         CommandArgs = CommandArgs or {}
@@ -4148,14 +4144,14 @@ if (ChatBar) then
                 local CommandName = v.Name
                 local Aliases = v.Aliases
                 local FoundAlias
-        
+
                 if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
                     Prediction.Text = Prefix .. CommandName
                     FoundCommand = true
                     CommandArgs = v.Args or {}
                     break
                 end
-        
+
                 for _, v2 in next, Aliases do
                     if (Utils.MatchSearch(Args[1], v2)) then
                         FoundAlias = true
@@ -4163,14 +4159,14 @@ if (ChatBar) then
                         CommandArgs = v.Args or {}
                         break
                     end
-        
+
                     if (FoundAlias) then
                         break
                     end
                 end
             end
         end
-    
+
         for i, v in next, Args do -- make it get more players after i space out
             if (i > 1 and v ~= "") then
                 local Predict = ""
@@ -4197,7 +4193,7 @@ if (ChatBar) then
                 end
             end
         end
-    
+
         if (string.find(Text, "\t")) then -- remove tab from preditction text also
             ChatBar.Text = PredictionText
             ChatBar.CursorPosition = #ChatBar.Text + 2
