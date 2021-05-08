@@ -1,5 +1,5 @@
 --[[
-	fates admin - 7/5/2021
+	fates admin - 8/5/2021
 ]]
 
 if (not game:IsLoaded()) then
@@ -454,9 +454,7 @@ if (RobloxChatBarFrame) then
     end
 end
 
--- position CommandBar
-CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
---END IMPORT [ui]
+
 
 
 --IMPORT [tags]
@@ -3564,7 +3562,7 @@ AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for wh
             if (Command and CommandArgs[1] ~= "") then
                 if (Command.ArgsNeeded > #Args) then
                     rconsoleprint("@@YELLOW@@");
-                    return rconsoleprint(("Insuficient Args (you need %d)\n"):format(Command.ArgsNeeded));
+                    return rconsoleprint(("Insufficient Args (you need %d)\n"):format(Command.ArgsNeeded));
                 end
 
                 local Success, Err = pcall(function()
@@ -3695,6 +3693,25 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
     end)
 end)
 
+AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
+	local Target = GetPlayer(Args[1])[1];
+	local Radius = tonumber(Args[3]) or 7
+	local Speed = tonumber(Args[4]) or 1
+	local random = math.random(tick() / 2, tick());
+    AddConnection(RunService.Heartbeat:Connect(function()
+        GetRoot().CFrame = CFrame.new(GetRoot(Target).Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), GetRoot(Target).Position);
+    end), Tbl);
+    return "now orbiting around " .. Target.Name
+end)
+
+AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}, function()
+    if (not next(LoadCommand("orbit").CmdExtra)) then
+        return "you are not orbiting around someone"
+    end
+    DisableAllCmdConnections("orbit");
+    return "orbit stopped"
+end)
+
 ---@param i any
 ---@param plr any
 PlrChat = function(i, plr)
@@ -3758,7 +3775,7 @@ PlrChat = function(i, plr)
 
             if (LoadedCommand) then
                 if (LoadedCommand.ArgsNeeded > #Args) then
-                    return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+                    return Utils.Notify(plr, "Error", ("Insufficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
@@ -4203,7 +4220,7 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
 
     if (LoadedCommand and Command ~= "") then
         if (LoadedCommand.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+            return Utils.Notify(plr, "Error", ("Insufficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
         end
 
         local Success, Err = pcall(function()
