@@ -2792,8 +2792,9 @@ AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, fun
 	local Radius = tonumber(Args[3]) or 7
 	local Speed = tonumber(Args[4]) or 1
 	local random = math.random(tick() / 2, tick());
+    local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
-        GetRoot().CFrame = CFrame.new(GetRoot(Target).Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), GetRoot(Target).Position);
+        Root.CFrame = CFrame.new(TRoot.Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), TRoot.Position);
     end), Tbl);
     return "now orbiting around " .. Target.Name
 end)
@@ -2894,7 +2895,7 @@ end
 ]]
 WideBar = false
 Draggable = false
-Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
+AddConnection(CommandBar.Input.FocusLost:Connect(function()
     local Text = string.trim(CommandBar.Input.Text);
     local CommandArgs = Text:split(" ");
 
@@ -2928,7 +2929,7 @@ Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
     else
         Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
     end
-end)
+end), Connections.UI, true);
 
 CurrentPlayers = Players:GetPlayers();
 
@@ -2954,14 +2955,14 @@ table.forEach(CurrentPlayers, function(i,v)
     end)
 end);
 
-Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
+AddConnection(Players.PlayerAdded:Connect(function(plr)
     spawn(function()
         PlrChat(#Connections.Players + 1, plr);
     end)
     PlayerAdded(plr);
-end)
+end))
 
-Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)
+AddConnection(Players.PlayerRemoving:Connect(function(plr)
     if (Connections.Players[plr.Name]) then
         if (Connections.Players[plr.Name].ChatCon) then
             Connections.Players[plr.Name].ChatCon:Disconnect();
@@ -2971,7 +2972,7 @@ Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)
     if (RespawnTimes[plr.Name]) then
         RespawnTimes[plr.Name] = nil
     end
-end)
+end))
 
 getgenv().F_A = {
     Loaded = true,
