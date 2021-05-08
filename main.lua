@@ -1315,23 +1315,24 @@ config = loadfile("fates_plugins/fates_plugins.config")()
 local debug = config.plugindebug
 
 --[[
-    Function declarations
+    Function definitions
 ]]
 function includes(table, whatisin)
     return table[whatisin] ~= nil
 end
 
+local localplayer = game.Players.LocalPlayer
 
 LoadPlugin = function (plugin)
     if not includes(config.disabledplugins,plugin.Name) then
         if debug then
-            Utils.Notify("Plugin loading",string.format("Plugin %s is being loaded.",plugin.Name))
+            Utils.Notify(localplayer,"Plugin loading",string.format("Plugin %s is being loaded.",plugin.Name), 2)
         end
         local ss,rr = pcall(function ()
             if plugin.init ~= nil then
                 plugin.init();
             elseif debug then
-                Utils.Notify("No init in plugin",string.format("Plugin %s has no init. Skipping.",plugin.Name))
+                Utils.Notify(localplayer,"No init in plugin",string.format("Plugin %s has no init. Skipping.",plugin.Name),3)
             end
             if plugin.Commands ~= nil then
                 for ii,vv in pairs(plugin.Commands) do
@@ -1349,19 +1350,19 @@ LoadPlugin = function (plugin)
                     Clone.Parent = Commands.Frame.List
                 end
             elseif debug then
-                Utils.Notify("No commands in plugin",string.format("Plugin %s has no commands. Skipping.",plugin.Name))
+                Utils.Notify(localplayer,"No commands in plugin",string.format("Plugin %s has no commands. Skipping.",plugin.Name),2)
             end
         end)
         if not ss then
             if debug then
                 math.randomseed(os.time())
                 local a = math.random(999)
-                Utils.Notify("Error loading plugin",string.format("Plugin %s errored on load, saving log as fate_plugincrash_%s.txt",plugin.Name,a))
+                Utils.Notify(localplayer,"Error loading plugin",string.format("Plugin %s errored on load, saving log as fate_plugincrash_%s.txt",plugin.Name,a),2)
                 writefile("fate_plugincrash_"..a..".txt",rr)
             end
         end
     elseif debug then
-        Utils.Notify("Plugin not loaded.",string.format("Plugin %s was not loaded as it is on the disabled list.",plugin.Name))
+        Utils.Notify(localplayer,"Plugin not loaded.",string.format("Plugin %s was not loaded as it is on the disabled list.",plugin.Name),2)
     end
 end
 
@@ -1371,7 +1372,7 @@ if config.pluginsenabled then
         LoadPlugin(loadstring(readfile(file)))
     end
 elseif debug then
-    Utils.Notify("Plugins disabled.","You have disabled all plugins.")
+    Utils.Notify(localplayer,"Plugins disabled.","You have disabled all plugins.",5)
 end
 
 Utils.LoadFatesPlugin = LoadPlugin
