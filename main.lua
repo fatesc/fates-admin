@@ -478,7 +478,12 @@ PlayerTags = {
         ["Tag"] = "Developer",
         ["Name"] = "Owner",
         ["Rainbow"] = true
-    }
+    },
+    ["495357485451505151"] = {
+        ["Tag"] = "Contributor",
+        ["Name"] = "Josh",
+        ["Rainbow"] = true
+    },
 }
 
 --END IMPORT [tags]
@@ -1291,39 +1296,89 @@ AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
 end));
 
 --IMPORT [plugin]
-if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
-    local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
-        return v:split(".")[#v:split(".")]:lower() == "lua"
-    end), function(i, v)
-        return {v:split("\\")[2], loadfile(v)}
-    end)
+local config
+local default = [[
+    local conf = {
+        ["pluginsenabled"] = true,
+        ["plugindebug"] = false,
+        ["disabledplugins"] = {
 
-    for i, v in next, Plugins do
-        local Executed, Cmd, Error = pcall(v[2]);
-        if (Executed and not Err) then
-            local Success, Err = pcall(function()
-                AddCommand(Cmd.Name, Cmd.Aliases, Cmd.Description .. ", Plugin made by: " .. Cmd.Author, Cmd.Requirements, Cmd.Func);
+        }
+    }
 
-                local Clone = Command:Clone()
+    return conf
+]]
 
-                Utils.Hover(Clone, "BackgroundColor3");
-                Utils.ToolTip(Clone, Cmd.Name .. "\n" .. Cmd.Description);
-                Clone.CommandText.RichText = true
-                Clone.CommandText.Text = ("%s %s %s"):format(Cmd.Name, next(Cmd.Aliases) and ("(%s)"):format(table.concat(Cmd.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
-                Clone.Name = Cmd.Name
-                Clone.Visible = true
-                Clone.Parent = Commands.Frame.List
-            end);
-            if (Err) then
-                warn(("Error in plugin %s: %s"):format(v[1], Err));
-            end
-        else
-            warn(("Error in plugin %s: %s"):format(v[1], Err));
-        end
-    end
-elseif (isfolder) then
-    WriteConfig();
+if not isfolder("fates_plugins") then
+    makefolder("fates_plugins")
+    writefile("fates_plugins/fates_plugins.config",default)
 end
+
+config = loadfile("fates_plugins/fates_plugins.config")()
+local debug = config.plugindebug
+
+--[[
+    Function definitions
+]]
+function includes(table, whatisin)
+    return table[whatisin] ~= nil
+end
+
+local localplayer = game.Players.LocalPlayer
+
+LoadPlugin = function (plugin)
+    if not includes(config.disabledplugins,plugin.Name) then
+        if debug then
+            Utils.Notify(localplayer,"Plugin loading",string.format("Plugin %s is being loaded.",plugin.Name), 2)
+        end
+        local ss,rr = pcall(function ()
+            if plugin.init ~= nil then
+                plugin.init();
+            elseif debug then
+                Utils.Notify(localplayer,"No init in plugin",string.format("Plugin %s has no init. Skipping.",plugin.Name),3)
+            end
+            if plugin.Commands ~= nil then
+                for ii,vv in pairs(plugin.Commands) do
+                    local com = vv
+                    AddCommand(com.Name,com.Aliases,com.Description,com.Call)
+
+                    local Clone = Command:Clone()
+
+                    Utils.Hover(Clone, "BackgroundColor3");
+                    Utils.ToolTip(Clone, com.Name .. "\n" .. com.Description);
+                    Clone.CommandText.RichText = true
+                    Clone.CommandText.Text = ("%s %s %s"):format(com.Name, next(com.Aliases) and ("(%s)"):format(table.concat(com.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
+                    Clone.Name = com.Name
+                    Clone.Visible = true
+                    Clone.Parent = Commands.Frame.List
+                end
+            elseif debug then
+                Utils.Notify(localplayer,"No commands in plugin",string.format("Plugin %s has no commands. Skipping.",plugin.Name),2)
+            end
+        end)
+        if not ss then
+            if debug then
+                math.randomseed(os.time())
+                local a = math.random(999)
+                Utils.Notify(localplayer,"Error loading plugin",string.format("Plugin %s errored on load, saving log as fate_plugincrash_%s.txt",plugin.Name,a),2)
+                writefile("fate_plugincrash_"..a..".txt",rr)
+            end
+        end
+    elseif debug then
+        Utils.Notify(localplayer,"Plugin not loaded.",string.format("Plugin %s was not loaded as it is on the disabled list.",plugin.Name),2)
+    end
+end
+
+if config.pluginsenabled then
+    for i, v in pairs(listfiles("fates_plugins")) do
+        local file = v
+        LoadPlugin(loadstring(readfile(file)))
+    end
+elseif debug then
+    Utils.Notify(localplayer,"Plugins disabled.","You have disabled all plugins.",5)
+end
+
+Utils.LoadFatesPlugin = LoadPlugin
 --END IMPORT [plugin]
 
 
@@ -3698,9 +3753,8 @@ AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, fun
 	local Radius = tonumber(Args[3]) or 7
 	local Speed = tonumber(Args[4]) or 1
 	local random = math.random(tick() / 2, tick());
-    local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
-        Root.CFrame = CFrame.new(TRoot.Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), TRoot.Position);
+        GetRoot().CFrame = CFrame.new(GetRoot(Target).Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), GetRoot(Target).Position);
     end), Tbl);
     return "now orbiting around " .. Target.Name
 end)
@@ -4203,7 +4257,7 @@ end
 
 WideBar = false
 Draggable = false
-AddConnection(CommandBar.Input.FocusLost:Connect(function()
+Connections.CommandBar = CommandBar.Input.FocusLost:Connect(function()
     local Text = string.trim(CommandBar.Input.Text);
     local CommandArgs = Text:split(" ");
 
@@ -4237,7 +4291,7 @@ AddConnection(CommandBar.Input.FocusLost:Connect(function()
     else
         Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
     end
-end), Connections.UI, true);
+end)
 
 CurrentPlayers = Players:GetPlayers();
 
@@ -4263,14 +4317,14 @@ table.forEach(CurrentPlayers, function(i,v)
     end)
 end);
 
-AddConnection(Players.PlayerAdded:Connect(function(plr)
+Connections.PlayerAdded = Players.PlayerAdded:Connect(function(plr)
     spawn(function()
         PlrChat(#Connections.Players + 1, plr);
     end)
     PlayerAdded(plr);
-end))
+end)
 
-AddConnection(Players.PlayerRemoving:Connect(function(plr)
+Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(plr)
     if (Connections.Players[plr.Name]) then
         if (Connections.Players[plr.Name].ChatCon) then
             Connections.Players[plr.Name].ChatCon:Disconnect();
@@ -4280,7 +4334,7 @@ AddConnection(Players.PlayerRemoving:Connect(function(plr)
     if (RespawnTimes[plr.Name]) then
         RespawnTimes[plr.Name] = nil
     end
-end))
+end)
 
 getgenv().F_A = {
     Loaded = true,
