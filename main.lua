@@ -1315,7 +1315,7 @@ config = loadfile("fates_plugins/fates_plugins.config")()
 local debug = config.plugindebug
 
 --[[
-    Function declerations
+    Function declarations
 ]]
 function includes(table, whatisin)
     return table[whatisin] ~= nil
