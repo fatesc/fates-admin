@@ -2656,7 +2656,7 @@ AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for wh
             if (Command and CommandArgs[1] ~= "") then
                 if (Command.ArgsNeeded > #Args) then
                     rconsoleprint("@@YELLOW@@");
-                    return rconsoleprint(("Insufficient Args (you need %d)\n"):format(Command.ArgsNeeded));
+                    return rconsoleprint(("Insuficient Args (you need %d)\n"):format(Command.ArgsNeeded));
                 end
 
                 local Success, Err = pcall(function()
@@ -2787,6 +2787,7 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
     end)
 end)
 
+<<<<<<< HEAD
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
 	local Target = GetPlayer(Args[1])[1];
 	local Radius = tonumber(Args[3]) or 7
@@ -2807,6 +2808,8 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     return "orbit stopped"
 end)
 
+=======
+>>>>>>> parent of 64c8591 (orbit)
 ---@param i any
 ---@param plr any
 PlrChat = function(i, plr)
@@ -2870,7 +2873,7 @@ PlrChat = function(i, plr)
 
             if (LoadedCommand) then
                 if (LoadedCommand.ArgsNeeded > #Args) then
-                    return Utils.Notify(plr, "Error", ("Insufficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+                    return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
@@ -2913,7 +2916,7 @@ AddConnection(CommandBar.Input.FocusLost:Connect(function()
 
     if (LoadedCommand and Command ~= "") then
         if (LoadedCommand.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", ("Insufficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+            return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
         end
 
         local Success, Err = pcall(function()
