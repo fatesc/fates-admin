@@ -1,33 +1,93 @@
-if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
-    local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
-        return v:split(".")[#v:split(".")]:lower() == "lua"
-    end), function(i, v)
-        return {v:split("\\")[2], loadfile(v)}
-    end)
+local config
+local default = [[
+    local conf = {
+        ["pluginsenabled"] = true,
+        ["plugindebug"] = false,
+        ["disabledplugins"] = {
+        }
+    }
+    return conf
+]]
 
-    for i, v in next, Plugins do
-        local Executed, Cmd, Error = pcall(v[2]);
-        if (Executed and not Err) then
-            local Success, Err = pcall(function()
-                AddCommand(Cmd.Name, Cmd.Aliases, Cmd.Description .. ", Plugin made by: " .. Cmd.Author, Cmd.Requirements, Cmd.Func);
-
-                local Clone = Command:Clone()
-
-                Utils.Hover(Clone, "BackgroundColor3");
-                Utils.ToolTip(Clone, Cmd.Name .. "\n" .. Cmd.Description);
-                Clone.CommandText.RichText = true
-                Clone.CommandText.Text = ("%s %s %s"):format(Cmd.Name, next(Cmd.Aliases) and ("(%s)"):format(table.concat(Cmd.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
-                Clone.Name = Cmd.Name
-                Clone.Visible = true
-                Clone.Parent = Commands.Frame.List
-            end);
-            if (Err) then
-                warn(("Error in plugin %s: %s"):format(v[1], Err));
-            end
-        else
-            warn(("Error in plugin %s: %s"):format(v[1], Err));
-        end
-    end
-elseif (isfolder) then
-    WriteConfig();
+if not isfolder("fates-admin/plugins") then
+    makefolder("fates-admin/plugins")
 end
+if not isfile("fates-admin/plugins/fates_plugins.config") then
+    writefile("fates-admin/plugins/fates_plugins.config",default)
+end
+
+config = loadfile("fates-admin/plugins/fates_plugins.config")()
+local debug = config.plugindebug
+
+--[[
+    Function definitions
+]]
+function includes(table, whatisin)
+    return table[whatisin] ~= nil
+end
+
+local cmdsfiles = {}
+
+LoadPlugin = function (plugin)
+    if not includes(config.disabledplugins,plugin.Name) then
+        if not plugin.Name or not plugin.init or not plugin.Commands then
+            if debug then
+                Utils.Notify(LocalPlayer,"Plugin failed to load",string.format("One of your plugins is missing information."), 2)
+            end
+            return
+        end
+        if debug then
+            Utils.Notify(LocalPlayer,"Plugin loading",string.format("Plugin %s is being loaded.",plugin.Name), 5)
+        end
+        local ss,rr = pcall(function ()
+            if plugin.init ~= nil then
+                plugin.init();
+            elseif debug then
+                Utils.Notify(LocalPlayer,"No init in plugin",string.format("Plugin %s has no init. Skipping.",plugin.Name),5)
+            end
+            if plugin.Commands ~= nil then
+                for ii,vv in pairs(plugin.Commands) do
+                    AddCommand(vv.Name,vv.Aliases,vv.Description,vv.Options,vv.Call)
+
+                    local Clone = Command:Clone()
+
+                    Utils.Hover(Clone, "BackgroundColor3");
+                    Utils.ToolTip(Clone, vv.Name .. "\n" .. vv.Description);
+                    Clone.CommandText.RichText = true
+                    Clone.CommandText.Text = ("%s %s %s"):format(vv.Name, next(vv.Aliases) and ("(%s)"):format(table.concat(vv.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
+                    Clone.Name = vv.Name
+                    Clone.Visible = true
+                    Clone.Parent = Commands.Frame.List
+                end
+            elseif debug then
+                Utils.Notify(LocalPlayer,"No commands in plugin",string.format("Plugin %s has no commands. Skipping.",plugin.Name),5)
+            end
+        end)
+        if not ss then
+            if debug then
+                math.randomseed(os.time() * 100000)
+                local a = math.random(999)
+                Utils.Notify(LocalPlayer,"Error loading plugin",string.format("Plugin %s errored on load, saving log as fate_plugincrash_%s.txt",plugin.Name,a),5)
+                writefile("fate_plugincrash_"..a..".txt",rr)
+            end
+        end
+    elseif debug then
+        Utils.Notify(LocalPlayer,"Plugin not loaded.",string.format("Plugin %s was not loaded as it is on the disabled list.",plugin.Name),5)
+    end
+end
+
+if config.pluginsenabled then
+    for i, file in pairs(listfiles("fates_plugins")) do
+        LoadPlugin(loadstring(readfile(file))())
+    end
+elseif debug then
+    Utils.Notify(LocalPlayer,"Plugins disabled.","You have disabled all plugins.",5)
+end
+
+AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
+    for i, file in pairs(listfiles("fates_plugins")) do
+        LoadPlugin(loadstring(readfile(file))())
+    end
+end)
+
+Utils.LoadFatesPlugin = LoadPlugin
