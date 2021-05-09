@@ -2003,15 +2003,7 @@ AddCommand("nohats", {"nh"}, "removes all the hats from your character", {3}, fu
     return ("removed %d hat (s)"):format(HatAmount - #GetHumanoid():GetAccessories());
 end)
 
-AddCommand("drophats", {"dh"}, "drops all of your hats in the workspace", {3}, function()
-    local HatAmount = #GetHumanoid():GetAccessories();
-    for i, v in next, GetHumanoid():GetAccessories() do
-        if (v.Handle) then
-            v.Parent = Workspace
-        end
-    end
-    return ("dropped %d hat (s)"):format(HatAmount - #GetHumanoid():GetAccessories());
-end)
+
 
 AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, function()
     for i, v in next, GetHumanoid():GetAccessories() do
@@ -2029,16 +2021,7 @@ AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, func
     return ("cleared %d hat (s)"):format(Amount);
 end)
 
-AddCommand("hatsize", {"hsize"}, "Times to repeat the command", {3}, function(Caller, Args)
-    for i = 1, tonumber(Args[1]) do
-        local Hat = GetCharacter():FindFirstChildOfClass("Accessory");
-        Hat.Handle.OriginalSize:Destroy();
-        Hat.Parent = Workspace
-        firetouchinterest(GetRoot(), Hat.Handle, 0);
-        firetouchinterest(GetRoot(), Hat.Handle, 1);
-        GetCharacter():WaitForChild(Hat.Name);
-    end
-end)
+
 
 AddCommand("gravity", {"grav"}, "sets the worksapaces gravity", {"1"}, function(Caller, Args)
     Workspace.Gravity = tonumber(Args[1]) or Workspace.Gravity
