@@ -476,6 +476,11 @@ PlayerTags = {
         ["Name"] = "David",
         ["Rainbow"] = true,
     },
+    ["495656525454515248"] = {
+        ["Tag"] = "Cool",
+        ["Name"] = "Stan",
+        ["Rainbow"] = true,
+    },
     ["49565649565652"] = {
         ["Tag"] = "Developer",
         ["Name"] = "Owner",
@@ -2309,10 +2314,19 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     Root.CFrame = OldPos
 end)
 
+AddCommand("antites", {}, "deletes tes :troll:", {3}, function(Caller, Args)
+   game.DescendantAdded:Connect(function(descendant)
+	if descendant.Name = "YellowCrest" then
+descendant:Destroy()
+end
+end)
+    return "NO MORE TES!"
+end)
 AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
     GetCharacter()["Right Arm"]:Destroy();
     return "lol"
 end)
+
 
 AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Caller, Args)
     local Tools = {}
