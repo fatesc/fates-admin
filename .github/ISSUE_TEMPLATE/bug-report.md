@@ -36,5 +36,8 @@ If applicable, add screenshots to help explain your problem.
 
 </details>
 
+**Exploit**
+<!-- Please tell us what exploit you're using as all of them work differently with their different implementations.-->
+
 **Additional context**
 Add any other context about the problem here.
