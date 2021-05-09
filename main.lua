@@ -313,8 +313,9 @@ local HttpLogsEnabled = true
 
 ---gets the player in your game from string
 ---@param str string
+---@param noerror boolean
 ---@return table
-GetPlayer = function(str)
+GetPlayer = function(str, noerror)
     local CurrentPlayers = table.filter(Players:GetPlayers(), function(i, v)
         return not table.find(Exceptions, v);
     end)
@@ -370,7 +371,7 @@ GetPlayer = function(str)
     local Players = table.filter(CurrentPlayers, function(i, v)
         return (v.Name:lower():sub(1, #str) == str) or (v.DisplayName:lower():sub(1, #str) == str);
     end)
-    if (not next(Players)) then
+    if (not next(Players) and not noerror) then
         getgenv().F_A.Utils.Notify(LocalPlayer, "Fail", ("Couldn't find player %s"):format(str));
     end
     return Players
@@ -2525,10 +2526,15 @@ AddCommand("streamermode", {}, "changes names of everyone to something random", 
     local Rand = function(len) return HttpService:GenerateGUID():sub(2, len):gsub("-", "") end
     local Hide = function(a, v)
         if (v and v:IsA("TextLabel") or v:IsA("TextButton")) then
-            if (Players:FindFirstChild(v.Text)) then
+            local Player = GetPlayer(v.Text, true);
+            if (not Player[1]) then
+                Player = GetPlayer(v.Text:sub(2, #v.Text - 2), true);
+            end
+            v.Text = Player[1] and Player[1].Name or v.Text
+            if (Player and Players:FindFirstChild(v.Text)) then
                 Tbl[v.Name] = v.Text
                 local NewName = Rand(v.Text:len());
-                if (Players:FindFirstChild(v.Text) and GetCharacter(Players[v.Text])) then
+                if (GetCharacter(v.Text)) then
                     Players[v.Text].Character.Humanoid.DisplayName = NewName
                 end
                 v.Text = NewName
@@ -2547,7 +2553,7 @@ end)
 AddCommand("nostreamermode", {"unstreamermode"}, "removes all the changed names", {}, function(Caller, Args, Tbl)
     local changed = LoadCommand("streamermode").CmdExtra
     for i, v in next, changed do
-        if (type(v) == 'userdata') then
+        if (type(v) == 'userdata' and v.Disconnect) then
             v:Disconnect();
         else
             i.Text = v
@@ -2812,7 +2818,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
         end), Tbl);
     end);
 
-    PlayerAddedConnection = Players.PlayerAdded:Connect(function(Player)
+    AddConnection(Players.PlayerAdded:Connect(function(Player)
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
@@ -2821,7 +2827,7 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
             Player.Character:WaitForChild("Head");
             Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
         end), Tbl);
-    end);
+    end), Tbl);
 
     return "esp enabled"
 end)
@@ -2829,12 +2835,12 @@ end)
 AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
     local Esp = LoadCommand("esp").CmdExtra
     for i, v in next, Esp.Billboards do
-        v:Destroy();
+        if (v:IsA("BillboardGui")) then
+            v:Destroy();
+        end
     end
-    if PlayerAddedConnection then
-        PlayerAddedConnection:Disconnect()
-        PlayerAddedConnection = nil
-    end
+    Esp.Billboards = nil
+    DisableAllCmdConnections("esp")
     return "esp disabled"
 end)
 
