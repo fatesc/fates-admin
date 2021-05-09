@@ -599,37 +599,41 @@ end)
 AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
-        table.insert(Tbl, v);
+        Tbl[#Tbl + 1] = v
     end
+    local OldPos = GetRoot().CFrame
+    local Destroy = false
     repeat
+        GetCharacter().Humanoid:UnequipTools();
+        if (GetCharacter().Animate) then
+            GetCharacter().Animate.Disabled = true
+        end
         for i, v in next, Target do
-            repeat
-                if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
-                    Destroy = true
-                    do break end
+            if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
+                Destroy = true
+                continue
+            end
+            local Humanoid = GetCharacter():FindFirstChildWhichIsA("Humanoid");
+            ReplaceCharacter();
+            wait(Players.RespawnTime - (#Target == 1 and 0.01 or .07));
+            OldPos = GetRoot().CFrame
+            if (GetCharacter().Animate) then
+                GetCharacter().Animate.Disabled = true
+            end
+            local Humanoid2 = ReplaceHumanoid(Humanoid);
+            local TargetRoot = GetRoot(v)
+            if (TargetRoot) then
+                local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+                if (not Tool) then
+                    continue
                 end
-                local Humanoid = GetCharacter():FindFirstChildWhichIsA("Humanoid");
-                ReplaceCharacter();
-                wait(Players.RespawnTime - (#Target == 1 and 0.01 or .07));
-                OldPos = GetRoot().CFrame
-                if (GetCharacter().Animate) then
-                    GetCharacter().Animate.Disabled = true
-                end
-                local Humanoid2 = ReplaceHumanoid(Humanoid);
-                local TargetRoot = GetRoot(v)
-                if (TargetRoot) then
-                    local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
-                    if (not Tool) then
-                        do break end
-                    end
-                    Tool.Parent = GetCharacter();
-                    Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    CFrameTool(Tool, TargetRoot.CFrame);
-                    firetouchinterest(TargetRoot, Tool.Handle, 0);
-                    firetouchinterest(TargetRoot, Tool.Handle, 1);
-                    Humanoid2:ChangeState(15);
-                end
-            until true
+                Tool.Parent = GetCharacter();
+                Tool.Handle.Size = Vector3.new(4, 4, 4);
+                CFrameTool(Tool, TargetRoot.CFrame);
+                firetouchinterest(TargetRoot, Tool.Handle, 0);
+                firetouchinterest(TargetRoot, Tool.Handle, 1);
+                Humanoid2:ChangeState(15);
+            end    
         end
         if (Destroy) then
             wait(.2);
@@ -650,6 +654,10 @@ end)
 
 AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        Tbl[#Tbl + 1] = v
+    end
+    Utils.Notify(LocalPlayer, "Warning", "It is recommended that you don't move");
     repeat
         GetCharacter().Humanoid:UnequipTools();
         if (GetCharacter().Animate) then
@@ -663,7 +671,6 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
                 if (v2:IsA("Tool")) then
                     v2.Parent = GetCharacter();
                     local OldSize = v2.Handle.Size
-                    v2.Handle.Size = Vector3.new(0.5, 0.5, 0.5);
                     for i3 = 1, 3 do
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, v2.Handle, 0);
@@ -679,7 +686,7 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart");
         wait(1);
-    until not next(LoadCommand("loopkill2").CmdExtra) or GetPlayer(Args[1])
+    until not next(LoadCommand("loopkill2").CmdExtra) or not GetPlayer(Args[1])
 end)
 
 AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
@@ -2888,7 +2895,7 @@ PlrChat = function(i, plr)
             raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1);
-        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr).Rainbow) then
+        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr) and Utils.CheckTag(plr).Rainbow) then
             raw = raw:sub(4);
             something = true
         else
