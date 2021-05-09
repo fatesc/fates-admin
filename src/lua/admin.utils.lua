@@ -426,8 +426,6 @@ function Utils.Rainbow(TextObject)
     end
 
     local Heartbeat = RunService.Heartbeat:Connect(function()
-        if (Destroyed) then Heartbeat:Disconnect(); end
-
         local String = ""
         local Counter = TotalCharacters
 
@@ -451,12 +449,6 @@ function Utils.Rainbow(TextObject)
 
     delay(150, function()
         Heartbeat:Disconnect();
-    end)
-
-    RobloxScroller.DescendantRemoving:Connect(function(v)
-        if (v == TextObject) then
-            Destroyed = true
-        end
     end)
 end
 
@@ -525,6 +517,9 @@ function Utils.CheckTag(Plr)
 end
 
 function Utils.AddTag(Tag)
+    if (not Tag) then
+        return
+    end
     local PlrCharacter = GetCharacter(Tag.Player)
     if (not PlrCharacter) then
         return
@@ -550,6 +545,10 @@ function Utils.AddTag(Tag)
     if (Tag.Rainbow) then
         Utils.Rainbow(TextLabel)
     end
+    if (Tag.Colour) then
+        local TColour = Tag.Colour
+        TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+    end
 
     local Added = Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
@@ -557,7 +556,7 @@ function Utils.AddTag(Tag)
 
     AddConnection(Added)
 
-    AddConnection(Player.PlayerRemoving:Connect(function(plr)
+    AddConnection(Players.PlayerRemoving:Connect(function(plr)
         if (plr == Tag.Player) then
             Added:Disconnect();
             Billboard:Destroy();

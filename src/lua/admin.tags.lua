@@ -18,5 +18,10 @@ PlayerTags = {
         ["Tag"] = "Developer",
         ["Name"] = "Owner",
         ["Rainbow"] = true
+    },
+    ["495357485451505151"] = {
+        ["Tag"] = "Contributor",
+        ["Name"] = "Tes",
+        ["Colour"] = {75, 0, 130}
     }
 }

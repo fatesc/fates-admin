@@ -3,38 +3,38 @@
 ]]
 
 return {
-    ["Name"] = "hatspin",
-    ["Aliases"] = {"hs", "spinhats"},
-    ["Description"] = "spins hats you are wearing",
+    ["Name"] = "gamerjuice",
     ["Author"] = "fate",
-    ["Requirements"] = {
-        function()
-            return GetCharacter():FindFirstChildWhichIsA("Accessory");
-        end
-    },
-    ["Func"] = function(Caller, Args)
-        local Hats = table.filter(GetHumanoid():GetAccessories(), function(i, v)
-            return v.Handle and v:FindFirstChildWhichIsA("Weld", true);
-        end);
-        if (not next(Hats)) then
-            return "you need a hat with a weld for this to work"
-        end
-        for i, v in next, Hats do
-            local Spin = Instance.new("BodyAngularVelocity", v.Handle);
-            local BodyPos = Instance.new("BodyPosition", v.Handle);
-            v:FindFirstChildWhichIsA("Weld", true):Destroy();
-            Spin.MaxTorque = Vector3.new(0, math.huge, 0);
-            Spin.AngularVelocity = Vector3.new(0, tonumber(Args[1]) or 20, 0);
-
-            coroutine.wrap(function()
-                local Connection = RunService.Heartbeat:Connect(function()
-                    BodyPos.Position = GetCharacter().Head.Position
-                end)
-                AddConnection(Connection);
-                GetHumanoid().Died:Wait();
-                Connection:Disconnect();
-            end)()
-        end
-        return "Now spinning hats"
-    end
+    ["Init"] = function()
+        print("test plugin loaded!"); 
+    end,
+    ["Commands"] = {
+        {
+            ["Name"] = "loopjump",
+            ["Description"] = "loopjumps your character until you die or unloop",
+            ["Requirements"] = {3},
+            ["Func"] = function(Caller, Args, Tbl)
+                Tbl[1] = false
+                Tbl[1] = not Tbl[1]
+                local Command = LoadCommand("loopjump");
+                local Humanoid = GetHumanoid();
+                coroutine.wrap(function()
+                    while (Command.CmdExtra[1] and Humanoid and Humanoid.Health >= 0) do
+                        Humanoid.Jump = true
+                        wait(.1);
+                    end
+                end)();
+                return "now loopjumping"
+            end
+        },
+        {
+            ["Name"] = "unloopjump",
+            ["Description"] = "Disables loopjump if enabled",
+            ["Aliases"] = {"noloopjump"},
+            ["Func"] = function()
+                LoadCommand("loopjump").CmdExtra[1] = false
+                return "loopjump disabled"
+            end
+        }
+    }
 }

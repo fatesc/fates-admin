@@ -1,33 +1,71 @@
-if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
-    local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+local PluginConf = GetPluginConfig();
+local IsDebug = PluginConf.PluginDebug
+
+local LoadPlugin = function(Plugin)
+    if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
+        return Utils.Notify(LocalPlayer, "Plugin not loaded.", ("Plugin %s was not loaded as it is on the disabled list."):format(Plugin.Name));
+    end
+    if (#table.keys(Plugin) < 3) then
+        return IsDebug and Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.") or nil
+    end
+    if (IsDebug) then
+        Utils.Notify(LocalPlayer, "Plugin loading", ("Plugin %s is being loaded."):format(Plugin.Name));
+    end
+
+    local Ran, Return = pcall(Plugin.Init);
+    if (not Ran and Return and IsDebug) then
+        return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
+    end
+    
+    for i, command in next, Plugin.Commands do
+        if (#table.keys(command) < 3) then
+            Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
+            continue
+        end
+        AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
+
+        if (Commands.Frame.List:FindFirstChild(command.Name)) then
+            Commands.Frame.List:FindFirstChild(command.Name):Destroy();
+        end
+        local Clone = Command:Clone();
+        Utils.Hover(Clone, "BackgroundColor3");
+        Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
+        Clone.CommandText.RichText = true
+        Clone.CommandText.Text = ("%s %s %s"):format(command.Name, next(command.Aliases or {}) and ("(%s)"):format(table.concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
+        Clone.Name = command.Name
+        Clone.Visible = true
+        Clone.Parent = Commands.Frame.List
+        if (IsDebug) then
+            Utils.Notify(LocalPlayer, "Plugin Command Loaded", ("Command %s loaded successfully"):format(command.Name));
+        end
+    end
+end
+
+if (isfolder and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+    WriteConfig();
+end
+
+local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+    return v:split(".")[#v:split(".")]:lower() == "lua"
+end), function(i, v)
+    return {v:split("\\")[2], loadfile(v)}
+end)
+
+for i, Plugin in next, Plugins do
+    LoadPlugin(Plugin[2]());
+end
+
+AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
+    PluginConf = GetPluginConfig();
+    IsDebug = PluginConf.PluginDebug
+    
+    Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
         return {v:split("\\")[2], loadfile(v)}
     end)
-
-    for i, v in next, Plugins do
-        local Executed, Cmd, Error = pcall(v[2]);
-        if (Executed and not Err) then
-            local Success, Err = pcall(function()
-                AddCommand(Cmd.Name, Cmd.Aliases, Cmd.Description .. ", Plugin made by: " .. Cmd.Author, Cmd.Requirements, Cmd.Func);
-
-                local Clone = Command:Clone()
-
-                Utils.Hover(Clone, "BackgroundColor3");
-                Utils.ToolTip(Clone, Cmd.Name .. "\n" .. Cmd.Description);
-                Clone.CommandText.RichText = true
-                Clone.CommandText.Text = ("%s %s %s"):format(Cmd.Name, next(Cmd.Aliases) and ("(%s)"):format(table.concat(Cmd.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
-                Clone.Name = Cmd.Name
-                Clone.Visible = true
-                Clone.Parent = Commands.Frame.List
-            end);
-            if (Err) then
-                warn(("Error in plugin %s: %s"):format(v[1], Err));
-            end
-        else
-            warn(("Error in plugin %s: %s"):format(v[1], Err));
-        end
+    
+    for i, Plugin in next, Plugins do
+        LoadPlugin(Plugin[2]());
     end
-elseif (isfolder) then
-    WriteConfig();
-end
+end)

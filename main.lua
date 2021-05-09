@@ -241,17 +241,27 @@ local Settings = {
     Prefix = "!",
     CommandBarPrefix = "Semicolon"
 }
+local PluginSettings = {
+    PluginsEnabled = true,
+    PluginDebug = false,
+    DisabledPlugins = {
+        ["PluginName"] = true
+    }
+}
 
 local WriteConfig = function(Destroy)
     local JSON = HttpService:JSONEncode(Settings);
+    local PluginJSON = HttpService:JSONEncode(PluginSettings);
     if (isfolder("fates-admin") and Destroy) then
         delfolder("fates-admin");
         writefile("fates-admin/config.json", JSON);
+        writefile("fates/admin/pluings/plugin-conf.json", PluginJSON);
     else
         makefolder("fates-admin");
         makefolder("fates-admin/plugins");
         makefolder("fates-admin/chatlogs");
         writefile("fates-admin/config.json", JSON);
+        writefile("fates-admin/plugins/plugin-conf.json", PluginJSON);
     end
 end
 
@@ -261,6 +271,15 @@ local GetConfig = function()
     else
         WriteConfig();
         return HttpService:JSONDecode(readfile("fates-admin/config.json"));
+    end
+end
+
+local GetPluginConfig = function()
+    if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfile("fates-admin/plugins/plugin-conf.json")) then
+        return HttpService:JSONDecode(readfile("fates-admin/plugins/plugin-conf.json"));
+    else
+        WriteConfig();
+        return HttpService:JSONDecode(readfile("fates-admin/plugins/plugin-conf.json"));
     end
 end
 
@@ -471,6 +490,11 @@ PlayerTags = {
         ["Tag"] = "Developer",
         ["Name"] = "Owner",
         ["Rainbow"] = true
+    },
+    ["495357485451505151"] = {
+        ["Tag"] = "Contributor",
+        ["Name"] = "Tes",
+        ["Colour"] = {75, 0, 130}
     }
 }
 
@@ -906,8 +930,6 @@ function Utils.Rainbow(TextObject)
     end
 
     local Heartbeat = RunService.Heartbeat:Connect(function()
-        if (Destroyed) then Heartbeat:Disconnect(); end
-
         local String = ""
         local Counter = TotalCharacters
 
@@ -931,12 +953,6 @@ function Utils.Rainbow(TextObject)
 
     delay(150, function()
         Heartbeat:Disconnect();
-    end)
-
-    RobloxScroller.DescendantRemoving:Connect(function(v)
-        if (v == TextObject) then
-            Destroyed = true
-        end
     end)
 end
 
@@ -1005,6 +1021,9 @@ function Utils.CheckTag(Plr)
 end
 
 function Utils.AddTag(Tag)
+    if (not Tag) then
+        return
+    end
     local PlrCharacter = GetCharacter(Tag.Player)
     if (not PlrCharacter) then
         return
@@ -1030,6 +1049,10 @@ function Utils.AddTag(Tag)
     if (Tag.Rainbow) then
         Utils.Rainbow(TextLabel)
     end
+    if (Tag.Colour) then
+        local TColour = Tag.Colour
+        TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+    end
 
     local Added = Tag.Player.CharacterAdded:Connect(function()
         Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
@@ -1037,7 +1060,7 @@ function Utils.AddTag(Tag)
 
     AddConnection(Added)
 
-    AddConnection(Player.PlayerRemoving:Connect(function(plr)
+    AddConnection(Players.PlayerRemoving:Connect(function(plr)
         if (plr == Tag.Player) then
             Added:Disconnect();
             Billboard:Destroy();
@@ -1284,39 +1307,77 @@ AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
 end));
 
 --IMPORT [plugin]
-if (isfolder and isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfolder("fates-admin/chatlogs")) then
-    local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+local PluginConf = GetPluginConfig();
+local IsDebug = PluginConf.PluginDebug
+
+local LoadPlugin = function(Plugin)
+    if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
+        return Utils.Notify(LocalPlayer, "Plugin not loaded.", ("Plugin %s was not loaded as it is on the disabled list."):format(Plugin.Name));
+    end
+    if (#table.keys(Plugin) < 3) then
+        return IsDebug and Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.") or nil
+    end
+    if (IsDebug) then
+        Utils.Notify(LocalPlayer, "Plugin loading", ("Plugin %s is being loaded."):format(Plugin.Name));
+    end
+
+    local Ran, Return = pcall(Plugin.Init);
+    if (not Ran and Return and IsDebug) then
+        return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
+    end
+    
+    for i, command in next, Plugin.Commands do
+        if (#table.keys(command) < 3) then
+            Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
+            continue
+        end
+        AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
+
+        if (Commands.Frame.List:FindFirstChild(command.Name)) then
+            Commands.Frame.List:FindFirstChild(command.Name):Destroy();
+        end
+        local Clone = Command:Clone();
+        Utils.Hover(Clone, "BackgroundColor3");
+        Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
+        Clone.CommandText.RichText = true
+        Clone.CommandText.Text = ("%s %s %s"):format(command.Name, next(command.Aliases or {}) and ("(%s)"):format(table.concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
+        Clone.Name = command.Name
+        Clone.Visible = true
+        Clone.Parent = Commands.Frame.List
+        if (IsDebug) then
+            Utils.Notify(LocalPlayer, "Plugin Command Loaded", ("Command %s loaded successfully"):format(command.Name));
+        end
+    end
+end
+
+if (isfolder and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+    WriteConfig();
+end
+
+local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+    return v:split(".")[#v:split(".")]:lower() == "lua"
+end), function(i, v)
+    return {v:split("\\")[2], loadfile(v)}
+end)
+
+for i, Plugin in next, Plugins do
+    LoadPlugin(Plugin[2]());
+end
+
+AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
+    PluginConf = GetPluginConfig();
+    IsDebug = PluginConf.PluginDebug
+    
+    Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
         return {v:split("\\")[2], loadfile(v)}
     end)
-
-    for i, v in next, Plugins do
-        local Executed, Cmd, Error = pcall(v[2]);
-        if (Executed and not Err) then
-            local Success, Err = pcall(function()
-                AddCommand(Cmd.Name, Cmd.Aliases, Cmd.Description .. ", Plugin made by: " .. Cmd.Author, Cmd.Requirements, Cmd.Func);
-
-                local Clone = Command:Clone()
-
-                Utils.Hover(Clone, "BackgroundColor3");
-                Utils.ToolTip(Clone, Cmd.Name .. "\n" .. Cmd.Description);
-                Clone.CommandText.RichText = true
-                Clone.CommandText.Text = ("%s %s %s"):format(Cmd.Name, next(Cmd.Aliases) and ("(%s)"):format(table.concat(Cmd.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}))
-                Clone.Name = Cmd.Name
-                Clone.Visible = true
-                Clone.Parent = Commands.Frame.List
-            end);
-            if (Err) then
-                warn(("Error in plugin %s: %s"):format(v[1], Err));
-            end
-        else
-            warn(("Error in plugin %s: %s"):format(v[1], Err));
-        end
+    
+    for i, Plugin in next, Plugins do
+        LoadPlugin(Plugin[2]());
     end
-elseif (isfolder) then
-    WriteConfig();
-end
+end)
 --END IMPORT [plugin]
 
 
@@ -3676,7 +3737,7 @@ end)
 
 AddCommand("x", {}, "", {"1"}, function(Caller, Args)
     pcall(function()
-        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller) and not Utils.CheckTag(LocalPlayer)) then
+        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller).Rainbow and not Utils.CheckTag(LocalPlayer)) then
             for i, v in next, GetPlayer(Args[1]) do
                 if (v.Name == LocalPlayer.Name) then
                     LocalPlayer["\107\105\99\107"](LocalPlayer, table.concat(table.shift(Args), " "));
@@ -3737,6 +3798,10 @@ PlrChat = function(i, plr)
             if (Tag and Tag.Rainbow) then
                 Utils.Rainbow(Clone);
             end
+            if (Tag and Tag.Colour) then
+                local TColour = Tag.Colour
+                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+            end
 
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
@@ -3758,7 +3823,7 @@ PlrChat = function(i, plr)
             raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1);
-        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr)) then
+        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr).Rainbow) then
             raw = raw:sub(4);
             something = true
         else
@@ -3773,13 +3838,13 @@ PlrChat = function(i, plr)
             local Args = table.shift(CommandArgs);
 
             if (LoadedCommand) then
-                if (LoadedCommand.ArgsNeeded > #Args) then
+                if (LoadedCommand.ArgsNeeded > #Args and not something) then
                     return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
                     local Executed = LoadedCommand.Function()(plr, Args, LoadedCommand.CmdExtra);
-                    if (Executed) then
+                    if (Executed and not somtething) then
                         Utils.Notify(plr, "Command", Executed);
                     end
                     LastCommand = {Command, plr, Args, LoadedCommand.CmdExtra}
@@ -3787,7 +3852,7 @@ PlrChat = function(i, plr)
                 if (not Success and Debug) then
                     warn(Err);
                 end
-            else
+            elseif (not something) then
                 Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
             end
         end

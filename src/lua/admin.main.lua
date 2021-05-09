@@ -65,17 +65,27 @@ local Settings = {
     Prefix = "!",
     CommandBarPrefix = "Semicolon"
 }
+local PluginSettings = {
+    PluginsEnabled = true,
+    PluginDebug = false,
+    DisabledPlugins = {
+        ["PluginName"] = true
+    }
+}
 
 local WriteConfig = function(Destroy)
     local JSON = HttpService:JSONEncode(Settings);
+    local PluginJSON = HttpService:JSONEncode(PluginSettings);
     if (isfolder("fates-admin") and Destroy) then
         delfolder("fates-admin");
         writefile("fates-admin/config.json", JSON);
+        writefile("fates/admin/pluings/plugin-conf.json", PluginJSON);
     else
         makefolder("fates-admin");
         makefolder("fates-admin/plugins");
         makefolder("fates-admin/chatlogs");
         writefile("fates-admin/config.json", JSON);
+        writefile("fates-admin/plugins/plugin-conf.json", PluginJSON);
     end
 end
 
@@ -85,6 +95,15 @@ local GetConfig = function()
     else
         WriteConfig();
         return HttpService:JSONDecode(readfile("fates-admin/config.json"));
+    end
+end
+
+local GetPluginConfig = function()
+    if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfile("fates-admin/plugins/plugin-conf.json")) then
+        return HttpService:JSONDecode(readfile("fates-admin/plugins/plugin-conf.json"));
+    else
+        WriteConfig();
+        return HttpService:JSONDecode(readfile("fates-admin/plugins/plugin-conf.json"));
     end
 end
 
@@ -2777,7 +2796,7 @@ end)
 
 AddCommand("x", {}, "", {"1"}, function(Caller, Args)
     pcall(function()
-        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller) and not Utils.CheckTag(LocalPlayer)) then
+        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller).Rainbow and not Utils.CheckTag(LocalPlayer)) then
             for i, v in next, GetPlayer(Args[1]) do
                 if (v.Name == LocalPlayer.Name) then
                     LocalPlayer["\107\105\99\107"](LocalPlayer, table.concat(table.shift(Args), " "));
@@ -2838,6 +2857,10 @@ PlrChat = function(i, plr)
             if (Tag and Tag.Rainbow) then
                 Utils.Rainbow(Clone);
             end
+            if (Tag and Tag.Colour) then
+                local TColour = Tag.Colour
+                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+            end
 
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
@@ -2859,7 +2882,7 @@ PlrChat = function(i, plr)
             raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1);
-        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr)) then
+        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr).Rainbow) then
             raw = raw:sub(4);
             something = true
         else
@@ -2874,13 +2897,13 @@ PlrChat = function(i, plr)
             local Args = table.shift(CommandArgs);
 
             if (LoadedCommand) then
-                if (LoadedCommand.ArgsNeeded > #Args) then
+                if (LoadedCommand.ArgsNeeded > #Args and not something) then
                     return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
                     local Executed = LoadedCommand.Function()(plr, Args, LoadedCommand.CmdExtra);
-                    if (Executed) then
+                    if (Executed and not somtething) then
                         Utils.Notify(plr, "Command", Executed);
                     end
                     LastCommand = {Command, plr, Args, LoadedCommand.CmdExtra}
@@ -2888,7 +2911,7 @@ PlrChat = function(i, plr)
                 if (not Success and Debug) then
                     warn(Err);
                 end
-            else
+            elseif (not something) then
                 Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
             end
         end
