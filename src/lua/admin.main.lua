@@ -2789,6 +2789,11 @@ end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
 	local Target = GetPlayer(Args[1])[1];
+    if Target == localplayer then
+
+        return Utils.Notify(LocalPlayer, "Error with command", "You cannot orbit yourself.");
+
+    end
 	local Radius = tonumber(Args[3]) or 7
 	local Speed = tonumber(Args[4]) or 1
 	local random = math.random(tick() / 2, tick());
