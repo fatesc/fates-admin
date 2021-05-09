@@ -8,6 +8,20 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
 end
 
 --IMPORT [extend]
+pcall(function()
+    local mt = getrawmetatable(game);
+    local nc = mt.__namecall
+    setreadonly(mt, false);
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod();
+        if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
+            return tonumber(math.random(200, 350) .. "." .. math.random(10000000, 20000000))
+        end
+        return nc(self, ...)
+    end)
+end)
+
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     if (next(ErrorConnections)) then
@@ -2291,6 +2305,10 @@ end)
 
 AddCommand("ping", {}, "shows you your ping", {}, function()
     return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1] .. "ms"
+end)
+
+AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
+    return tostring(math.round(game:GetService("Stats"):GetTotalMemoryUsageMb())) .. " mb";
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()

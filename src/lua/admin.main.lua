@@ -1352,6 +1352,10 @@ AddCommand("ping", {}, "shows you your ping", {}, function()
     return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1] .. "ms"
 end)
 
+AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
+    return tostring(math.round(game:GetService("Stats"):GetTotalMemoryUsageMb())) .. " mb";
+end)
+
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
     local x = 0
     local a = tick();

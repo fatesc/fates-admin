@@ -1,3 +1,17 @@
+pcall(function()
+    local mt = getrawmetatable(game);
+    local nc = mt.__namecall
+    setreadonly(mt, false);
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod();
+        if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
+            return tonumber(math.random(200, 350) .. "." .. math.random(10000000, 20000000))
+        end
+        return nc(self, ...)
+    end)
+end)
+
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     if (next(ErrorConnections)) then
