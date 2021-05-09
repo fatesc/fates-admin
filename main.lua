@@ -1,7 +1,3 @@
---[[
-	fates admin - 9/5/2021
-]]
-
 if (not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     game.Loaded:Wait();
@@ -449,7 +445,9 @@ if (RobloxChatBarFrame) then
     end
 end
 
-
+-- position CommandBar
+CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
+--END IMPORT [ui]
 
 
 --IMPORT [tags]
@@ -1230,7 +1228,7 @@ AddPlayerConnection = function(Player, Connection, Tbl)
     else
         Connections.Players[Player.Name].Connections[#Connections.Players[Player.Name].Connections + 1] = Connection
     end
-    return Connection    
+    return Connection
 end
 
 ---add a connection to the connections table
@@ -3306,7 +3304,7 @@ AddCommand("fly", {"cframefly"}, "fly your character", {3}, function(Caller, Arg
         BodyPos.Position = GetRoot().Position
         while (next(LoadCommand("fly").CmdExtra) and wait()) do
             Speed = LoadCommand("fly").CmdExtra[1]
-            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame 
+            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
                 BodyPos.Position = GetRoot().Position
@@ -3557,7 +3555,7 @@ AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for wh
             if (Command and CommandArgs[1] ~= "") then
                 if (Command.ArgsNeeded > #Args) then
                     rconsoleprint("@@YELLOW@@");
-                    return rconsoleprint(("Insufficient Args (you need %d)\n"):format(Command.ArgsNeeded));
+                    return rconsoleprint(("Insuficient Args (you need %d)\n"):format(Command.ArgsNeeded));
                 end
 
                 local Success, Err = pcall(function()
@@ -3690,6 +3688,11 @@ end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
 	local Target = GetPlayer(Args[1])[1];
+    if Target == LocalPlayer then
+
+        return "You cannot orbit yourself."
+
+    end
 	local Radius = tonumber(Args[3]) or 7
 	local Speed = tonumber(Args[4]) or 1
 	local random = math.random(tick() / 2, tick());
@@ -3771,7 +3774,7 @@ PlrChat = function(i, plr)
 
             if (LoadedCommand) then
                 if (LoadedCommand.ArgsNeeded > #Args) then
-                    return Utils.Notify(plr, "Error", ("Insufficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+                    return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
@@ -4217,7 +4220,7 @@ AddConnection(CommandBar.Input.FocusLost:Connect(function()
 
     if (LoadedCommand and Command ~= "") then
         if (LoadedCommand.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", ("Insufficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
+            return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
         end
 
         local Success, Err = pcall(function()

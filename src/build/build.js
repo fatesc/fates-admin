@@ -5,7 +5,7 @@ const option = process.argv.slice(2)[0]
 
 const file = join(__dirname, "../lua/admin");
 const main = ".main.lua"
-const out = join(__dirname + "../../output.lua");
+const out = join(__dirname + "../../../main.lua");
 
 console.log("preparing...");
 const script = readFileSync(file + main, "utf8");
@@ -24,7 +24,3 @@ for (const match of matches) {
 }
 writeFileSync(out, output);
 console.log(`script built: ${out}`);
-
-const mainFile = join(__dirname, "../../main.lua");
-writeFileSync(mainFile, `--[[\n\tfates admin - ${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear()}\n]]\n\n` + output.replace(/-.*\n.*\n.*\]/, "").trimStart());
-console.log(`minified output build: ${mainFile}`);
