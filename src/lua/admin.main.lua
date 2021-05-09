@@ -2422,8 +2422,53 @@ AddCommand("enableanims", {"anims"}, "enables character animations", {3}, functi
     return "animations enabled"
 end)
 
-AddCommand("fly", {"cframefly"}, "fly your character", {3}, function(Caller, Args, Tbl)
-    LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 5
+AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
+    LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 3
+    local Speed = LoadCommand("fly").CmdExtra[1]
+    for i, v in next, GetRoot():GetChildren() do
+        if (v:IsA("BodyPosition") or v:IsA("BodyGyro")) then
+            v:Destroy();
+        end
+    end
+    local BodyPos = Instance.new("BodyPosition", GetRoot());
+    local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
+    BodyGyro.CFrame = GetRoot().CFrame
+    BodyPos.maxForce = Vector3.new(1, 1, 1) * math.huge
+    GetHumanoid().PlatformStand = true
+    coroutine.wrap(function()
+        BodyPos.Position = GetRoot().Position
+        while (next(LoadCommand("fly").CmdExtra) and wait()) do
+            Speed = LoadCommand("fly").CmdExtra[1]
+            local NewPos = (BodyGyro.CFrame - (BodyGyro.CFrame).Position) + BodyPos.Position
+            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
+            if (WASDKeys["W"]) then
+                NewPos = NewPos + CoordinateFrame.lookVector * Speed
+
+                BodyPos.Position = (GetRoot().CFrame * CFrame.new(0, 0, -Speed)).Position;
+                BodyGyro.CFrame = CoordinateFrame * CFrame.Angles(-math.rad(Speed * 15), 0, 0);
+            end
+            if (WASDKeys["A"]) then
+                NewPos = NewPos * CFrame.new(-Speed, 0, 0);
+            end
+            if (WASDKeys["S"]) then
+                NewPos = NewPos - CoordinateFrame.lookVector * Speed
+
+                BodyPos.Position = (GetRoot().CFrame * CFrame.new(0, 0, Speed)).Position;
+                BodyGyro.CFrame = CoordinateFrame * CFrame.Angles(-math.rad(Speed * 15), 0, 0);
+            end
+            if (WASDKeys["D"]) then
+                NewPos = NewPos * CFrame.new(Speed, 0, 0);
+            end
+            BodyPos.Position = NewPos.Position
+            BodyGyro.CFrame = CoordinateFrame
+        end
+        GetHumanoid().PlatformStand = false
+    end)();
+end)
+
+AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
+    LoadCommand("fly2").CmdExtra[1] = tonumber(Args[1]) or 5
     local Speed = LoadCommand("fly").CmdExtra[1]
     for i, v in next, GetRoot():GetChildren() do
         if (v:IsA("BodyPosition") or v:IsA("BodyGyro")) then
@@ -2439,8 +2484,8 @@ AddCommand("fly", {"cframefly"}, "fly your character", {3}, function(Caller, Arg
     BodyPos.D = 400
     coroutine.wrap(function()
         BodyPos.Position = GetRoot().Position
-        while (next(LoadCommand("fly").CmdExtra) and wait()) do
-            Speed = LoadCommand("fly").CmdExtra[1]
+        while (next(LoadCommand("fly2").CmdExtra) and wait()) do
+            Speed = LoadCommand("fly2").CmdExtra[1]
             local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
             if (WASDKeys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
@@ -2474,12 +2519,43 @@ end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
     LoadCommand("fly").CmdExtra = {}
+    LoadCommand("fly2").CmdExtra = {}
     for i, v in next, GetRoot():GetChildren() do
         if (v:IsA("BodyPosition") or v:IsA("BodyGyro")) then
             v:Destroy();
         end
     end
     return "stopped flying"
+end)
+
+AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)", {}, function(Caller, Args, Tbl)
+    if (not Tbl[1]) then
+        local Part = Instance.new("Part");
+        Part.CFrame = CFrame.new(0, -10000, 0);
+        Part.Size = Vector3.new(2, .2, 1.5); -- Vector3.new(2, 0.2, 1);
+        Part.Material = "Grass"
+        Part.Parent = Workspace
+        Part.Anchored = true
+
+        AddConnection(RunService.RenderStepped:Connect(function() 
+            if (LoadCommand("float").CmdExtra[1] and GetRoot()) then
+                Part.CFrame = GetRoot().CFrame * CFrame.new(0, -3.1, 0);
+            else
+                Part.CFrame = CFrame.new(0, -10000, 0);
+            end
+        end))
+        Tbl[1] = true
+    end
+    return "now floating"
+end)
+
+AddCommand("unfloat", {"nofloat"}, "stops float", {}, function(Caller, Args, Tbl)
+    local Floating = LoadCommand("float").CmdExtra
+    if (Floating[1]) then
+        Floating[1] = false
+        return "stopped floating"
+    end
+    return "floating not on"
 end)
 
 AddCommand("fov", {}, "sets your fov", {}, function(Caller, Args)
