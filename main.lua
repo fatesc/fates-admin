@@ -2313,6 +2313,14 @@ AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
     GetCharacter()["Right Arm"]:Destroy();
     return "lol"
 end)
+AddCommand("antites", {}, "deletes tes :troll:", {3}, function(Caller, Args)
+   game.DescendantAdded:Connect(function(descendant)
+	if descendant.Name = "YellowCrest" then
+descendant:Destroy()
+end
+end)
+    return "NO MORE TES!"
+end)
 
 AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Caller, Args)
     local Tools = {}
