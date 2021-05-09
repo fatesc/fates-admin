@@ -15,35 +15,31 @@ for i,v in pairs(getfenv().string) do
     string[i] = v
 end
 
----Returns true if the sequence of elements of searchString converted to a String is the same as the corresponding elements of this object (converted to a String) starting at position. Otherwise returns fals
 ---@param searchString string
 ---@param rawPos number
----@return string
+---@return boolean
 string.startsWith = function(str, searchString, rawPos)
     local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
     return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
 end
 
----trims the string
 ---@param str any
 ---@return string
 string.trim = function(str)
     return str:gsub("^%s*(.-)%s*$", "%1");
 end
 
----The table.tbl_concat() method concatenates the string arguments to the calling string and returns a new string.
 ---@return table
 table.tbl_concat = function(...)
     local new = {}
     for i, v in next, {...} do
         for i2, v2 in next, v do
-            table.insert(new, i, v2);
+            table.insert(new, #new + 1, v2);
         end
     end
     return new
 end
 
----The string.indexOf() method returns the index within the calling String object of the first occurrence of the specified value, starting the search at fromIndex. Returns -1 if the value is not found.
 ---@param tbl table
 ---@param val any
 ---@return any
@@ -57,7 +53,6 @@ table.indexOf = function(tbl, val)
     end
 end
 
----The table.forEach() method executes a provided function once for each array element.
 ---@param tbl table
 ---@param ret function
 table.forEach = function(tbl, ret)

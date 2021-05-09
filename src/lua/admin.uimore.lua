@@ -249,7 +249,8 @@ AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
 
 -- auto correct
 AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
-    local Text = string.lower(CommandBar.Input.Text)
+    CommandBar.Input.Text = CommandBar.Input.Text:lower();
+    local Text = CommandBar.Input.Text
     local Prediction = CommandBar.Input.Predict
     local PredictionText = Prediction.Text
 
