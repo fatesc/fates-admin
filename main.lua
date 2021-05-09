@@ -2315,7 +2315,7 @@ AddCommand("antitkill", {}, "anti tkill :troll:", {3}, function(Caller, Args)
 end)
 AddCommand("antites", {}, "deletes tes :troll:", {3}, function(Caller, Args)
    game.DescendantAdded:Connect(function(descendant)
-	if descendant.Name = "YellowCrest" then
+	if descendant.Name == "YellowCrest" then
 descendant:Destroy()
 end
 end)
