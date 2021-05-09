@@ -3932,7 +3932,7 @@ PlrChat = function(i, plr)
             end
             if (Tag and Tag.Colour) then
                 local TColour = Tag.Colour
-                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
             end
 
             Utils.Tween(Clone, "Sine", "Out", .25, {
