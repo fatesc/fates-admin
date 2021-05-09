@@ -1,6 +1,12 @@
-if (not game:IsLoaded()) then
+UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
+if (not UndetectedMode and not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     game.Loaded:Wait();
+end
+
+if (game:IsLoaded() and UndetectedMode) then
+    syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+    return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
 end
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
@@ -469,10 +475,25 @@ if (RobloxChatBarFrame) then
                 local TextLabel = Frame2:WaitForChild('TextLabel', .1)
                 ChatBar = Frame2:WaitForChild('ChatBar', .1)
                 if TextLabel and ChatBar then
-                    PredictionClone = TextLabel:Clone();
-                    PredictionClone.Text = ""
+                    PredictionClone = Instance.new('TextLabel');
+                    PredictionClone.Font = TextLabel.Font
+                    PredictionClone.LineHeight = TextLabel.LineHeight
+                    PredictionClone.MaxVisibleGraphemes = TextLabel.MaxVisibleGraphemes
+                    PredictionClone.RichText = TextLabel.RichText
+                    PredictionClone.Text = ''
+                    PredictionClone.TextColor3 = TextLabel.TextColor3
+                    PredictionClone.TextScaled = TextLabel.TextScaled
+                    PredictionClone.TextSize = TextLabel.TextSize
+                    PredictionClone.TextStrokeColor3 = TextLabel.TextStrokeColor3
+                    PredictionClone.TextStrokeTransparency = TextLabel.TextStrokeTransparency
                     PredictionClone.TextTransparency = 0.3
+                    PredictionClone.TextTruncate = TextLabel.TextTruncate
+                    PredictionClone.TextWrapped = TextLabel.TextWrapped
+                    PredictionClone.TextXAlignment = TextLabel.TextXAlignment
+                    PredictionClone.TextYAlignment = TextLabel.TextYAlignment
                     PredictionClone.Name = "Predict"
+                    PredictionClone.Size = UDim2.new(1, 0, 1, 0);
+                    PredictionClone.BackgroundTransparency = 1
                 end
             end
         end
@@ -1066,7 +1087,7 @@ function Utils.AddTag(Tag)
     end
     if (Tag.Colour) then
         local TColour = Tag.Colour
-        TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+        TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
     end
 
     local Added = Tag.Player.CharacterAdded:Connect(function()
@@ -3806,7 +3827,11 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
 end)
 
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    PredictionClone.Parent = Frame2
+    ParentGui(PredictionClone, Frame2);
+    Frame2:WaitForChild('ChatBar', .1):CaptureFocus();
+    wait();
+    Frame2:WaitForChild('ChatBar', .1).Text = Prefix
+    return "chat prediction enabled"
 end)
 
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)

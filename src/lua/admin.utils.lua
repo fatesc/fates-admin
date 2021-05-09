@@ -547,7 +547,7 @@ function Utils.AddTag(Tag)
     end
     if (Tag.Colour) then
         local TColour = Tag.Colour
-        TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour2[2], TColour[3]);
+        TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
     end
 
     local Added = Tag.Player.CharacterAdded:Connect(function()

@@ -75,10 +75,25 @@ if (RobloxChatBarFrame) then
                 local TextLabel = Frame2:WaitForChild('TextLabel', .1)
                 ChatBar = Frame2:WaitForChild('ChatBar', .1)
                 if TextLabel and ChatBar then
-                    PredictionClone = TextLabel:Clone();
-                    PredictionClone.Text = ""
+                    PredictionClone = Instance.new('TextLabel');
+                    PredictionClone.Font = TextLabel.Font
+                    PredictionClone.LineHeight = TextLabel.LineHeight
+                    PredictionClone.MaxVisibleGraphemes = TextLabel.MaxVisibleGraphemes
+                    PredictionClone.RichText = TextLabel.RichText
+                    PredictionClone.Text = ''
+                    PredictionClone.TextColor3 = TextLabel.TextColor3
+                    PredictionClone.TextScaled = TextLabel.TextScaled
+                    PredictionClone.TextSize = TextLabel.TextSize
+                    PredictionClone.TextStrokeColor3 = TextLabel.TextStrokeColor3
+                    PredictionClone.TextStrokeTransparency = TextLabel.TextStrokeTransparency
                     PredictionClone.TextTransparency = 0.3
+                    PredictionClone.TextTruncate = TextLabel.TextTruncate
+                    PredictionClone.TextWrapped = TextLabel.TextWrapped
+                    PredictionClone.TextXAlignment = TextLabel.TextXAlignment
+                    PredictionClone.TextYAlignment = TextLabel.TextYAlignment
                     PredictionClone.Name = "Predict"
+                    PredictionClone.Size = UDim2.new(1, 0, 1, 0);
+                    PredictionClone.BackgroundTransparency = 1
                 end
             end
         end
