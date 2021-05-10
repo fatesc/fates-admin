@@ -22,6 +22,6 @@ PlayerTags = {
     ["495357485451505151"] = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
-        ["Colour"] = {75, 0, 130}
+        ["Colour"] = {134,0,125} -- more accurate colour for tes.
     }
 }

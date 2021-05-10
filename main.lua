@@ -530,7 +530,7 @@ PlayerTags = {
     ["495357485451505151"] = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
-        ["Colour"] = {13, 191, 13}
+        ["Colour"] = {134,0,125} -- more accurate colour for tes.
     }
 }
 
@@ -1361,7 +1361,7 @@ local LoadPlugin = function(Plugin)
     if (not Ran and Return and IsDebug) then
         return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
     end
-    
+
     for i, command in next, Plugin.Commands do
         if (#table.keys(command) < 3) then
             Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
@@ -1403,17 +1403,18 @@ end
 AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
-    
+
     Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
         return {v:split("\\")[2], loadfile(v)}
     end)
-    
+
     for i, Plugin in next, Plugins do
         LoadPlugin(Plugin[2]());
     end
 end)
+
 --END IMPORT [plugin]
 
 
