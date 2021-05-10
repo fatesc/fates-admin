@@ -1610,7 +1610,7 @@ AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller
                 firetouchinterest(TargetRoot, Tool.Handle, 0);
                 firetouchinterest(TargetRoot, Tool.Handle, 1);
                 Humanoid2:ChangeState(15);
-            end    
+            end
         end
         if (Destroy) then
             wait(.2);
@@ -2347,7 +2347,7 @@ AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
     end)
     wait(.2);
     v:Disconnect();
-    return ("your current fps is %s"):format(fps);
+    return ("your current fps is %d"):format(tonumber(fps));
 end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, Tbl)
@@ -3514,7 +3514,7 @@ AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)"
         Part.Parent = Workspace
         Part.Anchored = true
 
-        AddConnection(RunService.RenderStepped:Connect(function() 
+        AddConnection(RunService.RenderStepped:Connect(function()
             if (LoadCommand("float").CmdExtra[1] and GetRoot()) then
                 Part.CFrame = GetRoot().CFrame * CFrame.new(0, -3.1, 0);
             else
