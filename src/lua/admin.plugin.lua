@@ -17,7 +17,7 @@ local LoadPlugin = function(Plugin)
         return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
     end
     
-    for i, command in next, Plugin.Commands do
+    for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
         if (#table.keys(command) < 3) then
             Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
             continue

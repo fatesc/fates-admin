@@ -1078,7 +1078,8 @@ function Utils.AddTag(Tag)
     Billboard.Parent = UI
     Billboard.Name = HttpService:GenerateGUID();
     Billboard.AlwaysOnTop = true
-    Billboard.Adornee = PlrCharacter.Head
+    Billboard.Adornee = PlrCharacter.Head or nil
+    Billboard.Enabled = PlrCharacter.Head and true or false
     Billboard.Size = UDim2.new(0, 200, 0, 50)
     Billboard.StudsOffset = Vector3.new(0, 4, 0);
 
@@ -1372,7 +1373,7 @@ local LoadPlugin = function(Plugin)
         return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
     end
     
-    for i, command in next, Plugin.Commands do
+    for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
         if (#table.keys(command) < 3) then
             Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
             continue
@@ -1463,7 +1464,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
     end
     for i, v in next, Target do
-        if (#Target == 1 and TempRespawnTimes[v.Name]) then
+        if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             LocalPlayer.Character:Destroy();
             LocalPlayer.CharacterAdded:Wait();
             LocalPlayer.Character:WaitForChild("Humanoid");
@@ -1482,7 +1483,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                         do break end
                     end
 
-                    if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
+                    if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
                         do break end
                     end
 
@@ -1526,7 +1527,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     local OldPos = GetRoot().CFrame
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
-        if (#Target == 1 and TempRespawnTimes[v.Name]) then
+        if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             LocalPlayer.CharacterAdded:Wait();
             LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
             wait(.1);
@@ -1547,7 +1548,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                         do break end
                     end
 
-                    if (TempRespawnTimes[v.Name]) then
+                    if (TempRespawnTimes[v.Name] and isR6(v)) then
                         if (#Target == 1) then
                             Destroy = true
                         else
@@ -1582,68 +1583,11 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
 end)
 
-AddCommand("loopkill", {"lkill"}, "loopkills a user", {1,3,"1"}, function(Caller, Args, Tbl)
+AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         Tbl[#Tbl + 1] = v
     end
-    local OldPos = GetRoot().CFrame
-    local Destroy = false
-    repeat
-        GetCharacter().Humanoid:UnequipTools();
-        if (GetCharacter().Animate) then
-            GetCharacter().Animate.Disabled = true
-        end
-        for i, v in next, Target do
-            if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
-                Destroy = true
-                continue
-            end
-            local Humanoid = GetCharacter():FindFirstChildWhichIsA("Humanoid");
-            ReplaceCharacter();
-            wait(Players.RespawnTime - (#Target == 1 and 0.01 or .07));
-            OldPos = GetRoot().CFrame
-            if (GetCharacter().Animate) then
-                GetCharacter().Animate.Disabled = true
-            end
-            local Humanoid2 = ReplaceHumanoid(Humanoid);
-            local TargetRoot = GetRoot(v)
-            if (TargetRoot) then
-                local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
-                if (not Tool) then
-                    continue
-                end
-                Tool.Parent = GetCharacter();
-                Tool.Handle.Size = Vector3.new(4, 4, 4);
-                CFrameTool(Tool, TargetRoot.CFrame);
-                firetouchinterest(TargetRoot, Tool.Handle, 0);
-                firetouchinterest(TargetRoot, Tool.Handle, 1);
-                Humanoid2:ChangeState(15);
-            end
-        end
-        if (Destroy) then
-            wait(.2);
-            ReplaceCharacter();
-            Destroy = nil
-        end
-        LocalPlayer.CharacterAdded:Wait();
-        LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
-    until not next(LoadCommand("loopkill").CmdExtra) or not GetPlayer(Args[1])
-end)
-
-AddCommand("unloopkill", {"unlkill"}, "unloopkills a user", {3,"1"}, function(Caller, Args)
-    local Target = GetPlayer(Args[1]); -- not really needed but
-    LoadCommand("loopkill").CmdExtra = {}
-    LoadCommand("loopkill2").CmdExtra = {}
-    return "loopkill disabled"
-end)
-
-AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Caller, Args, Tbl)
-    local Target = GetPlayer(Args[1]);
-    for i, v in next, Target do
-        Tbl[#Tbl + 1] = v
-    end
-    Utils.Notify(LocalPlayer, "Warning", "It is recommended that you don't move");
     repeat
         GetCharacter().Humanoid:UnequipTools();
         if (GetCharacter().Animate) then
@@ -1651,6 +1595,9 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
         end
         local Humanoid = ReplaceHumanoid(Humanoid);
         Humanoid:ChangeState(15);
+        if (isR6(Target[1])) then
+            Utils.Notify(LocalPlayer, "Loopkill", "the player is in r6 it will only kill every 2 respawns")
+        end
         for i, v in next, Target do
             local TargetRoot = GetRoot(v)
             for i2, v2 in next, LocalPlayer.Backpack:GetChildren() do
@@ -1672,7 +1619,13 @@ AddCommand("loopkill2", {}, "another variant of loopkill", {3,"1"}, function(Cal
         LocalPlayer.CharacterAdded:Wait();
         LocalPlayer.Character:WaitForChild("HumanoidRootPart");
         wait(1);
-    until not next(LoadCommand("loopkill2").CmdExtra) or not GetPlayer(Args[1])
+    until not next(LoadCommand("loopkill").CmdExtra) or not GetPlayer(Args[1])
+end)
+
+AddCommand("unloopkill", {"unlkill"}, "unloopkills a user", {3,"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]); -- not really needed but
+    LoadCommand("loopkill").CmdExtra = {}
+    return "loopkill disabled"
 end)
 
 AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
@@ -1690,7 +1643,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         end
         ReplaceHumanoid();
         for i, v in next, Target do
-            if (#Target == 1 and TempRespawnTimes[v.Name]) then
+            if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
                 LocalPlayer.Character:Destroy();
                 LocalPlayer.CharacterAdded:Wait();
                 LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos;
@@ -1702,11 +1655,11 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
             repeat
                 if (GetCharacter(v)) then
                     if (isSat(v)) then
-                        Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
+                        Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
                         do break end
                     end
 
-                    if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]) then
+                    if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
                         do break end
                     end
 
@@ -1757,7 +1710,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     end
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
-        if (#Target == 1 and TempRespawnTimes[v.Name]) then
+        if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             LocalPlayer.CharacterAdded:Wait();
             LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
             wait(.1);
@@ -1774,7 +1727,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
                         do break end
                     end
 
-                    if (TempRespawnTimes[v.Name]) then
+                    if (TempRespawnTimes[v.Name] and isR6(v)) then
                         if (#Target == 1) then
                             Destroy = true
                         else
@@ -1823,7 +1776,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
     end
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
-        if (#Target == 1 and TempRespawnTimes[v.Name]) then
+        if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             LocalPlayer.CharacterAdded:Wait();
             LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame = OldPos
             wait(.1);
@@ -1839,7 +1792,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
                         do break end
                     end
 
-                    if (TempRespawnTimes[v.Name]) then
+                    if (TempRespawnTimes[v.Name] and isR6(v)) then
                         if (#Target == 1) then
                             Destroy = true
                         else
@@ -3521,6 +3474,7 @@ AddCommand("unfly", {}, "unflies your character", {3}, function()
             v:Destroy();
         end
     end
+    GetHumanoid().PlatformStand = false
     return "stopped flying"
 end)
 
@@ -3528,7 +3482,7 @@ AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)"
     if (not Tbl[1]) then
         local Part = Instance.new("Part");
         Part.CFrame = CFrame.new(0, -10000, 0);
-        Part.Size = Vector3.new(2, .2, 1.5); -- Vector3.new(2, 0.2, 1);
+        Part.Size = Vector3.new(2, .2, 1.5);
         Part.Material = "Grass"
         Part.Parent = Workspace
         Part.Anchored = true
@@ -3746,7 +3700,9 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         UI:Destroy();
         getgenv().F_A = nil
         for i, v in next, getfenv() do
-            getfenv()[i] = nil
+            if (not v == OldMetaMethods) then
+                getfenv()[i] = nil
+            end
         end
     end
 end)

@@ -528,7 +528,8 @@ function Utils.AddTag(Tag)
     Billboard.Parent = UI
     Billboard.Name = HttpService:GenerateGUID();
     Billboard.AlwaysOnTop = true
-    Billboard.Adornee = PlrCharacter.Head
+    Billboard.Adornee = PlrCharacter.Head or nil
+    Billboard.Enabled = PlrCharacter.Head and true or false
     Billboard.Size = UDim2.new(0, 200, 0, 50)
     Billboard.StudsOffset = Vector3.new(0, 4, 0);
 
