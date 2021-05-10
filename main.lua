@@ -3189,16 +3189,18 @@ end)
 
 if (hookfunction and syn) then
     local AddLog = function(reqType, url, body)
-        local Clone = ChatLogMessage:Clone();
-        Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
-        Clone.RichText = true
-        Clone.Visible = true
-        Clone.TextTransparency = 1
-        Clone.Parent = HttpLogs.Frame.List
-        Utils.Tween(Clone, "Sine", "Out", .25, {
-            TextTransparency = 0
-        });
-        HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        if (getgenv().F_A.Loaded and UI) then
+            local Clone = ChatLogMessage:Clone();
+            Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
+            Clone.RichText = true
+            Clone.Visible = true
+            Clone.TextTransparency = 1
+            Clone.Parent = HttpLogs.Frame.List
+            Utils.Tween(Clone, "Sine", "Out", .25, {
+                TextTransparency = 0
+            });
+            HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        end
     end
 
     local Request;
