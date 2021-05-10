@@ -2153,7 +2153,7 @@ end)
 
 if (hookfunction and syn) then
     local AddLog = function(reqType, url, body)
-        if (getgenv().F_A.Loaded and UI) then
+        if (getgenv().F_A and UI) then
             local Clone = ChatLogMessage:Clone();
             Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
             Clone.RichText = true
@@ -2634,6 +2634,7 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min or max)", {{"mi
             else
                 Server = Servers[math.random(1, #Servers)]
             end
+            syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
             TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id);
             return ("joining server (%d/%d players)"):format(Server.playing, Server.maxPlayers);
         else
