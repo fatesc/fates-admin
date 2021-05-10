@@ -1,15 +1,28 @@
 pcall(function()
-    local mt = getrawmetatable(game);
-    local nc = mt.__namecall
+    mt = getrawmetatable(game);
+    OldMetaMethods = {}
     setreadonly(mt, false);
-    
+    for i, v in next, mt do
+        OldMetaMethods[i] = v
+    end
+    local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod();
         if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
-            return tonumber(math.random(200, 350) .. "." .. math.random(10000000, 20000000))
+            return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
         end
-        return nc(self, ...)
+        return OldMetaMethods.__namecall(self, ...)
     end)
+
+    mt.__index = newcclosure(function(t, i)
+        if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
+            return function()
+                return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
+            end
+        end
+        return OldMetaMethods.__index(t, i);
+    end)
+    setreadonly(mt, true);
 end)
 
 if (getconnections) then

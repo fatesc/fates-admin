@@ -1973,18 +1973,29 @@ AddCommand("volume", {"vol"}, "changes your game volume", {}, function(Caller, A
 end)
 
 AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
-    local mt = getrawmetatable(game);
-    local oldnc = mt.__namecall
     setreadonly(mt, false);
+    local OldNamecall = OldMetaMethods.__namecall
+    local OldIndex = OldMetaMethods.__index
     mt.__namecall = newcclosure(function(self, ...)
         local args = {...}
         local method = getnamecallmethod():lower();
         if (method == "kick") then
             Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(tostring(args[1])));
-            return wait(9e9);
+            wait(9e9);
+            return nil
         end
-        return oldnc(self, ...);
+        return OldNamecall(self, ...);
     end)
+    mt.__index = newcclosure(function(table, index)
+        if (index == "Kick" or index == "kick") then
+            Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("an attempt to kick has been made"));
+            wait(9e9);
+            return nil
+        end
+        return OldIndex(table, index);
+    end)
+    setreadonly(mt, true);
+    return "client sided antikick enabled"
 end)
 
 AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)

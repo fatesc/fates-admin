@@ -1,3 +1,7 @@
+--[[
+	fates admin - 10/5/2021
+]]
+
 UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
 if (not UndetectedMode and not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
@@ -15,17 +19,30 @@ end
 
 --IMPORT [extend]
 pcall(function()
-    local mt = getrawmetatable(game);
-    local nc = mt.__namecall
+    mt = getrawmetatable(game);
+    OldMetaMethods = {}
     setreadonly(mt, false);
-    
+    for i, v in next, mt do
+        OldMetaMethods[i] = v
+    end
+    local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod();
         if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
-            return tonumber(math.random(200, 350) .. "." .. math.random(10000000, 20000000))
+            return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
         end
-        return nc(self, ...)
+        return OldMetaMethods.__namecall(self, ...)
     end)
+
+    mt.__index = newcclosure(function(t, i)
+        if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
+            return function()
+                return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
+            end
+        end
+        return OldMetaMethods.__index(t, i);
+    end)
+    setreadonly(mt, true);
 end)
 
 if (getconnections) then
@@ -500,9 +517,7 @@ if (RobloxChatBarFrame) then
     end
 end
 
--- position CommandBar
-CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
---END IMPORT [ui]
+
 
 
 --IMPORT [tags]
@@ -530,7 +545,7 @@ PlayerTags = {
     ["495357485451505151"] = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
-        ["Colour"] = {0, 0, 0} -- more accurate colour for tes.
+        ["Colour"] = {134,0,125} -- more accurate colour for tes.
     }
 }
 
@@ -1361,7 +1376,7 @@ local LoadPlugin = function(Plugin)
     if (not Ran and Return and IsDebug) then
         return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
     end
-
+    
     for i, command in next, Plugin.Commands do
         if (#table.keys(command) < 3) then
             Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
@@ -1403,18 +1418,17 @@ end
 AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
-
+    
     Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
         return {v:split("\\")[2], loadfile(v)}
     end)
-
+    
     for i, Plugin in next, Plugins do
         LoadPlugin(Plugin[2]());
     end
 end)
-
 --END IMPORT [plugin]
 
 
@@ -2944,18 +2958,29 @@ AddCommand("volume", {"vol"}, "changes your game volume", {}, function(Caller, A
 end)
 
 AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
-    local mt = getrawmetatable(game);
-    local oldnc = mt.__namecall
     setreadonly(mt, false);
+    local OldNamecall = OldMetaMethods.__namecall
+    local OldIndex = OldMetaMethods.__index
     mt.__namecall = newcclosure(function(self, ...)
         local args = {...}
         local method = getnamecallmethod():lower();
         if (method == "kick") then
             Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(tostring(args[1])));
-            return wait(9e9);
+            wait(9e9);
+            return nil
         end
-        return oldnc(self, ...);
+        return OldNamecall(self, ...);
     end)
+    mt.__index = newcclosure(function(table, index)
+        if (index == "Kick" or index == "kick") then
+            Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("an attempt to kick has been made"));
+            wait(9e9);
+            return nil
+        end
+        return OldIndex(table, index);
+    end)
+    setreadonly(mt, true);
+    return "client sided antikick enabled"
 end)
 
 AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)

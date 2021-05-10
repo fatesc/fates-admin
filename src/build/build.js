@@ -22,5 +22,5 @@ for (const match of matches) {
 
     console.log(`added ${module}`);
 }
-writeFileSync(out, output);
+writeFileSync(out, `--[[\n\tfates admin - ${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear()}\n]]\n\n` + output.replace(/-.*\n.*\n.*\]/, "").trim());
 console.log(`script built: ${out}`);
