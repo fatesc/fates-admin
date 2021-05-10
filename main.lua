@@ -530,7 +530,7 @@ PlayerTags = {
     ["495357485451505151"] = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
-        ["Colour"] = {134,0,125} -- more accurate colour for tes.
+        ["Colour"] = {0, 0, 0} -- more accurate colour for tes.
     }
 }
 
