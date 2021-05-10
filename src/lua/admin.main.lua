@@ -1363,20 +1363,17 @@ AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local x = 0
+    local Counter = Utils.Notify(LocalPlayer, "FPS", "", 10);
     local a = tick();
+    local Heartbeat
     local fpsget = function()
-        x = (1 / (tick() - a));
+        if (not Counter) then
+            Heartbeat:Disconnect();
+        end
+        Counter.Message.Text = bit32.bnot(bit32.bnot((1 / (tick() - a))));
         a = tick();
-        return ("%.3f"):format(x);
     end
-    local fps = nil
-    local v = RunService.Stepped:Connect(function()
-        fps = fpsget();
-    end)
-    wait(.2);
-    v:Disconnect();
-    return ("your current fps is %d"):format(tonumber(fps));
+    Heartbeat = RunService.Heartbeat:Connect(fpsget);
 end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, Tbl)

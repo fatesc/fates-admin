@@ -108,7 +108,6 @@ table.forEach = function(tbl, ret)
     end
 end
 
----The table.filter() method creates a new array with all elements that pass the test implemented by the provided function.
 ---@param tbl table
 ---@param ret function
 ---@return table
@@ -124,7 +123,6 @@ table.filter = function(tbl, ret)
     end
 end
 
----The table.map() method creates a new array populated with the results of calling a provided function on every element in the calling array
 ---@param tbl table
 ---@param ret function
 ---@return table
@@ -138,7 +136,6 @@ table.map = function(tbl, ret)
     end
 end
 
----deepsearches a table with the callback on each value
 ---@param tbl table
 ---@param ret function
 table.deepsearch = function(tbl, ret)
@@ -167,7 +164,6 @@ table.flat = function(tbl)
     end
 end
 
----The flatMap() method returns a new array formed by applying a given callback function to each element of the array, and then flattening the result by one level. It is identical to a map() followed by a flat() of depth 1, but slightly more efficient than calling those two methods separately.
 ---@param tbl table
 ---@param ret function
 ---@return table
@@ -178,7 +174,6 @@ table.flatMap = function(tbl, ret)
     end
 end
 
----The table.shift() method removes the first element from an array and returns that removed element. This method changes the length of the array.
 ---@param tbl any
 table.shift = function(tbl)
     if (type(tbl) == 'table') then
@@ -891,7 +886,7 @@ function Utils.Notify(Caller, Title, Message, Time)
             TweenDestroy()
         end)
 
-        return TweenDestroy
+        return Clone
     else
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote:FireServer(("/w %s [FA] %s: %s"):format(Caller.Name, Title, Message), "All");
@@ -2348,20 +2343,17 @@ AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local x = 0
+    local Counter = Utils.Notify(LocalPlayer, "FPS", "", 10);
     local a = tick();
+    local Heartbeat
     local fpsget = function()
-        x = (1 / (tick() - a));
+        if (not Counter) then
+            Heartbeat:Disconnect();
+        end
+        Counter.Message.Text = bit32.bnot(bit32.bnot((1 / (tick() - a))));
         a = tick();
-        return ("%.3f"):format(x);
     end
-    local fps = nil
-    local v = RunService.Stepped:Connect(function()
-        fps = fpsget();
-    end)
-    wait(.2);
-    v:Disconnect();
-    return ("your current fps is %d"):format(tonumber(fps));
+    Heartbeat = RunService.Heartbeat:Connect(fpsget);
 end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, Tbl)

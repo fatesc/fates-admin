@@ -336,7 +336,7 @@ function Utils.Notify(Caller, Title, Message, Time)
             TweenDestroy()
         end)
 
-        return TweenDestroy
+        return Clone
     else
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote:FireServer(("/w %s [FA] %s: %s"):format(Caller.Name, Title, Message), "All");
