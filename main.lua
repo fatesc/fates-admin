@@ -1,5 +1,9 @@
 --[[
-	fates admin - 11/5/2021
+
+	Fate's admin
+	Build Date: 11/05/2021, 3:35:26 pm
+	Authored by: pozm
+
 ]]
 
 UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
