@@ -1,5 +1,5 @@
 --[[
-	fates admin - 10/5/2021
+	fates admin - 11/5/2021
 ]]
 
 UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
@@ -512,7 +512,9 @@ if (RobloxChatBarFrame) then
     end
 end
 
-
+-- position CommandBar
+CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
+--END IMPORT [ui]
 
 
 --IMPORT [tags]
@@ -1372,7 +1374,7 @@ local LoadPlugin = function(Plugin)
     if (not Ran and Return and IsDebug) then
         return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
     end
-    
+
     for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
         if (#table.keys(command) < 3) then
             Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
@@ -1414,17 +1416,18 @@ end
 AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
-    
+
     Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
         return v:split(".")[#v:split(".")]:lower() == "lua"
     end), function(i, v)
         return {v:split("\\")[2], loadfile(v)}
     end)
-    
+
     for i, Plugin in next, Plugins do
         LoadPlugin(Plugin[2]());
     end
 end)
+
 --END IMPORT [plugin]
 
 
@@ -2352,6 +2355,27 @@ AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}
     Lighting.ClockTime = Times[Time] or Time
 end)
 
+AddCommand("penguin", {}, "penguin", {}, function(Caller, Args)
+    local troller = 'https://i.pinimg.com/originals/a9/3e/89/a93e898b2fd751b030b53b90ebc53e57.png'
+    if not syn then return "no syn :(" end
+    local req = syn.request({ Url = troller,Method="GET" })
+    if not Drawing then return "no drawing :(" end
+    print('aaaaaaaa')
+    local m = LocalPlayer.GetMouse(LocalPlayer)
+    local size = Vector2.new(m.ViewSizeX,m.ViewSizeY)
+    print(size.X,size.Y)
+    while wait(1) do
+
+        local image = Drawing.new("Image")
+        image.Visible = true
+        image.Transparency = 1
+        image.Data = req.Body
+        image.Position = Vector2.new(math.random(0,size.X),math.random(0,size.Y))
+        image.Size = Vector2.new(math.random(100,500),math.random(100,500))
+        print("nigerian men are entering the building")
+    end
+end)
+
 AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot()
@@ -3147,8 +3171,7 @@ if (hookfunction and syn) then
             HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         end
     end
-
-    local Request;
+    local Request
     Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
         AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
         return Request(reqtbl);

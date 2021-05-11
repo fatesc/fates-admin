@@ -1371,6 +1371,27 @@ AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}
     Lighting.ClockTime = Times[Time] or Time
 end)
 
+AddCommand("penguin", {}, "penguin", {}, function(Caller, Args)
+    local troller = 'https://i.pinimg.com/originals/a9/3e/89/a93e898b2fd751b030b53b90ebc53e57.png'
+    if not syn then return "no syn :(" end
+    local req = syn.request({ Url = troller,Method="GET" })
+    if not Drawing then return "no drawing :(" end
+    print('aaaaaaaa')
+    local m = LocalPlayer.GetMouse(LocalPlayer)
+    local size = Vector2.new(m.ViewSizeX,m.ViewSizeY)
+    print(size.X,size.Y)
+    while wait(1) do
+
+        local image = Drawing.new("Image")
+        image.Visible = true
+        image.Transparency = 1
+        image.Data = req.Body
+        image.Position = Vector2.new(math.random(0,size.X),math.random(0,size.Y))
+        image.Size = Vector2.new(math.random(100,500),math.random(100,500))
+        print("nigerian men are entering the building")
+    end
+end)
+
 AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot()
@@ -2166,8 +2187,7 @@ if (hookfunction and syn) then
             HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         end
     end
-
-    local Request;
+    local Request
     Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
         AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
         return Request(reqtbl);
