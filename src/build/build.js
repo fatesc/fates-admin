@@ -25,7 +25,7 @@ for (const match of matches) {
 writeFileSync(out, `--[[\n\n\t${ [
     "Fate's admin",
     "Build Date: "+new Date().toLocaleString('en-gb',{hour12:true}),
-    "Authored by: "+ require('child_process').execSync('git config --get user.name').toString()
+    "Build Authored by: "+ require('child_process').execSync('git config --get user.name').toString()
 
 ].join('\n\t') }\n]]\n\n` + output.replace(/-.*\n.*\n.*\]/, "").trim());
 console.log(`script built: ${out}`);
