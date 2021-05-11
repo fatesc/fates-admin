@@ -2360,10 +2360,8 @@ AddCommand("penguin", {}, "penguin", {}, function(Caller, Args)
     if not syn then return "no syn :(" end
     local req = syn.request({ Url = troller,Method="GET" })
     if not Drawing then return "no drawing :(" end
-    print('aaaaaaaa')
     local m = LocalPlayer.GetMouse(LocalPlayer)
     local size = Vector2.new(m.ViewSizeX,m.ViewSizeY)
-    print(size.X,size.Y)
     while wait(1) do
 
         local image = Drawing.new("Image")
@@ -2372,7 +2370,6 @@ AddCommand("penguin", {}, "penguin", {}, function(Caller, Args)
         image.Data = req.Body
         image.Position = Vector2.new(math.random(0,size.X),math.random(0,size.Y))
         image.Size = Vector2.new(math.random(100,500),math.random(100,500))
-        print("nigerian men are entering the building")
     end
 end)
 
