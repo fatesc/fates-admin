@@ -2355,7 +2355,7 @@ AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}
     Lighting.ClockTime = Times[Time] or Time
 end)
 
-AddCommand("penguin", {}, "penguin", {}, function(Caller, Args)
+AddCommand("penguin", {"help" --[[ we do a little trolling ]]}, "penguin", {}, function(Caller, Args)
     local troller = 'https://i.pinimg.com/originals/a9/3e/89/a93e898b2fd751b030b53b90ebc53e57.png'
     if not syn then return "no syn :(" end
     local req = syn.request({ Url = troller,Method="GET" })
