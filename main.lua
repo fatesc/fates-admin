@@ -1495,6 +1495,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                     end
                     CFrameTool(Tool, GetRoot(v).CFrame)
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
+                    wait();
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
                 else
                     Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
@@ -1559,6 +1560,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     CFrameTool(Tool, GetRoot(v).CFrame)
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
+                    wait();
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
                 else
                     Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
@@ -1600,6 +1602,7 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
                     for i3 = 1, 3 do
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, v2.Handle, 0);
+                            wait();
                             firetouchinterest(TargetRoot, v2.Handle, 1);
                         end
                     end
@@ -1672,6 +1675,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                     for i2 = 1, 3 do
                         if (TargetRoot) then
                             firetouchinterest(TargetRoot, Tool.Handle, 0);
+                            wait();
                             firetouchinterest(TargetRoot, Tool.Handle, 1);
                             CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
                         end
@@ -1738,6 +1742,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
+                    wait();
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
                 else
                     Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not bring.");
@@ -1802,6 +1807,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
+                    wait();
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
                     GetRoot().CFrame = CFrame.new(0, 9e9, 0);
                 else
@@ -1914,6 +1920,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         for i2, v in next, Duped do
             if (v.Handle) then
                 firetouchinterest(v.Handle, GetRoot(), 1);
+                wait();
                 firetouchinterest(v.Handle, GetRoot(), 0);
             end
         end
@@ -1943,6 +1950,7 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
         v.Parent = Char
         v.Parent = Workspace
         firetouchinterest(Workspace:WaitForChild(v.Name).Handle, GetRoot(), 1);
+        wait();
         firetouchinterest(v.Handle, GetRoot(), 0);
         Char:WaitForChild(v.Name).Parent = LocalPlayer.Backpack
     end
@@ -1961,6 +1969,7 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
     LocalPlayer.Character:WaitForChild("HumanoidRootPart");
     for i, v in next, Tools do
         firetouchinterest(v.Handle, GetRoot(), 1);
+        wait();
         firetouchinterest(v.Handle, GetRoot(), 0);
     end
     return "tools recovered??"
@@ -1993,6 +2002,7 @@ AddCommand("givetools", {}, "gives tools to a player", {"1", 3, 1}, function(Cal
                 for i3 = 1, 3 do
                     if (THumanoidRootPart) then
                         firetouchinterest(THumanoidRootPart, v2.Handle, 0);
+                        wait();
                         firetouchinterest(THumanoidRootPart, v2.Handle, 1);
                     end
                 end
@@ -2015,6 +2025,7 @@ AddCommand("grabtools", {"gt"}, "grabs tools in the workspace", {3}, function(Ca
     for i, v in next, Tools do
         if (v.Handle) then
             firetouchinterest(v.Handle, GetRoot(), 1);
+            wait();
             firetouchinterest(v.Handle, GetRoot(), 0);
         end
     end
@@ -2027,6 +2038,7 @@ AddCommand("autograbtools", {"agt", "loopgrabtools", "lgt"}, "once a tool is add
     AddConnection(Workspace.ChildAdded:Connect(function(child)
         if (child:IsA("Tool") and child:FindFirstChild("Handle")) then
             firetouchinterest(child.Handle, GetRoot(), 1);
+            wait();
             firetouchinterest(child.Handle, GetRoot(), 0);
             GetCharacter().Humanoid:UnequipTools();
         end
@@ -2072,6 +2084,7 @@ AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, func
     for i, v in next, Workspace:GetChildren() do
         if (v:IsA("Accessory") and v:FindFirstChild("Handle")) then
             firetouchinterest(v.Handle, GetRoot(), 1);
+            wait();
             firetouchinterest(v.Handle, GetRoot(), 0);
             GetCharacter():WaitForChild(v.Name):Destroy();
             Amount = Amount + 1
@@ -2086,6 +2099,7 @@ AddCommand("hatsize", {"hsize"}, "Times to repeat the command", {3}, function(Ca
         Hat.Handle.OriginalSize:Destroy();
         Hat.Parent = Workspace
         firetouchinterest(GetRoot(), Hat.Handle, 0);
+        wait();
         firetouchinterest(GetRoot(), Hat.Handle, 1);
         GetCharacter():WaitForChild(Hat.Name);
     end
@@ -2473,6 +2487,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
                         table.forEach(BaseParts, function(i, v)
                             Tool:Activate();
                             firetouchinterest(Tool.Handle, v, 1);
+                            wait();
                             firetouchinterest(Tool.Handle, v, 0);
                         end)
                     end
