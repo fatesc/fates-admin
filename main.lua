@@ -1919,9 +1919,9 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
 
         for i2, v in next, Duped do
             if (v.Handle) then
-                firetouchinterest(v.Handle, GetRoot(), 1);
-                wait();
                 firetouchinterest(v.Handle, GetRoot(), 0);
+                wait();
+                firetouchinterest(v.Handle, GetRoot(), 1);
             end
         end
         repeat wait()
@@ -1949,9 +1949,9 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
     for i, v in next, Tools do
         v.Parent = Char
         v.Parent = Workspace
-        firetouchinterest(Workspace:WaitForChild(v.Name).Handle, GetRoot(), 1);
+        firetouchinterest(Workspace:WaitForChild(v.Name).Handle, GetRoot(), 0);
         wait();
-        firetouchinterest(v.Handle, GetRoot(), 0);
+        firetouchinterest(v.Handle, GetRoot(), 1);
         Char:WaitForChild(v.Name).Parent = LocalPlayer.Backpack
     end
     Utils.Notify(Caller, nil, "Tools are now saved");
@@ -1968,9 +1968,9 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
     LocalPlayer.CharacterAdded:Wait();
     LocalPlayer.Character:WaitForChild("HumanoidRootPart");
     for i, v in next, Tools do
-        firetouchinterest(v.Handle, GetRoot(), 1);
-        wait();
         firetouchinterest(v.Handle, GetRoot(), 0);
+        wait();
+        firetouchinterest(v.Handle, GetRoot(), 1);
     end
     return "tools recovered??"
 end)
@@ -2024,9 +2024,9 @@ AddCommand("grabtools", {"gt"}, "grabs tools in the workspace", {3}, function(Ca
     local ToolAmount = #LocalPlayer.Backpack:GetChildren();
     for i, v in next, Tools do
         if (v.Handle) then
-            firetouchinterest(v.Handle, GetRoot(), 1);
-            wait();
             firetouchinterest(v.Handle, GetRoot(), 0);
+            wait();
+            firetouchinterest(v.Handle, GetRoot(), 1);
         end
     end
     wait(.4);
@@ -2037,9 +2037,9 @@ end)
 AddCommand("autograbtools", {"agt", "loopgrabtools", "lgt"}, "once a tool is added to workspace it will be grabbed", {3}, function(Caller, Args, Tbl)
     AddConnection(Workspace.ChildAdded:Connect(function(child)
         if (child:IsA("Tool") and child:FindFirstChild("Handle")) then
-            firetouchinterest(child.Handle, GetRoot(), 1);
-            wait();
             firetouchinterest(child.Handle, GetRoot(), 0);
+            wait();
+            firetouchinterest(child.Handle, GetRoot(), 1);
             GetCharacter().Humanoid:UnequipTools();
         end
     end), Tbl)
@@ -2083,9 +2083,9 @@ AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, func
     local Amount = 0
     for i, v in next, Workspace:GetChildren() do
         if (v:IsA("Accessory") and v:FindFirstChild("Handle")) then
-            firetouchinterest(v.Handle, GetRoot(), 1);
-            wait();
             firetouchinterest(v.Handle, GetRoot(), 0);
+            wait();
+            firetouchinterest(v.Handle, GetRoot(), 1);
             GetCharacter():WaitForChild(v.Name):Destroy();
             Amount = Amount + 1
         end
@@ -2486,9 +2486,9 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
                         end)
                         table.forEach(BaseParts, function(i, v)
                             Tool:Activate();
-                            firetouchinterest(Tool.Handle, v, 1);
-                            wait();
                             firetouchinterest(Tool.Handle, v, 0);
+                            wait();
+                            firetouchinterest(Tool.Handle, v, 1);
                         end)
                     end
                 end
