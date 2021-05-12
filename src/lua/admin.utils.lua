@@ -1,6 +1,8 @@
-Utils = {}
+-- todo: rewrite all of misrepresentings code.
 
-function Utils.Tween(Object, Style, Direction, Time, Goal)
+local Utils = {}
+
+Utils.Tween = function(Object, Style, Direction, Time, Goal)
     local TInfo = TweenInfo.new(Time, Enum.EasingStyle[Style], Enum.EasingDirection[Direction])
     local Tween = TweenService:Create(Object, TInfo, Goal)
 
@@ -9,11 +11,11 @@ function Utils.Tween(Object, Style, Direction, Time, Goal)
     return Tween
 end
 
-function Utils.MultColor3(Color, Delta)
+Utils.MultColor3 = function(Color, Delta)
     return Color3.new(math.clamp(Color.R * Delta, 0, 1), math.clamp(Color.G * Delta, 0, 1), math.clamp(Color.B * Delta, 0, 1))
 end
 
-function Utils.Click(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
+Utils.Click = function(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
     local Hover = {
         [Goal] = Utils.MultColor3(Object[Goal], 0.9)
     }
@@ -43,7 +45,7 @@ function Utils.Click(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
     end)
 end
 
-function Utils.Blink(Object, Goal, Color1, Color2) -- Utils.Click(Object, "BackgroundColor3", NormalColor, OtherColor)
+Utils.Blink = function(Object, Goal, Color1, Color2) -- Utils.Click(Object, "BackgroundColor3", NormalColor, OtherColor)
     local Normal = {
         [Goal] = Color1
     }
@@ -59,7 +61,7 @@ function Utils.Blink(Object, Goal, Color1, Color2) -- Utils.Click(Object, "Backg
     Tween.Completed:Wait()
 end
 
-function Utils.Hover(Object, Goal)
+Utils.Hover = function(Object, Goal)
     local Hover = {
         [Goal] = Utils.MultColor3(Object[Goal], 0.9)
     }
@@ -77,7 +79,7 @@ function Utils.Hover(Object, Goal)
     end)
 end
 
-function Utils.Draggable(Ui, DragUi)
+Utils.Draggable = function(Ui, DragUi)
     local DragSpeed = 0
     local StartPos
     local DragToggle, DragInput, DragStart, DragPos
@@ -121,7 +123,7 @@ function Utils.Draggable(Ui, DragUi)
     end)
 end
 
-function Utils.SmoothScroll(content, SmoothingFactor) -- by Elttob
+Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
     -- get the 'content' scrolling frame, aka the scrolling frame with all the content inside
     -- if smoothing is enabled, disable scrolling
     content.ScrollingEnabled = false
@@ -185,7 +187,7 @@ function Utils.SmoothScroll(content, SmoothingFactor) -- by Elttob
     end)
 end
 
-function Utils.TweenAllTransToObject(Object, Time, BeforeObject) -- max transparency is max object transparency, swutched args bc easier command
+Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transparency is max object transparency, swutched args bc easier command
     local Descendants = Object:GetDescendants()
     local OldDescentants = BeforeObject:GetDescendants()
     local Tween -- to use to wait
@@ -227,7 +229,7 @@ function Utils.TweenAllTransToObject(Object, Time, BeforeObject) -- max transpar
     return Tween
 end
 
-function Utils.SetAllTrans(Object)
+Utils.SetAllTrans = function(Object)
     Object.BackgroundTransparency = 1
 
     for _, v in ipairs(Object:GetDescendants()) do
@@ -249,7 +251,7 @@ function Utils.SetAllTrans(Object)
     end
 end
 
-function Utils.TweenAllTrans(Object, Time)
+Utils.TweenAllTrans = function(Object, Time)
     local Tween -- to use to wait
 
     Tween = Utils.Tween(Object, "Sine", "Out", Time, {
@@ -288,7 +290,7 @@ function Utils.TweenAllTrans(Object, Time)
     return Tween
 end
 
-function Utils.Notify(Caller, Title, Message, Time)
+Utils.Notify = function(Caller, Title, Message, Time)
     if (not Caller or Caller == LocalPlayer) then
         local Notification = UI.Notification
         local NotificationBar = UI.NotificationBar
@@ -343,11 +345,11 @@ function Utils.Notify(Caller, Title, Message, Time)
     end
 end
 
-function Utils.MatchSearch(String1, String2) -- Utils.MatchSearch("pog", "poggers") - true; Utils.MatchSearch("poz", "poggers") - false
+Utils.MatchSearch = function(String1, String2) -- Utils.MatchSearch("pog", "poggers") - true; Utils.MatchSearch("poz", "poggers") - false
     return String1 == string.sub(String2, 1, #String1)
 end
 
-function Utils.StringFind(Table, String)
+Utils.StringFind = function(Table, String)
     for _, v in ipairs(Table) do
         if (Utils.MatchSearch(String, v)) then
             return v
@@ -355,7 +357,7 @@ function Utils.StringFind(Table, String)
     end
 end
 
-function Utils.GetPlayerArgs(Arg)
+Utils.GetPlayerArgs = function(Arg)
     Arg = Arg:lower()
     local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
 
@@ -370,7 +372,7 @@ function Utils.GetPlayerArgs(Arg)
     end)()
 end
 
-function Utils.ToolTip(Object, Message)
+Utils.ToolTip = function(Object, Message)
     local Clone
 
     Object.MouseEnter:Connect(function()
@@ -399,7 +401,7 @@ function Utils.ToolTip(Object, Message)
     end)
 end
 
-function Utils.ClearAllObjects(Object)
+Utils.ClearAllObjects = function(Object)
     for _, v in ipairs(Object:GetChildren()) do
         if (not v:IsA("UIListLayout")) then
             v:Destroy()
@@ -407,7 +409,7 @@ function Utils.ClearAllObjects(Object)
     end
 end
 
-function Utils.Rainbow(TextObject)
+Utils.Rainbow = function(TextObject)
     local Text = TextObject.Text
     local Frequency = 1 -- determines how quickly it repeats
     local TotalCharacters = 0
@@ -452,7 +454,7 @@ function Utils.Rainbow(TextObject)
     end)
 end
 
-function Utils.Locate(Player, Color)
+Utils.Locate = function(Player, Color)
     local Billboard = Instance.new("BillboardGui");
     coroutine.wrap(function()
         if (GetCharacter(Player)) then
@@ -505,7 +507,7 @@ function Utils.Locate(Player, Color)
     return Billboard
 end
 
-function Utils.CheckTag(Plr)
+Utils.CheckTag = function(Plr)
     if (not Plr or not Plr:IsA("Player")) then
         return nil
     end
@@ -516,7 +518,7 @@ function Utils.CheckTag(Plr)
     return Tag or nil
 end
 
-function Utils.AddTag(Tag)
+Utils.AddTag = function(Tag)
     if (not Tag) then
         return
     end
@@ -565,7 +567,7 @@ function Utils.AddTag(Tag)
     end))
 end
 
-function Utils.TextFont(Text, RGB)
+Utils.TextFont = function(Text, RGB)
     RGB = table.concat(RGB, ",")
     local New = {}
     Text:gsub(".", function(x)

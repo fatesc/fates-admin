@@ -60,17 +60,21 @@ end), Connections.UI, true);
 -- smooth scroll commands
 Utils.SmoothScroll(Commands.Frame.List, .14)
 -- fill commands with commands!
+local CommandsList = Commands.Frame.List
+RunService.Stepped:Wait();
 for _, v in next, CommandsTable do -- auto size
-    if (not Commands.Frame.List:FindFirstChild(v.Name)) then
-        local Clone = Command:Clone()
-
-        Utils.Hover(Clone, "BackgroundColor3") -- add tooltip
-        Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description)
-        Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "")
-        Clone.Name = v.Name
-        Clone.Visible = true
-        Clone.Parent = Commands.Frame.List
-    end
+    coroutine.wrap(function()
+        if (not CommandsList:FindFirstChild(v.Name)) then
+            local Clone = Command:Clone()
+            Utils.Hover(Clone, "BackgroundColor3") -- add tooltip
+            Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description)
+            Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "")
+            Clone.Name = v.Name
+            Clone.Visible = true
+            Clone.Parent = CommandsList
+            RunService.Heartbeat:Wait();
+        end
+    end)()
 end
 
 

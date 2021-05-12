@@ -20,52 +20,59 @@ end
 ---@type number
 local start = start or tick() or os.clock();
 
-Workspace = game:GetService("Workspace");
 RunService = game:GetService("RunService");
 Players = game:GetService("Players");
-ReplicatedStorage = game:GetService("ReplicatedStorage");
-StarterPlayer = game:GetService("StarterPlayer");
-StarterPack = game:GetService("StarterPack");
-StarterGui = game:GetService("StarterGui");
-TeleportService = game:GetService("TeleportService");
-CoreGui = game:GetService("CoreGui");
-TweenService = game:GetService("TweenService");
 UserInputService = game:GetService("UserInputService");
-HttpService = game:GetService("HttpService");
-TextService = game:GetService("TextService");
-MarketplaceService = game:GetService("MarketplaceService")
-Chat = game:GetService("Chat");
-SoundService = game:GetService("SoundService");
-Lighting = game:GetService("Lighting");
-
+local Workspace = game:GetService("Workspace");
+local ReplicatedStorage = game:GetService("ReplicatedStorage");
+local StarterPlayer = game:GetService("StarterPlayer");
+local StarterPack = game:GetService("StarterPack");
+local StarterGui = game:GetService("StarterGui");
+local TeleportService = game:GetService("TeleportService");
+local CoreGui = game:GetService("CoreGui");
+local TweenService = game:GetService("TweenService");
+local HttpService = game:GetService("HttpService");
+local TextService = game:GetService("TextService");
+local MarketplaceService = game:GetService("MarketplaceService")
+local Chat = game:GetService("Chat");
+local SoundService = game:GetService("SoundService");
+local Lighting = game:GetService("Lighting");
+ 
 LocalPlayer = Players.LocalPlayer
-Mouse = LocalPlayer:GetMouse();
-PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
+local Mouse = LocalPlayer:GetMouse();
+local PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
+
+local PluginLibrary = {}
+
 ---gets a players character if none arguments passed it will return your character
 ---@param Plr table
 ---@return any
-GetCharacter = function(Plr)
+local GetCharacter = function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
 end
+PluginLibrary.GetCharacter = GetCharacter
 ---gets a players root if none arguments passed it will return your root
 ---@param Plr any
 ---@return any
-GetRoot = function(Plr)
+local GetRoot = function(Plr)
     return Plr and GetCharacter(Plr):FindFirstChild("HumanoidRootPart") or GetCharacter():FindFirstChild("HumanoidRootPart");
 end
+PluginLibrary.GetRoot = GetRoot
 ---gets a players humanoid if none arguments passed it will return your humanoid
 ---@param Plr any
 ---@return any
-GetHumanoid = function(Plr)
+local GetHumanoid = function(Plr)
     return Plr and GetCharacter(Plr):FindFirstChildWhichIsA("Humanoid") or GetCharacter():FindFirstChildWhichIsA("Humanoid");
 end
+PluginLibrary.GetHumanoid = GetHumanoid
 
 ---comment
 ---@param Plr any
 ---@return any
-GetMagnitude = function(Plr)
+local GetMagnitude = function(Plr)
     return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
+PluginLibrary.GetHumanoid = GetMagnitude
 
 local Settings = {
     Prefix = "!",
@@ -145,7 +152,7 @@ local HttpLogsEnabled = true
 ---@param str string
 ---@param noerror boolean
 ---@return table
-GetPlayer = function(str, noerror)
+local GetPlayer = function(str, noerror)
     local CurrentPlayers = table.filter(Players:GetPlayers(), function(i, v)
         return not table.find(Exceptions, v);
     end)
@@ -206,6 +213,7 @@ GetPlayer = function(str, noerror)
     end
     return Players
 end
+PluginLibrary.GetPlayer = GetPlayer
 
 --[[
     require - ui
@@ -228,7 +236,7 @@ local RespawnTimes = {}
 --- returns true if the player has a tool
 ---@param plr any
 ---@type boolean
-HasTool = function(plr)
+local HasTool = function(plr)
     plr = plr or LocalPlayer
     local CharChildren, BackpackChildren = GetCharacter(plr):GetChildren(), plr.Backpack:GetChildren()
     local ToolFound = false
@@ -240,25 +248,28 @@ HasTool = function(plr)
 
     return ToolFound
 end
+PluginLibrary.HasTool = HasTool
 
 --- returs true if the player is r6
 ---@param plr any
-isR6 = function(plr)
+local isR6 = function(plr)
     plr = plr or LocalPlayer
     local Humanoid = GetHumanoid(plr);
     if (Humanoid) then
-        return tostring(Humanoid.RigType):split(".")[3] == 'R6'
+        return Humanoid.RigType == Enum.HumanoidRigType.R6
     end
     return false
 end
+PluginLibrary.isR6 = isR6
 
-isSat = function(plr)
+local isSat = function(plr)
     plr = plr or LocalPlayer
     local Humanoid = GetHumanoid(plr)
     if (Humanoid) then
         return Humanoid.Sit
     end
 end
+PluginLibrary.isSat = isSat
 
 local CommandRequirements = {
     [1] = {
@@ -317,10 +328,10 @@ local AddCommand = function(name, aliases, description, options, func)
         CmdExtra = {}
     }
     local Success, Err = pcall(function()
-        rawset(CommandsTable, name, Cmd);
+        CommandsTable[name] = Cmd
         if (type(aliases) == 'table') then
             for i, v in next, aliases do
-                rawset(CommandsTable, tostring(v), Cmd);
+                CommandsTable[v] = Cmd
             end
         end
     end)
@@ -329,7 +340,7 @@ end
 
 --- gets the function of the command
 ---@param name string
-LoadCommand = function(name)
+local LoadCommand = function(name)
     local Command = rawget(CommandsTable, name);
     if (Command) then
         return Command
@@ -339,7 +350,7 @@ end
 ---replaces your humanoid
 ---@param Hum any
 ---@return table
-ReplaceHumanoid = function(Hum)
+local ReplaceHumanoid = function(Hum)
     local Humanoid = Hum or GetHumanoid();
     local NewHumanoid = Humanoid:Clone();
     NewHumanoid.Parent = Humanoid.Parent
@@ -350,7 +361,7 @@ ReplaceHumanoid = function(Hum)
 end
 
 ---replaces your character
-ReplaceCharacter = function()
+local ReplaceCharacter = function()
     local Char = LocalPlayer.Character
     local Model = Instance.new("Model");
     LocalPlayer.Character = Model
@@ -359,7 +370,7 @@ ReplaceCharacter = function()
     return Char
 end
 
-CFrameTool = function(tool, pos)
+local CFrameTool = function(tool, pos)
     local RightArm = GetCharacter():FindFirstChild("RightLowerArm") or GetCharacter():FindFirstChild("Right Arm");
 
     local Arm = RightArm.CFrame * CFrame.new(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, -1, 0);
@@ -368,7 +379,7 @@ CFrameTool = function(tool, pos)
     tool.Grip = Frame
 end
 
-Sanitize = function(value)
+local Sanitize = function(value)
     if typeof(value) == 'CFrame' then
         local components = {value:components()}
         for i,v in pairs(components) do
@@ -382,7 +393,7 @@ end
 ---@param Player table
 ---@param Connection any
 ---@param Tbl table
-AddPlayerConnection = function(Player, Connection, Tbl)
+local AddPlayerConnection = function(Player, Connection, Tbl)
     if (Tbl) then
         Tbl[#Tbl + 1] = Connection
     else
@@ -395,7 +406,7 @@ end
 ---@param Connection any
 ---@param Tbl table
 ---@param TblOnly boolean
-AddConnection = function(Connection, Tbl, TblOnly)
+local AddConnection = function(Connection, Tbl, TblOnly)
     if (Tbl) then
         Tbl[#Tbl + 1] = Connection
         if (TblOnly) then
@@ -405,10 +416,11 @@ AddConnection = function(Connection, Tbl, TblOnly)
     Connections[#Connections + 1] = Connection
     return Connection
 end
+PluginLibrary.AddConnection = AddConnection
 
 ---disables all connections in a running command
 ---@param Cmd string
-DisableAllCmdConnections = function(Cmd)
+local DisableAllCmdConnections = function(Cmd)
     local Command = LoadCommand(Cmd)
     if (Command and Command.CmdExtra) then
         for i, v in next, table.flat(Command.CmdExtra) do
@@ -2157,61 +2169,61 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
     Utils.Tween(HttpLogs.Frame.List, "Sine", "Out", .25, {
         ScrollBarImageTransparency = 0
     })
-end)
 
-if (hookfunction and syn) then
-    local AddLog = function(reqType, url, body)
-        if (getgenv().F_A and UI) then
-            local Clone = ChatLogMessage:Clone();
-            Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
-            Clone.RichText = true
-            Clone.Visible = true
-            Clone.TextTransparency = 1
-            Clone.Parent = HttpLogs.Frame.List
-            Utils.Tween(Clone, "Sine", "Out", .25, {
-                TextTransparency = 0
-            });
-            HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+    if (hookfunction and syn) then
+        local AddLog = function(reqType, url, body)
+            if (getgenv().F_A and UI) then
+                local Clone = ChatLogMessage:Clone();
+                Clone.Text = ("%s\nUrl: %s%s\n"):format(Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
+                Clone.RichText = true
+                Clone.Visible = true
+                Clone.TextTransparency = 1
+                Clone.Parent = HttpLogs.Frame.List
+                Utils.Tween(Clone, "Sine", "Out", .25, {
+                    TextTransparency = 0
+                });
+                HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+            end
         end
+    
+        local Request;
+        Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
+            AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
+            return Request(reqtbl);
+        end));
+        local Httpget;
+        Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
+            AddLog("HttpGet", url);
+            return Httpget(self, url);
+        end));
+        local HttpgetAsync;
+        HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
+            AddLog("HttpGetAsync", url);
+            return HttpgetAsync(self, url);
+        end));
+        local Httppost;
+        Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
+            AddLog("HttpPost", url);
+            return Httppost(self, url);
+        end));
+        local HttppostAsync;
+        HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
+            AddLog("HttpPostAsync", url);
+            return HttppostAsync(self, url);
+        end));
+    
+        local Clone = ChatLogMessage:Clone();
+        Clone.Text = "httpspy loaded"
+        Clone.RichText = true
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = HttpLogs.Frame.List
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        });
+        HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
     end
-
-    local Request;
-    Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
-        AddLog(syn and "syn.request" or "request", reqtbl.Url, HttpService:JSONEncode(reqtbl));
-        return Request(reqtbl);
-    end));
-    local Httpget;
-    Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
-        AddLog("HttpGet", url);
-        return Httpget(self, url);
-    end));
-    local HttpgetAsync;
-    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
-        AddLog("HttpGetAsync", url);
-        return HttpgetAsync(self, url);
-    end));
-    local Httppost;
-    Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
-        AddLog("HttpPost", url);
-        return Httppost(self, url);
-    end));
-    local HttppostAsync;
-    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
-        AddLog("HttpPostAsync", url);
-        return HttppostAsync(self, url);
-    end));
-
-    local Clone = ChatLogMessage:Clone();
-    Clone.Text = "httpspy loaded"
-    Clone.RichText = true
-    Clone.Visible = true
-    Clone.TextTransparency = 1
-    Clone.Parent = HttpLogs.Frame.List
-    Utils.Tween(Clone, "Sine", "Out", .25, {
-        TextTransparency = 0
-    });
-    HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
-end
+end)
 
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
     local BP = LocalPlayer.Backpack
@@ -2910,7 +2922,7 @@ end)
 
 ---@param i any
 ---@param plr any
-PlrChat = function(i, plr)
+local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
         Connections.Players[plr.Name].Connections = {}
@@ -3036,7 +3048,7 @@ AddConnection(CommandBar.Input.FocusLost:Connect(function()
     end
 end), Connections.UI, true);
 
-CurrentPlayers = Players:GetPlayers();
+local CurrentPlayers = Players:GetPlayers();
 
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
@@ -3052,18 +3064,12 @@ local PlayerAdded = function(plr)
 end
 
 table.forEach(CurrentPlayers, function(i,v)
-    spawn(function()
-        PlrChat(i,v);
-    end)
-    spawn(function()
-        PlayerAdded(v);
-    end)
+    PlrChat(i,v);
+    PlayerAdded(v);
 end);
 
 AddConnection(Players.PlayerAdded:Connect(function(plr)
-    spawn(function()
-        PlrChat(#Connections.Players + 1, plr);
-    end)
+    PlrChat(#Connections.Players + 1, plr);
     PlayerAdded(plr);
 end))
 
@@ -3081,7 +3087,8 @@ end))
 
 getgenv().F_A = {
     Loaded = true,
-    Utils = Utils
+    Utils = Utils,
+    PluginLibrary = PluginLibrary
 }
 
 Utils.Notify(LocalPlayer, "Loaded", ("script loaded in %.3f seconds"):format((tick() or os.clock()) - start));
