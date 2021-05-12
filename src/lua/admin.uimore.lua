@@ -224,29 +224,6 @@ AddConnection(HttpLogs.Save.MouseButton1Click:Connect(function()
     print("saved");
 end), Connections.UI, true);
 
-local function RainbowChatOnAdded(v)
-    if (v:IsA("TextButton")) then
-        local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
-        if (Player) then
-            local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
-                return x:byte();    
-            end)]
-            if (Tag and Tag.Rainbow) then
-                Utils.Rainbow(v);
-            end
-        end
-    end
-end
-
-coroutine.wrap(function()
-    for _, v in next, RobloxScroller:GetDescendants() do
-        RainbowChatOnAdded(v)
-        wait();
-    end
-end)()
-
-AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
-
 -- auto correct
 AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
     CommandBar.Input.Text = CommandBar.Input.Text:lower();

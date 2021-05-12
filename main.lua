@@ -1,21 +1,6 @@
 --[[
-	fates admin - 10/5/2021
+	fates admin - 12/5/2021
 ]]
-
-UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
-if (not UndetectedMode and not game:IsLoaded()) then
-    print("fates admin: waiting for game to load...");
-    game.Loaded:Wait();
-end
-
-if (game:IsLoaded() and UndetectedMode) then
-    syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
-    return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
-end
-
-if (getgenv().F_A and getgenv().F_A.Loaded) then
-    return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
-end
 
 --IMPORT [extend]
 pcall(function()
@@ -25,23 +10,23 @@ pcall(function()
     for i, v in next, mt do
         OldMetaMethods[i] = v
     end
-    local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod();
-        if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
-            return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
-        end
-        return OldMetaMethods.__namecall(self, ...)
-    end)
+    -- local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
+    -- mt.__namecall = newcclosure(function(self, ...)
+    --     local method = getnamecallmethod();
+    --     if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
+    --         return CurrentMem
+    --     end
+    --     return OldMetaMethods.__namecall(self, ...)
+    -- end)
 
-    mt.__index = newcclosure(function(t, i)
-        if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
-            return function()
-                return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
-            end
-        end
-        return OldMetaMethods.__index(t, i);
-    end)
+    -- mt.__index = newcclosure(function(t, i)
+    --     if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
+    --         return function()
+    --             return CurrentMem
+    --         end
+    --     end
+    --     return OldMetaMethods.__index(t, i);
+    -- end)
     setreadonly(mt, true);
 end)
 
@@ -218,6 +203,21 @@ hookfunction = hookfunction or function(func, newfunc)
 end
 --END IMPORT [extend]
 
+
+UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
+if (not UndetectedMode and not game:IsLoaded()) then
+    print("fates admin: waiting for game to load...");
+    game.Loaded:Wait();
+end
+
+if (game:IsLoaded() and UndetectedMode) then
+    syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+    return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
+end
+
+if (getgenv().F_A and getgenv().F_A.Loaded) then
+    return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
+end
 
 ---@type number
 local start = start or tick() or os.clock();
@@ -1330,26 +1330,19 @@ DisableAllCmdConnections = function(Cmd)
     return Command
 end
 
-local WASDKeys = {
-    ["W"] = false,
-    ["A"] = false,
-    ["S"] = false,
-    ["D"] = false
-}
+local Keys = {}
 
 AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     if (GameProccesed) then return end
     local KeyCode = tostring(Input.KeyCode):split(".")[3]
-    if (WASDKeys[KeyCode] ~= nil and not WASDKeys[KeyCode]) then
-        WASDKeys[KeyCode] = true
-    end
+    Keys[KeyCode] = true
 end));
 
 AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
     if (GameProccesed) then return end
     local KeyCode = tostring(Input.KeyCode):split(".")[3]
-    if (WASDKeys[KeyCode] ~= nil and WASDKeys[KeyCode] == true) then
-        WASDKeys[KeyCode] = false
+    if (Keys[KeyCode]) then
+        Keys[KeyCode] = false
     end
 end));
 
@@ -3391,22 +3384,22 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             Speed = LoadCommand("fly").CmdExtra[1]
             local NewPos = (BodyGyro.CFrame - (BodyGyro.CFrame).Position) + BodyPos.Position
             local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
-            if (WASDKeys["W"]) then
+            if (Keys["W"]) then
                 NewPos = NewPos + CoordinateFrame.lookVector * Speed
 
                 BodyPos.Position = (GetRoot().CFrame * CFrame.new(0, 0, -Speed)).Position;
                 BodyGyro.CFrame = CoordinateFrame * CFrame.Angles(-math.rad(Speed * 15), 0, 0);
             end
-            if (WASDKeys["A"]) then
+            if (Keys["A"]) then
                 NewPos = NewPos * CFrame.new(-Speed, 0, 0);
             end
-            if (WASDKeys["S"]) then
+            if (Keys["S"]) then
                 NewPos = NewPos - CoordinateFrame.lookVector * Speed
 
                 BodyPos.Position = (GetRoot().CFrame * CFrame.new(0, 0, Speed)).Position;
                 BodyGyro.CFrame = CoordinateFrame * CFrame.Angles(-math.rad(Speed * 15), 0, 0);
             end
-            if (WASDKeys["D"]) then
+            if (Keys["D"]) then
                 NewPos = NewPos * CFrame.new(Speed, 0, 0);
             end
             BodyPos.Position = NewPos.Position
@@ -3436,19 +3429,19 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
         while (next(LoadCommand("fly2").CmdExtra) and wait()) do
             Speed = LoadCommand("fly2").CmdExtra[1]
             local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
-            if (WASDKeys["W"]) then
+            if (Keys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
                 BodyPos.Position = GetRoot().Position
             end
-            if (WASDKeys["A"]) then
+            if (Keys["A"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
                 BodyPos.Position = GetRoot().Position
             end
-            if (WASDKeys["S"]) then
+            if (Keys["S"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
                 BodyPos.Position = GetRoot().Position
             end
-            if (WASDKeys["D"]) then
+            if (Keys["D"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
                 BodyPos.Position = GetRoot().Position
             end
@@ -3818,16 +3811,16 @@ AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     coroutine.wrap(function()
         while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
             Speed = LoadCommand("blink").CmdExtra[1]
-            if (WASDKeys["W"]) then
+            if (Keys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
             end
-            if (WASDKeys["A"]) then
+            if (Keys["A"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
             end
-            if (WASDKeys["S"]) then
+            if (Keys["S"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
             end
-            if (WASDKeys["D"]) then
+            if (Keys["D"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
             end
         end
@@ -4194,29 +4187,6 @@ end), Connections.UI, true);
 AddConnection(HttpLogs.Save.MouseButton1Click:Connect(function()
     print("saved");
 end), Connections.UI, true);
-
-local function RainbowChatOnAdded(v)
-    if (v:IsA("TextButton")) then
-        local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
-        if (Player) then
-            local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
-                return x:byte();    
-            end)]
-            if (Tag and Tag.Rainbow) then
-                Utils.Rainbow(v);
-            end
-        end
-    end
-end
-
-coroutine.wrap(function()
-    for _, v in next, RobloxScroller:GetDescendants() do
-        RainbowChatOnAdded(v)
-        wait();
-    end
-end)()
-
-AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
 
 -- auto correct
 AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear

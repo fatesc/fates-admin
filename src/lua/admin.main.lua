@@ -1,3 +1,7 @@
+--[[
+    require - extend
+]]
+
 UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
 if (not UndetectedMode and not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
@@ -12,10 +16,6 @@ end
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
-
---[[
-    require - extend
-]]
 
 ---@type number
 local start = start or tick() or os.clock();
@@ -420,26 +420,19 @@ DisableAllCmdConnections = function(Cmd)
     return Command
 end
 
-local WASDKeys = {
-    ["W"] = false,
-    ["A"] = false,
-    ["S"] = false,
-    ["D"] = false
-}
+local Keys = {}
 
 AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     if (GameProccesed) then return end
     local KeyCode = tostring(Input.KeyCode):split(".")[3]
-    if (WASDKeys[KeyCode] ~= nil and not WASDKeys[KeyCode]) then
-        WASDKeys[KeyCode] = true
-    end
+    Keys[KeyCode] = true
 end));
 
 AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
     if (GameProccesed) then return end
     local KeyCode = tostring(Input.KeyCode):split(".")[3]
-    if (WASDKeys[KeyCode] ~= nil and WASDKeys[KeyCode] == true) then
-        WASDKeys[KeyCode] = false
+    if (Keys[KeyCode]) then
+        Keys[KeyCode] = false
     end
 end));
 
@@ -2410,22 +2403,22 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             Speed = LoadCommand("fly").CmdExtra[1]
             local NewPos = (BodyGyro.CFrame - (BodyGyro.CFrame).Position) + BodyPos.Position
             local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
-            if (WASDKeys["W"]) then
+            if (Keys["W"]) then
                 NewPos = NewPos + CoordinateFrame.lookVector * Speed
 
                 BodyPos.Position = (GetRoot().CFrame * CFrame.new(0, 0, -Speed)).Position;
                 BodyGyro.CFrame = CoordinateFrame * CFrame.Angles(-math.rad(Speed * 15), 0, 0);
             end
-            if (WASDKeys["A"]) then
+            if (Keys["A"]) then
                 NewPos = NewPos * CFrame.new(-Speed, 0, 0);
             end
-            if (WASDKeys["S"]) then
+            if (Keys["S"]) then
                 NewPos = NewPos - CoordinateFrame.lookVector * Speed
 
                 BodyPos.Position = (GetRoot().CFrame * CFrame.new(0, 0, Speed)).Position;
                 BodyGyro.CFrame = CoordinateFrame * CFrame.Angles(-math.rad(Speed * 15), 0, 0);
             end
-            if (WASDKeys["D"]) then
+            if (Keys["D"]) then
                 NewPos = NewPos * CFrame.new(Speed, 0, 0);
             end
             BodyPos.Position = NewPos.Position
@@ -2455,19 +2448,19 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
         while (next(LoadCommand("fly2").CmdExtra) and wait()) do
             Speed = LoadCommand("fly2").CmdExtra[1]
             local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
-            if (WASDKeys["W"]) then
+            if (Keys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
                 BodyPos.Position = GetRoot().Position
             end
-            if (WASDKeys["A"]) then
+            if (Keys["A"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
                 BodyPos.Position = GetRoot().Position
             end
-            if (WASDKeys["S"]) then
+            if (Keys["S"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
                 BodyPos.Position = GetRoot().Position
             end
-            if (WASDKeys["D"]) then
+            if (Keys["D"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
                 BodyPos.Position = GetRoot().Position
             end
@@ -2837,16 +2830,16 @@ AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     coroutine.wrap(function()
         while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
             Speed = LoadCommand("blink").CmdExtra[1]
-            if (WASDKeys["W"]) then
+            if (Keys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
             end
-            if (WASDKeys["A"]) then
+            if (Keys["A"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
             end
-            if (WASDKeys["S"]) then
+            if (Keys["S"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
             end
-            if (WASDKeys["D"]) then
+            if (Keys["D"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
             end
         end
