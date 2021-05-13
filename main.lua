@@ -1,5 +1,5 @@
 --[[
-	fates admin - 12/5/2021
+	fates admin - 13/5/2021
 ]]
 
 --IMPORT [extend]
@@ -180,7 +180,7 @@ table.keys = function(tbl)
 end
 
 local touched = {}
-firetouchinterest = nil or function(part1, part2, toggle) -- temporary until synapse fixes this
+firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then
         if (toggle == 0) then
             touched[1] = part1.CFrame
@@ -520,7 +520,9 @@ if (RobloxChatBarFrame) then
     end
 end
 
-
+-- position CommandBar
+CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
+--END IMPORT [ui]
 
 
 --IMPORT [tags]
@@ -1934,7 +1936,6 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         for i2, v in next, Duped do
             if (v.Handle) then
                 firetouchinterest(v.Handle, GetRoot(), 0);
-                wait();
                 firetouchinterest(v.Handle, GetRoot(), 1);
             end
         end
@@ -2058,6 +2059,11 @@ AddCommand("autograbtools", {"agt", "loopgrabtools", "lgt"}, "once a tool is add
         end
     end), Tbl)
     return "tools will be grabbed automatically"
+end)
+
+AddCommand("unautograbtools", {"unloopgrabtools"}, "stops autograbtools", {}, function()
+    DisableAllCmdConnections("autograbtools");
+    return "auto grabtools disabled"
 end)
 
 AddCommand("droptools", {"dt"}, "drops all of your tools", {1,3}, function()

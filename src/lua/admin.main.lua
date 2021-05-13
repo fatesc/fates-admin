@@ -951,7 +951,6 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         for i2, v in next, Duped do
             if (v.Handle) then
                 firetouchinterest(v.Handle, GetRoot(), 0);
-                wait();
                 firetouchinterest(v.Handle, GetRoot(), 1);
             end
         end
@@ -1075,6 +1074,11 @@ AddCommand("autograbtools", {"agt", "loopgrabtools", "lgt"}, "once a tool is add
         end
     end), Tbl)
     return "tools will be grabbed automatically"
+end)
+
+AddCommand("unautograbtools", {"unloopgrabtools"}, "stops autograbtools", {}, function()
+    DisableAllCmdConnections("autograbtools");
+    return "auto grabtools disabled"
 end)
 
 AddCommand("droptools", {"dt"}, "drops all of your tools", {1,3}, function()

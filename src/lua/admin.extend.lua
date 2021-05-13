@@ -175,7 +175,7 @@ table.keys = function(tbl)
 end
 
 local touched = {}
-firetouchinterest = nil or function(part1, part2, toggle) -- temporary until synapse fixes this
+firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then
         if (toggle == 0) then
             touched[1] = part1.CFrame
