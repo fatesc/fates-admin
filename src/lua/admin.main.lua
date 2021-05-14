@@ -406,7 +406,7 @@ end
 ---@param Connection any
 ---@param Tbl table
 ---@param TblOnly boolean
-local AddConnection = function(Connection, Tbl, TblOnly)
+AddConnection = function(Connection, Tbl, TblOnly)
     if (Tbl) then
         Tbl[#Tbl + 1] = Connection
         if (TblOnly) then
@@ -1946,29 +1946,13 @@ AddCommand("volume", {"vol"}, "changes your game volume", {}, function(Caller, A
 end)
 
 AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
-    setreadonly(mt, false);
-    local OldNamecall = OldMetaMethods.__namecall
-    local OldIndex = OldMetaMethods.__index
-    mt.__namecall = newcclosure(function(self, ...)
-        local args = {...}
-        local method = getnamecallmethod():lower();
-        if (method == "kick") then
-            Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(tostring(args[1])));
-            wait(9e9);
-            return nil
-        end
-        return OldNamecall(self, ...);
-    end)
-    mt.__index = newcclosure(function(table, index)
-        if (index == "Kick" or index == "kick") then
-            Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("an attempt to kick has been made"));
-            wait(9e9);
-            return nil
-        end
-        return OldIndex(table, index);
-    end)
-    setreadonly(mt, true);
-    return "client sided antikick enabled"
+    AntiKick = not AntiKick
+    return "client sided antikick" .. (AntiKick and "enabled" or "disabled")
+end)
+
+AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, function()
+    AntiTelport = not AntiTelport
+    return "client sided antiteleport" .. (AntiTelport and "enabled" or "disabled")
 end)
 
 AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)
@@ -2240,6 +2224,7 @@ end)
 AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Caller, Args, Tbl)
     local Speed = Args[1] or 5
     local Spin = Instance.new("BodyAngularVelocity");
+    ProtectInstance(Spin);
     Spin.Parent = GetRoot();
     Spin.MaxTorque = Vector3.new(0, math.huge, 0);
     Spin.AngularVelocity = Vector3.new(0, Speed, 0);
@@ -2424,6 +2409,8 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     end
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    ProtectInstance(BodyPos);
+    ProtectInstance(BodyGyro);
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyPos.maxForce = Vector3.new(1, 1, 1) * math.huge
@@ -2469,6 +2456,8 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     end
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    ProtectInstance(BodyPos);
+    ProtectInstance(BodyGyro);
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyGyro.D = 0
@@ -2970,33 +2959,29 @@ local PlrChat = function(i, plr)
             }
             Socket:Send(HttpService:JSONEncode(Message));
         end
-        local something = false
         if (string.startsWith(raw, "/e")) then
             raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1);
-        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr) and Utils.CheckTag(plr).Rainbow) then
-            raw = raw:sub(4);
-            something = true
         else
             return
         end
 
         message = string.trim(raw);
 
-        if (table.find(AdminUsers, plr) or plr == LocalPlayer or something) then
+        if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = message:split(" ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
             local Args = table.shift(CommandArgs);
 
             if (LoadedCommand) then
-                if (LoadedCommand.ArgsNeeded > #Args and not something) then
+                if (LoadedCommand.ArgsNeeded > #Args) then
                     return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
                     local Executed = LoadedCommand.Function()(plr, Args, LoadedCommand.CmdExtra);
-                    if (Executed and not somtething) then
+                    if (Executed) then
                         Utils.Notify(plr, "Command", Executed);
                     end
                     LastCommand = {Command, plr, Args, LoadedCommand.CmdExtra}
@@ -3004,7 +2989,7 @@ local PlrChat = function(i, plr)
                 if (not Success and Debug) then
                     warn(Err);
                 end
-            elseif (not something) then
+            else
                 Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
             end
         end

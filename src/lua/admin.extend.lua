@@ -1,30 +1,4 @@
-pcall(function()
-    mt = getrawmetatable(game);
-    OldMetaMethods = {}
-    setreadonly(mt, false);
-    for i, v in next, mt do
-        OldMetaMethods[i] = v
-    end
-    -- local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
-    -- mt.__namecall = newcclosure(function(self, ...)
-    --     local method = getnamecallmethod();
-    --     if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
-    --         return CurrentMem
-    --     end
-    --     return OldMetaMethods.__namecall(self, ...)
-    -- end)
-
-    -- mt.__index = newcclosure(function(t, i)
-    --     if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
-    --         return function()
-    --             return CurrentMem
-    --         end
-    --     end
-    --     return OldMetaMethods.__index(t, i);
-    -- end)
-    setreadonly(mt, true);
-end)
-
+Debug = true
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     if (next(ErrorConnections)) then
@@ -195,4 +169,104 @@ hookfunction = hookfunction or function(func, newfunc)
 
     func = newcclosure and newcclosure(newfunc) or newfunc
     return newfunc
+end
+
+local ProtectedInstances = {}
+local Methods = {
+    "FindFirstChild",
+    "FindFirstChildWhichIsA",
+    "FindFirstChildOfClass",
+    "IsA"
+}
+local AntiKick = false
+local AntiTeleport = false
+
+local OldMemoryTags = {}
+local Stats = game:GetService("Stats");
+for i, v in next, Enum.DeveloperMemoryTag:GetEnumItems() do
+    OldMemoryTags[v] = Stats:GetMemoryUsageMbForTag(v);
+end
+
+local mt = getrawmetatable(game);
+local OldMetaMethods = {}
+setreadonly(mt, false);
+for i, v in next, mt do
+    OldMetaMethods[i] = v
+end
+local __Namecall = OldMetaMethods.__namecall
+local __Index = OldMetaMethods.__index
+
+mt.__namecall = newcclosure(function(self, ...)
+    local Return = __Namecall(self, ...);
+    if (checkcaller()) then
+        return Return
+    end
+    
+    local Method = getnamecallmethod():gsub("%z", function(x)
+        return x
+    end):gsub("%z", "");
+    local Args = {...}
+
+    if (table.find(Methods, Method) and table.find(ProtectedInstances, self)) then 
+        return Method == "IsA" and false or nil
+    end
+    if (Method == "GetMemoryUsageMbForTag" and game.PlaceId == 6650331930) then
+        -- return OldMemoryTags[Args[1]]
+        return Stats:GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui) - 1
+    end
+    if (AntiKick and string.lower(Method) == "kick") then
+        getgenv().F_A.Utils.Notify(LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
+        return
+    end
+    return Return
+end)
+
+mt.__index = newcclosure(function(Instance_, index)
+    local Return = __Index(Instance_, index);
+    if (checkcaller()) then
+        return Return
+    end
+
+    index = type(index) == 'string' and index:gsub("%z", function(x)
+        return x
+    end):gsub("%z", "") or index
+    
+    if (index == "ClassName" and table.find(ProtectedInstances, Instance_)) then
+        -- return "Part"
+    end
+    if (table.find(Methods, index) and table.find(ProtectedInstances, Instance_)) then
+        return function()
+            return index == "IsA" and false or nil
+        end
+    end
+    if (index == "GetMemoryUsageMbForTag" and game.PlaceId == 6650331930) then
+        return function()
+            return Stats:GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui) - 1
+        end
+    end
+
+    if (AntiKick and type(index) == 'string' and string.lower(index) == "kick") then
+        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to kick", "an attempt to kick has been made");
+        return function() return end
+    end
+    if (AntiTeleport and index == "Teleport" or index == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
+        return function() return end
+    end
+
+    return Return
+end)
+
+setreadonly(mt, true);
+
+
+local ProtectInstance = function(Instance_)
+    ProtectedInstances[#ProtectedInstances + 1] = Instance_
+    if (syn and syn.protect_gui) then
+        syn.protect_gui(Instance_);
+    end
 end

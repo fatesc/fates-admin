@@ -1,35 +1,9 @@
 --[[
-	fates admin - 13/5/2021
+	fates admin - 15/5/2021
 ]]
 
 --IMPORT [extend]
-pcall(function()
-    mt = getrawmetatable(game);
-    OldMetaMethods = {}
-    setreadonly(mt, false);
-    for i, v in next, mt do
-        OldMetaMethods[i] = v
-    end
-    -- local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
-    -- mt.__namecall = newcclosure(function(self, ...)
-    --     local method = getnamecallmethod();
-    --     if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
-    --         return CurrentMem
-    --     end
-    --     return OldMetaMethods.__namecall(self, ...)
-    -- end)
-
-    -- mt.__index = newcclosure(function(t, i)
-    --     if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
-    --         return function()
-    --             return CurrentMem
-    --         end
-    --     end
-    --     return OldMetaMethods.__index(t, i);
-    -- end)
-    setreadonly(mt, true);
-end)
-
+Debug = true
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     if (next(ErrorConnections)) then
@@ -200,6 +174,106 @@ hookfunction = hookfunction or function(func, newfunc)
 
     func = newcclosure and newcclosure(newfunc) or newfunc
     return newfunc
+end
+
+local ProtectedInstances = {}
+local Methods = {
+    "FindFirstChild",
+    "FindFirstChildWhichIsA",
+    "FindFirstChildOfClass",
+    "IsA"
+}
+local AntiKick = false
+local AntiTeleport = false
+
+local OldMemoryTags = {}
+local Stats = game:GetService("Stats");
+for i, v in next, Enum.DeveloperMemoryTag:GetEnumItems() do
+    OldMemoryTags[v] = Stats:GetMemoryUsageMbForTag(v);
+end
+
+local mt = getrawmetatable(game);
+local OldMetaMethods = {}
+setreadonly(mt, false);
+for i, v in next, mt do
+    OldMetaMethods[i] = v
+end
+local __Namecall = OldMetaMethods.__namecall
+local __Index = OldMetaMethods.__index
+
+mt.__namecall = newcclosure(function(self, ...)
+    local Return = __Namecall(self, ...);
+    if (checkcaller()) then
+        return Return
+    end
+    
+    local Method = getnamecallmethod():gsub("%z", function(x)
+        return x
+    end):gsub("%z", "");
+    local Args = {...}
+
+    if (table.find(Methods, Method) and table.find(ProtectedInstances, self)) then 
+        return Method == "IsA" and false or nil
+    end
+    if (Method == "GetMemoryUsageMbForTag" and game.PlaceId == 6650331930) then
+        -- return OldMemoryTags[Args[1]]
+        return Stats:GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui) - 1
+    end
+    if (AntiKick and string.lower(Method) == "kick") then
+        getgenv().F_A.Utils.Notify(LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
+        return
+    end
+    return Return
+end)
+
+mt.__index = newcclosure(function(Instance_, index)
+    local Return = __Index(Instance_, index);
+    if (checkcaller()) then
+        return Return
+    end
+
+    index = type(index) == 'string' and index:gsub("%z", function(x)
+        return x
+    end):gsub("%z", "") or index
+    
+    if (index == "ClassName" and table.find(ProtectedInstances, Instance_)) then
+        -- return "Part"
+    end
+    if (table.find(Methods, index) and table.find(ProtectedInstances, Instance_)) then
+        return function()
+            return index == "IsA" and false or nil
+        end
+    end
+    if (index == "GetMemoryUsageMbForTag" and game.PlaceId == 6650331930) then
+        return function()
+            return Stats:GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui) - 1
+        end
+    end
+
+    if (AntiKick and type(index) == 'string' and string.lower(index) == "kick") then
+        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to kick", "an attempt to kick has been made");
+        return function() return end
+    end
+    if (AntiTeleport and index == "Teleport" or index == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
+        return function() return end
+    end
+
+    return Return
+end)
+
+setreadonly(mt, true);
+
+
+local ProtectInstance = function(Instance_)
+    ProtectedInstances[#ProtectedInstances + 1] = Instance_
+    if (syn and syn.protect_gui) then
+        syn.protect_gui(Instance_);
+    end
 end
 --END IMPORT [extend]
 
@@ -974,7 +1048,6 @@ Utils.Rainbow = function(TextObject)
     local Frequency = 1 -- determines how quickly it repeats
     local TotalCharacters = 0
     local Strings = {}
-    local Destroyed = false
 
     TextObject.RichText = true
 
@@ -987,30 +1060,29 @@ Utils.Rainbow = function(TextObject)
         end
     end
 
-    local Heartbeat = RunService.Heartbeat:Connect(function()
-        local String = ""
-        local Counter = TotalCharacters
-
-        for _, CharacterTable in ipairs(Strings) do
-            local Concat = ""
-
-            if (type(CharacterTable) == "table") then
-                Counter = Counter - 1
-                local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
-
-                CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+    pcall(function() -- no idea why this shit is erroring
+        local Connection = AddConnection(RunService.Heartbeat:Connect(function()
+            local String = ""
+            local Counter = TotalCharacters
+    
+            for _, CharacterTable in ipairs(Strings) do
+                local Concat = ""
+    
+                if (type(CharacterTable) == "table") then
+                    Counter = Counter - 1
+                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+    
+                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+                end
+    
+                String = String .. CharacterTable
             end
-
-            String = String .. CharacterTable
-        end
-
-        TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
-    end)
-
-    AddConnection(Heartbeat);
-
-    delay(150, function()
-        Heartbeat:Disconnect();
+    
+            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+        end));
+        delay(150, function()
+            Connection:Disconnect();
+        end)
     end)
 end
 
@@ -1320,7 +1392,7 @@ end
 ---@param Connection any
 ---@param Tbl table
 ---@param TblOnly boolean
-local AddConnection = function(Connection, Tbl, TblOnly)
+AddConnection = function(Connection, Tbl, TblOnly)
     if (Tbl) then
         Tbl[#Tbl + 1] = Connection
         if (TblOnly) then
@@ -2931,29 +3003,13 @@ AddCommand("volume", {"vol"}, "changes your game volume", {}, function(Caller, A
 end)
 
 AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
-    setreadonly(mt, false);
-    local OldNamecall = OldMetaMethods.__namecall
-    local OldIndex = OldMetaMethods.__index
-    mt.__namecall = newcclosure(function(self, ...)
-        local args = {...}
-        local method = getnamecallmethod():lower();
-        if (method == "kick") then
-            Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(tostring(args[1])));
-            wait(9e9);
-            return nil
-        end
-        return OldNamecall(self, ...);
-    end)
-    mt.__index = newcclosure(function(table, index)
-        if (index == "Kick" or index == "kick") then
-            Utils.Notify(Caller or LocalPlayer, "Attempt to kick", ("an attempt to kick has been made"));
-            wait(9e9);
-            return nil
-        end
-        return OldIndex(table, index);
-    end)
-    setreadonly(mt, true);
-    return "client sided antikick enabled"
+    AntiKick = not AntiKick
+    return "client sided antikick" .. (AntiKick and "enabled" or "disabled")
+end)
+
+AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, function()
+    AntiTelport = not AntiTelport
+    return "client sided antiteleport" .. (AntiTelport and "enabled" or "disabled")
 end)
 
 AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)
@@ -3225,6 +3281,7 @@ end)
 AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Caller, Args, Tbl)
     local Speed = Args[1] or 5
     local Spin = Instance.new("BodyAngularVelocity");
+    ProtectInstance(Spin);
     Spin.Parent = GetRoot();
     Spin.MaxTorque = Vector3.new(0, math.huge, 0);
     Spin.AngularVelocity = Vector3.new(0, Speed, 0);
@@ -3409,6 +3466,8 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     end
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    ProtectInstance(BodyPos);
+    ProtectInstance(BodyGyro);
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyPos.maxForce = Vector3.new(1, 1, 1) * math.huge
@@ -3454,6 +3513,8 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     end
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    ProtectInstance(BodyPos);
+    ProtectInstance(BodyGyro);
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyGyro.D = 0
@@ -3955,33 +4016,29 @@ local PlrChat = function(i, plr)
             }
             Socket:Send(HttpService:JSONEncode(Message));
         end
-        local something = false
         if (string.startsWith(raw, "/e")) then
             raw = raw:sub(4);
         elseif (string.startsWith(raw, Prefix)) then
             raw = raw:sub(#Prefix + 1);
-        elseif (string.startsWith(raw, tostring("\108\111\108")) and Utils.CheckTag(plr) and Utils.CheckTag(plr).Rainbow) then
-            raw = raw:sub(4);
-            something = true
         else
             return
         end
 
         message = string.trim(raw);
 
-        if (table.find(AdminUsers, plr) or plr == LocalPlayer or something) then
+        if (table.find(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = message:split(" ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
             local Args = table.shift(CommandArgs);
 
             if (LoadedCommand) then
-                if (LoadedCommand.ArgsNeeded > #Args and not something) then
+                if (LoadedCommand.ArgsNeeded > #Args) then
                     return Utils.Notify(plr, "Error", ("Insuficient Args (you need %d)"):format(LoadedCommand.ArgsNeeded))
                 end
 
                 local Success, Err = pcall(function()
                     local Executed = LoadedCommand.Function()(plr, Args, LoadedCommand.CmdExtra);
-                    if (Executed and not somtething) then
+                    if (Executed) then
                         Utils.Notify(plr, "Command", Executed);
                     end
                     LastCommand = {Command, plr, Args, LoadedCommand.CmdExtra}
@@ -3989,7 +4046,7 @@ local PlrChat = function(i, plr)
                 if (not Success and Debug) then
                     warn(Err);
                 end
-            elseif (not something) then
+            else
                 Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
             end
         end

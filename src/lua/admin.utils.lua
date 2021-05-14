@@ -414,7 +414,6 @@ Utils.Rainbow = function(TextObject)
     local Frequency = 1 -- determines how quickly it repeats
     local TotalCharacters = 0
     local Strings = {}
-    local Destroyed = false
 
     TextObject.RichText = true
 
@@ -427,30 +426,29 @@ Utils.Rainbow = function(TextObject)
         end
     end
 
-    local Heartbeat = RunService.Heartbeat:Connect(function()
-        local String = ""
-        local Counter = TotalCharacters
-
-        for _, CharacterTable in ipairs(Strings) do
-            local Concat = ""
-
-            if (type(CharacterTable) == "table") then
-                Counter = Counter - 1
-                local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
-
-                CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+    pcall(function() -- no idea why this shit is erroring
+        local Connection = AddConnection(RunService.Heartbeat:Connect(function()
+            local String = ""
+            local Counter = TotalCharacters
+    
+            for _, CharacterTable in ipairs(Strings) do
+                local Concat = ""
+    
+                if (type(CharacterTable) == "table") then
+                    Counter = Counter - 1
+                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+    
+                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+                end
+    
+                String = String .. CharacterTable
             end
-
-            String = String .. CharacterTable
-        end
-
-        TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
-    end)
-
-    AddConnection(Heartbeat);
-
-    delay(150, function()
-        Heartbeat:Disconnect();
+    
+            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+        end));
+        delay(150, function()
+            Connection:Disconnect();
+        end)
     end)
 end
 
