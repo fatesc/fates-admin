@@ -2647,7 +2647,9 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min or max)", {{"mi
             else
                 Server = Servers[math.random(1, #Servers)]
             end
-            syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+            if (syn) then
+                syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+            end
             TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id);
             return ("joining server (%d/%d players)"):format(Server.playing, Server.maxPlayers);
         else
