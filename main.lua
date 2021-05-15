@@ -177,11 +177,16 @@ hookfunction = hookfunction or function(func, newfunc)
 end
 
 local ProtectedInstances = {}
+local SpoofedInstances = {}
 local Methods = {
     "FindFirstChild",
     "FindFirstChildWhichIsA",
     "FindFirstChildOfClass",
     "IsA"
+}
+local AllowedIndexes = {
+    "RootPart",
+    "Parent"
 }
 local AntiKick = false
 local AntiTeleport = false
@@ -209,69 +214,77 @@ mt.__namecall = newcclosure(function(self, ...)
     local Method = getnamecallmethod():gsub("%z", function(x)
         return x
     end):gsub("%z", "");
-    local Args = {...}
 
-    if (table.find(Methods, Method) and table.find(ProtectedInstances, self)) then 
-        return Method == "IsA" and false or nil
-    end
-    if (Method == "GetMemoryUsageMbForTag" and game.PlaceId == 6650331930) then
-        -- return OldMemoryTags[Args[1]]
-        return Stats:GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui) - 1
-    end
-    if (AntiKick and string.lower(Method) == "kick") then
-        getgenv().F_A.Utils.Notify(LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
-        return
-    end
-    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
-        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
-        return
+    local Protected = ProtectedInstances[self]
+
+    if (Protected) then
+        if (table.find(Methods, Method)) then
+            return Method == "IsA" and false or nil
+        end
     end
     return __Namecall(self, ...);
 end)
 
-mt.__index = newcclosure(function(Instance_, index)
+mt.__index = newcclosure(function(Instance_, Index)
     if (checkcaller()) then
-        return __Index(Instance_, index);
+        return __Index(Instance_, Index);
     end
 
-    index = type(index) == 'string' and index:gsub("%z", function(x)
+    Index = type(Index) == 'string' and Index:gsub("%z", function(x)
         return x
-    end):gsub("%z", "") or index
+    end):gsub("%z", "") or Index
     
-    if (index == "ClassName" and table.find(ProtectedInstances, Instance_)) then
-        -- return "Part"
-    end
-    if (table.find(Methods, index) and table.find(ProtectedInstances, Instance_)) then
-        return function()
-            return index == "IsA" and false or nil
+    local Protected = ProtectedInstances[Instance_]
+    local Spoofed = SpoofedInstances[Instance_]
+    
+    if (Spoofed) then
+        if (table.find(AllowedIndexes, Index)) then
+            return __Index(Instance_, Index);
         end
+        return __Index(Spoofed, Index);
     end
-    if (index == "GetMemoryUsageMbForTag" and game.PlaceId == 6650331930) then
-        return function()
-            return Stats:GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui) - 1
+
+    if (Protected) then
+        if (table.find(Methods, Index)) then
+            return function()
+                return Index == "IsA" and false or nil
+            end
         end
     end
 
-    if (AntiKick and type(index) == 'string' and string.lower(index) == "kick") then
-        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to kick", "an attempt to kick has been made");
-        return function() return end
-    end
-    if (AntiTeleport and index == "Teleport" or index == "TeleportToPlaceInstance") then
-        getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
-        return function() return end
-    end
-
-    return __Index(Instance_, index);
+    return __Index(Instance_, Index);
 end)
 
 setreadonly(mt, true);
 
+local OldKick
+OldKick = hookfunction(game.Players.LocalPlayer.Kick, newcclosure(function(self, ...)
+    if (AntiKick) then
+        local Args = {...}
+        getgenv().F_A.Utils.Notify(LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+
+    return OldKick(self, ...);
+end))
+
+local OldTeleport
+OldTeleport = hookfunction(game:GetService("TeleportService").TeleportToPlaceInstance, newcclosure(function(self, ...)
+    if (AntiTeleport) then
+        return
+    end
+    return OldTeleport(self, ...)
+end))
 
 local ProtectInstance = function(Instance_)
     ProtectedInstances[#ProtectedInstances + 1] = Instance_
     if (syn and syn.protect_gui) then
         syn.protect_gui(Instance_);
     end
+end
+
+local SpoofInstance = function(Instance_)
+    SpoofedInstances[Instance_] = Instance_:Clone();
 end
 --END IMPORT [extend]
 
@@ -282,7 +295,7 @@ if (not UndetectedMode and not game:IsLoaded()) then
     game.Loaded:Wait();
 end
 
-if (game:IsLoaded() and UndetectedMode) then
+if (game:IsLoaded() and UndetectedMode and syn) then
     syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
     return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
 end
@@ -1433,10 +1446,14 @@ AddConnection(UserInputService.InputEnded:Connect(function(Input, GameProccesed)
 end));
 
 --IMPORT [plugin]
-local PluginConf = GetPluginConfig();
-local IsDebug = PluginConf.PluginDebug
+local IsSupportedExploit = isfile and isfolder and writefile and readfile
+local PluginConf = IsSupportedExploit and GetPluginConfig();
+local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
 
 local LoadPlugin = function(Plugin)
+    if (not IsSupportedExploit) then
+        return 
+    end
     if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
         return Utils.Notify(LocalPlayer, "Plugin not loaded.", ("Plugin %s was not loaded as it is on the disabled list."):format(Plugin.Name));
     end
@@ -1476,21 +1493,24 @@ local LoadPlugin = function(Plugin)
     end
 end
 
-if (isfolder and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+if (IsSupportedExploit and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
     WriteConfig();
 end
 
-local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+local Plugins = IsSupportedExploit and table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
     return v:split(".")[#v:split(".")]:lower() == "lua"
 end), function(i, v)
     return {v:split("\\")[2], loadfile(v)}
-end)
+end) or {}
 
 for i, Plugin in next, Plugins do
     LoadPlugin(Plugin[2]());
 end
 
-AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
+AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
+    if (not IsSupportedExploit) then
+        return "your exploit does not support plugins"
+    end
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
     

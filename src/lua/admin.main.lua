@@ -8,7 +8,7 @@ if (not UndetectedMode and not game:IsLoaded()) then
     game.Loaded:Wait();
 end
 
-if (game:IsLoaded() and UndetectedMode) then
+if (game:IsLoaded() and UndetectedMode and syn) then
     syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
     return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
 end
