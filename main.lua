@@ -188,6 +188,9 @@ local AllowedIndexes = {
     "RootPart",
     "Parent"
 }
+local AllowedNewIndexes = {
+    "Jump"
+}
 local AntiKick = false
 local AntiTeleport = false
 
@@ -205,6 +208,7 @@ for i, v in next, mt do
 end
 local __Namecall = OldMetaMethods.__namecall
 local __Index = OldMetaMethods.__index
+local __NewIndex = OldMetaMethods.__newindex
 
 mt.__namecall = newcclosure(function(self, ...)
     if (checkcaller()) then
@@ -255,6 +259,23 @@ mt.__index = newcclosure(function(Instance_, Index)
     return __Index(Instance_, Index);
 end)
 
+mt.__newindex = newcclosure(function(Instance_, Index, Value)
+    if (checkcaller()) then
+        return __NewIndex(Instance_, Index, Value);
+    end
+
+    local Spoofed = SpoofedInstances[Instance_]
+    
+    if (Spoofed) then
+        if (table.find(AllowedNewIndexes, Index)) then
+            return __NewIndex(Instance_, Index, Value);
+        end
+        return __NewIndex(Spoofed, Index, Spoofed[Index]);
+    end
+
+    return __NewIndex(Instance_, Index, Value);
+end)
+
 setreadonly(mt, true);
 
 local OldKick
@@ -268,12 +289,30 @@ OldKick = hookfunction(game.Players.LocalPlayer.Kick, newcclosure(function(self,
     return OldKick(self, ...);
 end))
 
-local OldTeleport
-OldTeleport = hookfunction(game:GetService("TeleportService").TeleportToPlaceInstance, newcclosure(function(self, ...)
+local OldTeleportToPlaceInstance
+OldTeleportToPlaceInstance = hookfunction(game:GetService("TeleportService").TeleportToPlaceInstance, newcclosure(function(self, ...)
     if (AntiTeleport) then
         return
     end
-    return OldTeleport(self, ...)
+    return TeleportToPlaceInstance(self, ...)
+end))
+local OldTeleport
+OldTeleport = hookfunction(game:GetService("TeleportService").Teleport, newcclosure(function(self, ...)
+    if (AntiTeleport) then
+        return
+    end
+    return Teleport(self, ...)
+end))
+
+local OldGetMemoryUsageMbForTag
+OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosure(function(self, ...)
+    if (game.PlaceId == 6650331930) then
+        local Args = {...}
+        if (Args[1] == Enum.DeveloperMemoryTag.Gui) then
+            return Stats:GetMemoryUsageMbForTag(Args[1]) - 1
+        end
+    end
+    return OldGetMemoryUsageMbForTag(self, ...);
 end))
 
 local ProtectInstance = function(Instance_)
