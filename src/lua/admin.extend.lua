@@ -260,7 +260,7 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
     end
 
     local Spoofed = SpoofedInstances[Instance_]
-    
+
     if (Spoofed) then
         if (table.find(AllowedNewIndexes, Index)) then
             return __NewIndex(Instance_, Index, Value);
@@ -317,6 +317,6 @@ local ProtectInstance = function(Instance_)
     end
 end
 
-local SpoofInstance = function(Instance_)
-    SpoofedInstances[Instance_] = Instance_:Clone();
+local SpoofInstance = function(Instance_, Instance2)
+    SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
 end

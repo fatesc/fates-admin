@@ -2915,6 +2915,21 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     return "orbit stopped"
 end)
 
+AddCommand("streetsbypass", {}, "full bypass for the streets", {3}, function()
+    AddConnection(LocalPlayer.CharacterAdded:Connect(function()
+        GetCharacter():WaitForChild("Humanoid");
+        wait(.4);
+        SpoofInstance(GetHumanoid());
+        SpoofInstance(GetRoot(), GetCharacter().Torso);
+        ProtectInstance(GetRoot());
+        ProtectInstance(GetHumanoid());
+    end));
+    GetCharacter():BreakJoints();
+    CommandsTable["goto"].Function = CommandsTable["tweento"].Function
+    CommandsTable["to"].Function = CommandsTable["tweento"].Function
+    return "streets bypass enabled"
+end)
+
 ---@param i any
 ---@param plr any
 local PlrChat = function(i, plr)

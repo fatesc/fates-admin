@@ -265,7 +265,7 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
     end
 
     local Spoofed = SpoofedInstances[Instance_]
-    
+
     if (Spoofed) then
         if (table.find(AllowedNewIndexes, Index)) then
             return __NewIndex(Instance_, Index, Value);
@@ -322,8 +322,8 @@ local ProtectInstance = function(Instance_)
     end
 end
 
-local SpoofInstance = function(Instance_)
-    SpoofedInstances[Instance_] = Instance_:Clone();
+local SpoofInstance = function(Instance_, Instance2)
+    SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
 end
 --END IMPORT [extend]
 
@@ -4029,6 +4029,21 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     end
     DisableAllCmdConnections("orbit");
     return "orbit stopped"
+end)
+
+AddCommand("streetsbypass", {}, "client sided bypass for the streets", {3}, function()
+    AddConnection(LocalPlayer.CharacterAdded:Connect(function()
+        GetCharacter():WaitForChild("Humanoid");
+        wait(.4);
+        SpoofInstance(GetHumanoid());
+        SpoofInstance(GetRoot(), GetCharacter().Torso);
+        ProtectInstance(GetRoot());
+        ProtectInstance(GetHumanoid());
+    end));
+    GetCharacter():BreakJoints();
+    CommandsTable["goto"].Function = CommandsTable["tweento"].Function
+    CommandsTable["to"].Function = CommandsTable["tweento"].Function
+    return "streets bypass enabled"
 end)
 
 ---@param i any
