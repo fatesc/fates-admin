@@ -1,7 +1,11 @@
-local PluginConf = GetPluginConfig();
-local IsDebug = PluginConf.PluginDebug
+local IsSupportedExploit = isfile and isfolder and writefile and readfile
+local PluginConf = IsSupportedExploit and GetPluginConfig();
+local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
 
 local LoadPlugin = function(Plugin)
+    if (not IsSupportedExploit) then
+        return 
+    end
     if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
         return Utils.Notify(LocalPlayer, "Plugin not loaded.", ("Plugin %s was not loaded as it is on the disabled list."):format(Plugin.Name));
     end
@@ -41,21 +45,24 @@ local LoadPlugin = function(Plugin)
     end
 end
 
-if (isfolder and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+if (IsSupportedExploit and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
     WriteConfig();
 end
 
-local Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+local Plugins = IsSupportedExploit and table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
     return v:split(".")[#v:split(".")]:lower() == "lua"
 end), function(i, v)
     return {v:split("\\")[2], loadfile(v)}
-end)
+end) or {}
 
 for i, Plugin in next, Plugins do
     LoadPlugin(Plugin[2]());
 end
 
-AddCommand("refreshplugins",{"rfp","refresh","reload"},"Loads all new plugins.",{}, function(caller)
+AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
+    if (not IsSupportedExploit) then
+        return "your exploit does not support plugins"
+    end
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
     
