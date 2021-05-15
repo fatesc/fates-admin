@@ -1,5 +1,5 @@
 --[[
-	fates admin - 15/5/2021
+	fates admin - 16/5/2021
 ]]
 
 --IMPORT [extend]
@@ -244,6 +244,11 @@ mt.__index = newcclosure(function(Instance_, Index)
     if (Spoofed) then
         if (table.find(AllowedIndexes, Index)) then
             return __Index(Instance_, Index);
+        end
+        if (Instance_:IsA("Humanoid") and game.PlaceId == 6650331930) then
+            for i, v in next, getconnections(Instance_:GetPropertyChangedSignal("WalkSpeed")) do
+                v:Disable();
+            end
         end
         return __Index(Spoofed, Index);
     end
@@ -540,6 +545,8 @@ local GetPlayer = function(str, noerror)
     return Players
 end
 PluginLibrary.GetPlayer = GetPlayer
+local LastCommand = {}
+
 
 --IMPORT [ui]
 Guis = {}
@@ -1266,7 +1273,6 @@ end
 
 -- commands table
 local CommandsTable = {}
-local LastCommand = {}
 local RespawnTimes = {}
 
 --- returns true if the player has a tool
@@ -3718,9 +3724,9 @@ AddCommand("anim", {"animation"}, "plays an animation", {3, "1"}, function(Calle
 end)
 
 AddCommand("lastcommand", {"lastcmd"}, "executes the last command", {}, function(Caller)
-    local Command = LastCommand
+    local Command = LastCommand[1]
     LoadCommand(Command[1]).Function()(Command[2], Command[3], Command[4]);
-    return ("command %s executed"):format(laCommandst[1]);
+    return ("command %s executed"):format(Command[1]);
 end)
 
 AddCommand("whisper", {}, "whispers something to another user", {"2"}, function(Caller, Args)
@@ -3880,7 +3886,10 @@ AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for wh
                         rconsoleprint("@@GREEN@@");
                         rconsoleprint(Executed .. "\n");
                     end
-                    LastCommand = {Command, plr, Args, Command.CmdExtra}
+                    if (#LastCommand == 3) then
+                        LastCommand = table.shift(LastCommand);
+                    end
+                    LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
                 end);
                 if (not Success and Debug) then
                     rconsoleerr(Err);
@@ -4031,7 +4040,7 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     return "orbit stopped"
 end)
 
-AddCommand("streetsbypass", {}, "client sided bypass for the streets", {3}, function()
+AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
     AddConnection(LocalPlayer.CharacterAdded:Connect(function()
         GetCharacter():WaitForChild("Humanoid");
         wait(.4);
@@ -4043,7 +4052,7 @@ AddCommand("streetsbypass", {}, "client sided bypass for the streets", {3}, func
     GetCharacter():BreakJoints();
     CommandsTable["goto"].Function = CommandsTable["tweento"].Function
     CommandsTable["to"].Function = CommandsTable["tweento"].Function
-    return "streets bypass enabled"
+    return "clientsided bypass enabled"
 end)
 
 ---@param i any
@@ -4117,7 +4126,10 @@ local PlrChat = function(i, plr)
                     if (Executed) then
                         Utils.Notify(plr, "Command", Executed);
                     end
-                    LastCommand = {Command, plr, Args, LoadedCommand.CmdExtra}
+                    if (#LastCommand == 3) then
+                        LastCommand = table.shift(LastCommand);
+                    end
+                    LastCommand[#LastCommand + 1] = {Command, plr, Args, LoadedCommand.CmdExtra}
                 end);
                 if (not Success and Debug) then
                     warn(Err);
@@ -4152,6 +4164,7 @@ Utils.Draggable(HttpLogs);
 ParentGui(UI);
 Connections.UI = {}
 -- tweencommand bar on prefix
+local Times = #LastCommand
 AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     if (Input.KeyCode == CommandBarPrefix and (not GameProccesed)) then
         CommandBarOpen = not CommandBarOpen
@@ -4185,6 +4198,17 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
         ChooseNewPrefix = false
         if (writefile) then
             Utils.Notify(LocalPlayer, nil, "use command saveprefix to save your prefix");
+        end
+    elseif (GameProccesed and CommandBarOpen) then
+        if (Input.KeyCode == Enum.KeyCode.Up) then
+            Times = Times >= 3 and Times or Times + 1
+            CommandBar.Input.Text = LastCommand[Times][1] .. " "
+            CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 2
+        end
+        if (Input.KeyCode == Enum.KeyCode.Down) then
+            Times = Times <= 1 and 1 or Times - 1
+            CommandBar.Input.Text = LastCommand[Times][1] .. " "
+            CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 2
         end
     end
 end), Connections.UI, true);
@@ -4544,7 +4568,10 @@ AddConnection(CommandBar.Input.FocusLost:Connect(function()
             if (Executed) then
                 Utils.Notify(plr, "Command", Executed);
             end
-            LastCommand = {Command, LocalPlayer, Args, LoadedCommand.CmdExtra}
+            if (#LastCommand == 3) then
+                LastCommand = table.shift(LastCommand);
+            end
+            LastCommand[#LastCommand + 1] = {Command, LocalPlayer, Args, LoadedCommand.CmdExtra}
         end);
         if (not Success and Debug) then
             warn(Err);

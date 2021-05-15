@@ -20,6 +20,7 @@ Utils.Draggable(HttpLogs);
 ParentGui(UI);
 Connections.UI = {}
 -- tweencommand bar on prefix
+local Times = #LastCommand
 AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     if (Input.KeyCode == CommandBarPrefix and (not GameProccesed)) then
         CommandBarOpen = not CommandBarOpen
@@ -53,6 +54,17 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
         ChooseNewPrefix = false
         if (writefile) then
             Utils.Notify(LocalPlayer, nil, "use command saveprefix to save your prefix");
+        end
+    elseif (GameProccesed and CommandBarOpen) then
+        if (Input.KeyCode == Enum.KeyCode.Up) then
+            Times = Times >= 3 and Times or Times + 1
+            CommandBar.Input.Text = LastCommand[Times][1] .. " "
+            CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 2
+        end
+        if (Input.KeyCode == Enum.KeyCode.Down) then
+            Times = Times <= 1 and 1 or Times - 1
+            CommandBar.Input.Text = LastCommand[Times][1] .. " "
+            CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 2
         end
     end
 end), Connections.UI, true);
