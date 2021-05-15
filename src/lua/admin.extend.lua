@@ -197,9 +197,8 @@ local __Namecall = OldMetaMethods.__namecall
 local __Index = OldMetaMethods.__index
 
 mt.__namecall = newcclosure(function(self, ...)
-    local Return = __Namecall(self, ...);
     if (checkcaller()) then
-        return Return
+        return __Namecall(self, ...);
     end
     
     local Method = getnamecallmethod():gsub("%z", function(x)
@@ -222,13 +221,12 @@ mt.__namecall = newcclosure(function(self, ...)
         getgenv().F_A.Utils.Notify(Caller or LocalPlayer, "Attempt to teleport", "an attempt to teleport has been made");
         return
     end
-    return Return
+    return __Namecall(self, ...);
 end)
 
 mt.__index = newcclosure(function(Instance_, index)
-    local Return = __Index(Instance_, index);
     if (checkcaller()) then
-        return Return
+        return __Index(Instance_, index);
     end
 
     index = type(index) == 'string' and index:gsub("%z", function(x)
@@ -258,7 +256,7 @@ mt.__index = newcclosure(function(Instance_, index)
         return function() return end
     end
 
-    return Return
+    return __Index(Instance_, index);
 end)
 
 setreadonly(mt, true);
