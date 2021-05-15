@@ -45,8 +45,10 @@ local LoadPlugin = function(Plugin)
     end
 end
 
-if (IsSupportedExploit and not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
-    WriteConfig();
+if (IsSupportedExploit) then
+    if (not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+        WriteConfig();
+    end
 end
 
 local Plugins = IsSupportedExploit and table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
