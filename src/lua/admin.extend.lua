@@ -173,6 +173,7 @@ end
 
 local ProtectedInstances = {}
 local SpoofedInstances = {}
+local SpoofedProperties = {}
 local Methods = {
     "FindFirstChild",
     "FindFirstChildWhichIsA",
@@ -233,10 +234,11 @@ mt.__index = newcclosure(function(Instance_, Index)
         return x
     end):gsub("%z", "") or Index
     
-    local Protected = ProtectedInstances[Instance_]
-    local Spoofed = SpoofedInstances[Instance_]
-    
-    if (Spoofed) then
+    local ProtectedInstance = ProtectedInstances[Instance_]
+    local SpoofedInstance = SpoofedInstances[Instance_]
+    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+    if (SpoofedInstance) then
         if (table.find(AllowedIndexes, Index)) then
             return __Index(Instance_, Index);
         end
@@ -245,10 +247,18 @@ mt.__index = newcclosure(function(Instance_, Index)
                 v:Disable();
             end
         end
-        return __Index(Spoofed, Index);
+        return __Index(SpoofedInstance, Index);
     end
 
-    if (Protected) then
+    if (SpoofedPropertiesForInstance) then
+        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+            if (Index == SpoofedProperty.Property) then
+                return SpoofedProperty.Value
+            end
+        end
+    end
+
+    if (ProtectedInstance) then
         if (table.find(Methods, Index)) then
             return function()
                 return Index == "IsA" and false or nil
@@ -264,13 +274,22 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
         return __NewIndex(Instance_, Index, Value);
     end
 
-    local Spoofed = SpoofedInstances[Instance_]
+    local SpoofedInstance = SpoofedInstances[Instance_]
+    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
-    if (Spoofed) then
+    if (SpoofedInstance) then
         if (table.find(AllowedNewIndexes, Index)) then
             return __NewIndex(Instance_, Index, Value);
         end
-        return __NewIndex(Spoofed, Index, Spoofed[Index]);
+        return __NewIndex(SpoofedInstance, Index, SpoofedInstance[Index]);
+    end
+
+    if (SpoofedPropertiesForInstance) then
+        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+            if (SpoofedProperty.Property == Index) then
+                return __NewIndex(Instance_, Index, SpoofedProperty.Value);
+            end
+        end
     end
 
     return __NewIndex(Instance_, Index, Value);
@@ -316,12 +335,35 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
 end))
 
 local ProtectInstance = function(Instance_)
-    ProtectedInstances[#ProtectedInstances + 1] = Instance_
-    if (syn and syn.protect_gui) then
-        syn.protect_gui(Instance_);
+    if (not ProtectedInstances[Instance_]) then
+        ProtectedInstances[#ProtectedInstances + 1] = Instance_
+        if (syn and syn.protect_gui) then
+            syn.protect_gui(Instance_);
+        end
     end
 end
 
 local SpoofInstance = function(Instance_, Instance2)
-    SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
+    if (not SpoofedInstances[Instance_]) then
+        SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
+    end
+end
+
+local SpoofProperty = function(Instance_, Property, Value)
+    if (SpoofedProperties[Instance_]) then
+        local Properties = table.map(SpoofedProperties[Instance_], function(i, v)
+            return v.Property
+        end)
+        if (not table.find(Properties, Property)) then
+            table.insert(SpoofedProperties[Instance_], {
+                Property = Property,
+                Value = Value and Value or Instance_[Property]
+            });
+        end
+        return
+    end
+    SpoofedProperties[Instance_] = {{
+        Property = Property,
+        Value = Value and Value or Instance_[Property]
+    }}
 end

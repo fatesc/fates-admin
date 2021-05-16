@@ -10,6 +10,7 @@ ParentGui = function(Gui, Parent)
     else
         Gui.Parent = Parent or CoreGui
     end
+    ProtectInstance(Gui);
     Guis[#Guis + 1] = Gui
     return Gui
 end

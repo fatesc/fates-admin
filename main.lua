@@ -178,6 +178,7 @@ end
 
 local ProtectedInstances = {}
 local SpoofedInstances = {}
+local SpoofedProperties = {}
 local Methods = {
     "FindFirstChild",
     "FindFirstChildWhichIsA",
@@ -238,10 +239,11 @@ mt.__index = newcclosure(function(Instance_, Index)
         return x
     end):gsub("%z", "") or Index
     
-    local Protected = ProtectedInstances[Instance_]
-    local Spoofed = SpoofedInstances[Instance_]
-    
-    if (Spoofed) then
+    local ProtectedInstance = ProtectedInstances[Instance_]
+    local SpoofedInstance = SpoofedInstances[Instance_]
+    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+    if (SpoofedInstance) then
         if (table.find(AllowedIndexes, Index)) then
             return __Index(Instance_, Index);
         end
@@ -250,10 +252,18 @@ mt.__index = newcclosure(function(Instance_, Index)
                 v:Disable();
             end
         end
-        return __Index(Spoofed, Index);
+        return __Index(SpoofedInstance, Index);
     end
 
-    if (Protected) then
+    if (SpoofedPropertiesForInstance) then
+        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+            if (Index == SpoofedProperty.Property) then
+                return SpoofedProperty.Value
+            end
+        end
+    end
+
+    if (ProtectedInstance) then
         if (table.find(Methods, Index)) then
             return function()
                 return Index == "IsA" and false or nil
@@ -269,13 +279,22 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
         return __NewIndex(Instance_, Index, Value);
     end
 
-    local Spoofed = SpoofedInstances[Instance_]
+    local SpoofedInstance = SpoofedInstances[Instance_]
+    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
-    if (Spoofed) then
+    if (SpoofedInstance) then
         if (table.find(AllowedNewIndexes, Index)) then
             return __NewIndex(Instance_, Index, Value);
         end
-        return __NewIndex(Spoofed, Index, Spoofed[Index]);
+        return __NewIndex(SpoofedInstance, Index, SpoofedInstance[Index]);
+    end
+
+    if (SpoofedPropertiesForInstance) then
+        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+            if (SpoofedProperty.Property == Index) then
+                return __NewIndex(Instance_, Index, SpoofedProperty.Value);
+            end
+        end
     end
 
     return __NewIndex(Instance_, Index, Value);
@@ -321,14 +340,37 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
 end))
 
 local ProtectInstance = function(Instance_)
-    ProtectedInstances[#ProtectedInstances + 1] = Instance_
-    if (syn and syn.protect_gui) then
-        syn.protect_gui(Instance_);
+    if (not ProtectedInstances[Instance_]) then
+        ProtectedInstances[#ProtectedInstances + 1] = Instance_
+        if (syn and syn.protect_gui) then
+            syn.protect_gui(Instance_);
+        end
     end
 end
 
 local SpoofInstance = function(Instance_, Instance2)
-    SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
+    if (not SpoofedInstances[Instance_]) then
+        SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
+    end
+end
+
+local SpoofProperty = function(Instance_, Property, Value)
+    if (SpoofedProperties[Instance_]) then
+        local Properties = table.map(SpoofedProperties[Instance_], function(i, v)
+            return v.Property
+        end)
+        if (not table.find(Properties, Property)) then
+            table.insert(SpoofedProperties[Instance_], {
+                Property = Property,
+                Value = Value and Value or Instance_[Property]
+            });
+        end
+        return
+    end
+    SpoofedProperties[Instance_] = {{
+        Property = Property,
+        Value = Value and Value or Instance_[Property]
+    }}
 end
 --END IMPORT [extend]
 
@@ -561,6 +603,7 @@ ParentGui = function(Gui, Parent)
     else
         Gui.Parent = Parent or CoreGui
     end
+    ProtectInstance(Gui);
     Guis[#Guis + 1] = Gui
     return Gui
 end
@@ -1313,6 +1356,15 @@ local isSat = function(plr)
 end
 PluginLibrary.isSat = isSat
 
+local DisableAnimate = function()
+    local Animate = GetCharacter().Animate
+    Animate = Animate:IsA("LocalScript") and Animate or nil
+    if (Animate) then
+        SpoofProperty(Animate, "Disabled");
+        Animate.Disabled = true
+    end
+end
+
 local CommandRequirements = {
     [1] = {
         Func = HasTool,
@@ -1399,6 +1451,7 @@ local ReplaceHumanoid = function(Hum)
     NewHumanoid.Name = Humanoid.Name
     Workspace.Camera.CameraSubject = NewHumanoid
     Humanoid:Destroy();
+    SpoofInstance(NewHumanoid);
     return NewHumanoid
 end
 
@@ -1583,6 +1636,7 @@ end)
 AddCommand("walkspeed", {"ws"}, "changes your walkspeed to the second argument", {}, function(Caller, Args, Tbl)
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.WalkSpeed
+    SpoofProperty(Humanoid, "WalkSpeed");
     Humanoid.WalkSpeed = Args[1] or 16
     return "your walkspeed is now " .. Humanoid.WalkSpeed
 end)
@@ -1590,6 +1644,7 @@ end)
 AddCommand("jumppower", {"jp"}, "changes your jumpower to the second argument", {}, function(Caller, Args, Tbl)
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.JumpPower
+    SpoofProperty(Humanoid, "JumpPower");
     Humanoid.JumpPower = Args[1] or 50
     return "your jumppower is now " .. Humanoid.JumpPower
 end)
@@ -1597,6 +1652,7 @@ end)
 AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument", {}, function(Caller, Args, Tbl)
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.HipHeight
+    SpoofProperty(Humanoid, "HipHeight");
     Humanoid.HipHeight = Args[1] or 0
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
@@ -1618,9 +1674,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
             Humanoid = ReplaceHumanoid();
         end
     end
-    if (GetCharacter().Animate) then
-        GetCharacter().Animate.Disabled = true
-    end
+    DisableAnimate();
     coroutine.wrap(function()
         for i, v in next, Target do
                 if (GetCharacter(v)) then
@@ -1638,7 +1692,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                     if (not Tool) then
                         do break end
                     end
-                    Tool.CanBeDropped = true
+                    SpoofInstance(Tool);
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     for i2, v2 in next, Tool:GetDescendants() do
@@ -1682,9 +1736,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
         end
     end
 
-    if (GetCharacter().Animate) then
-        GetCharacter().Animate.Disabled = true
-    end
+    DisableAnimate();
 
     coroutine.wrap(function()
         for i, v in next, Target do
@@ -1708,7 +1760,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                     if (not Tool) then
                         do break end
                     end
-                    Tool.CanBeDropped = true
+                    SpoofInstance(Tool);
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     CFrameTool(Tool, GetRoot(v).CFrame)
@@ -1738,9 +1790,7 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
     end
     repeat
         GetCharacter().Humanoid:UnequipTools();
-        if (GetCharacter().Animate) then
-            GetCharacter().Animate.Disabled = true
-        end
+        DisableAnimate();
         local Humanoid = ReplaceHumanoid(Humanoid);
         Humanoid:ChangeState(15);
         if (isR6(Target[1])) then
@@ -1750,6 +1800,7 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
             local TargetRoot = GetRoot(v)
             for i2, v2 in next, LocalPlayer.Backpack:GetChildren() do
                 if (v2:IsA("Tool")) then
+                    SpoofInstance(v);
                     v2.Parent = GetCharacter();
                     local OldSize = v2.Handle.Size
                     for i3 = 1, 3 do
@@ -1787,9 +1838,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         for i, v in next, Target do
             TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
         end
-        if (GetCharacter().Animate) then
-            GetCharacter().Animate.Disabled = true
-        end
+        DisableAnimate();
         ReplaceHumanoid();
         for i, v in next, Target do
             if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
@@ -1817,7 +1866,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                     if (not Tool) then
                         do break end
                     end
-                    Tool.CanBeDropped = true
+                    SpoofInstance(Tool);
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     for i2, v2 in next, Tool:GetDescendants() do
@@ -1855,9 +1904,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     ReplaceCharacter();
     wait(Players.RespawnTime - (#Target == 1 and .01 or .3));
     local OldPos = GetRoot().CFrame
-    if (GetCharacter().Animate) then
-        GetCharacter().Animate.Disabled = true
-    end
+    DisableAnimate();
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
         if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
@@ -1890,7 +1937,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
                     if (not Tool) then
                         do break end
                     end
-                    Tool.CanBeDropped = true
+                    SpoofInstance(Tool);
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
@@ -1922,9 +1969,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
     ReplaceCharacter();
     wait(Players.RespawnTime - (#Target == 1 and .01 or .3));
     local OldPos = GetRoot().CFrame
-    if (GetCharacter().Animate) then
-        GetCharacter().Animate.Disabled = true
-    end
+    DisableAnimate();
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
         if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
@@ -1956,7 +2001,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
                     if (not Tool) then
                         do break end
                     end
-                    Tool.CanBeDropped = true
+                    SpoofInstance(Tool);
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
@@ -1980,6 +2025,7 @@ end)
 
 AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
+    SpoofProperty(Workspace.Camera, "CameraSubject");
     for i, v in next, Target do
         Workspace.Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
     end
@@ -1991,6 +2037,7 @@ end)
 
 AddCommand("loopview", {}, "loopviews a user", {3, "1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
+    SpoofProperty(Workspace.Camera, "CameraSubject");
     for i, v in next, Target do
         Workspace.Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
         local LoopView = Workspace.Camera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
@@ -2049,6 +2096,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
             delay(game.Players.RespawnTime - .3, function()
                 Workspace.FallenPartsDestroyHeight = -math.huge
                 OldPos = GetRoot().CFrame
+                SpoofProperty(GetRoot(), "Anchored");
                 GetRoot().CFrame = CFrame.new(0, 1e9, 0);
                 GetRoot().Anchored = true
             end)
@@ -2062,7 +2110,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         end)
 
         for i2, v in next, Tools do
-            v.CanBeDropped = true
+            SpoofProperty(v, "Parent");
             v.Parent = LocalPlayer.Character
             v.Parent = Workspace
             Duped[#Duped + 1] = v
@@ -2099,6 +2147,7 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
     local Tools = LocalPlayer.Backpack:GetChildren();
     local Char = GetCharacter();
     for i, v in next, Tools do
+        SpoofProperty(v, "Parent");
         v.Parent = Char
         v.Parent = Workspace
         firetouchinterest(Workspace:WaitForChild(v.Name).Handle, GetRoot(), 0);
@@ -2145,8 +2194,6 @@ AddCommand("givetools", {}, "gives tools to a player", {"1", 3, 1}, function(Cal
     end
     Humanoid2:ChangeState(15);
     for i, v in next, Target do
-        local char = Players.LocalPlayer.Character
-        local target = v.Character
         local THumanoidRootPart = GetRoot(v)
         for i2, v2 in next, LocalPlayer.Backpack:GetChildren() do
             if (v2:IsA("Tool")) then
@@ -2208,6 +2255,7 @@ AddCommand("droptools", {"dt"}, "drops all of your tools", {1,3}, function()
     local Tools = LocalPlayer.Backpack:GetChildren();
     for i, v in next, Tools do
         if (v:IsA("Tool") and v:FindFirstChild("Handle")) then
+            SpoofProperty(v, "Parent");
             v.Parent = GetCharacter();
             v.Parent = Workspace
         end
@@ -2221,16 +2269,6 @@ AddCommand("nohats", {"nh"}, "removes all the hats from your character", {3}, fu
         v:Destroy();
     end
     return ("removed %d hat (s)"):format(HatAmount - #GetHumanoid():GetAccessories());
-end)
-
-AddCommand("drophats", {"dh"}, "drops all of your hats in the workspace", {3}, function()
-    local HatAmount = #GetHumanoid():GetAccessories();
-    for i, v in next, GetHumanoid():GetAccessories() do
-        if (v.Handle) then
-            v.Parent = Workspace
-        end
-    end
-    return ("dropped %d hat (s)"):format(HatAmount - #GetHumanoid():GetAccessories());
 end)
 
 AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, function()
@@ -2250,19 +2288,8 @@ AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, func
     return ("cleared %d hat (s)"):format(Amount);
 end)
 
-AddCommand("hatsize", {"hsize"}, "Times to repeat the command", {3}, function(Caller, Args)
-    for i = 1, tonumber(Args[1]) do
-        local Hat = GetCharacter():FindFirstChildOfClass("Accessory");
-        Hat.Handle.OriginalSize:Destroy();
-        Hat.Parent = Workspace
-        firetouchinterest(GetRoot(), Hat.Handle, 0);
-        wait();
-        firetouchinterest(GetRoot(), Hat.Handle, 1);
-        GetCharacter():WaitForChild(Hat.Name);
-    end
-end)
-
 AddCommand("gravity", {"grav"}, "sets the worksapaces gravity", {"1"}, function(Caller, Args)
+    SpoofProperty(Workspace, "Gravity");
     Workspace.Gravity = tonumber(Args[1]) or Workspace.Gravity
 end)
 
@@ -2292,6 +2319,7 @@ AddCommand("delete", {}, "puts a players character in lighting", {"1"}, function
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         if (v.Character) then
+            SpoofProperty(v.Character, "Parent");
             v.Character.Parent = Lighting
             Utils.Notify(Caller, "Command", v.Name .. "'s character is now parented to lighting");
         end
@@ -2302,6 +2330,7 @@ AddCommand("loopdelete", {"ld"}, "loop of delete command", {"1"}, function(Calle
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         if (v.Character) then
+            SpoofProperty(v.Character, "Parent");
             v.Character.Parent = Lighting
         end
         local Connection = v.CharacterAdded:Connect(function()
@@ -2361,14 +2390,17 @@ AddCommand("load2", {"loadstring2"}, "loads whatever you want but outputs in cha
 end)
 
 AddCommand("sit", {}, "makes you sit", {3}, function(Caller, Args, Tbl)
-    LocalPlayer.Character.Humanoid.Sit = true
+    SpoofProperty(GetHumanoid(), "Sit", false);
+    GetHumanoid().Sit = true
     return "now sitting (obviously)"
 end)
 
 AddCommand("infinitejump", {"infjump"}, "infinite jump no cooldown", {3}, function(Caller, Args, Tbl)
     AddConnection(UserInputService.JumpRequest:Connect(function()
-        if (GetHumanoid()) then
-            GetHumanoid():ChangeState(3);
+        local Humanoid = GetHumanoid();
+        if (Humanoid) then
+            SpoofInstance(Humanoid);
+            Humanoid:ChangeState(3);
         end
     end), Tbl);
     return "infinite jump enabled"
@@ -2386,9 +2418,11 @@ end)
 AddCommand("headsit", {"hsit"}, "sits on the players head", {"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
-        LocalPlayer.Character.Humanoid.Sit = true
-        AddConnection(LocalPlayer.Character.Humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
-            LocalPlayer.Character.Humanoid.Sit = true
+        local Humanoid = GetHumanoid();
+        SpoofProperty(Humanoid, "Sit");
+        Humanoid.Sit = true
+        AddConnection(Humanoid:GetPropertyChangedSignal("Sit"):Connect(function()
+            Humanoid.Sit = true
         end), Tbl);
         local Root = GetRoot();
         AddConnection(RunService.Heartbeat:Connect(function()
@@ -2452,11 +2486,11 @@ AddCommand("removespawn", {}, "removes your spawn location", {}, function(Caller
 end)
 
 AddCommand("ping", {}, "shows you your ping", {}, function()
-    return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1] .. "ms"
+    return Stats.Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1] .. "ms"
 end)
 
 AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
-    return tostring(math.round(game:GetService("Stats"):GetTotalMemoryUsageMb())) .. " mb";
+    return tostring(math.round(Stats:GetTotalMemoryUsageMb())) .. " mb";
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
@@ -2513,12 +2547,15 @@ end)
 AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}}, function(Caller, Args)
     local Time = Args[1] and Args[1]:lower() or 14
     local Times = {["night"]=0,["day"]=14,["dawn"]=6}
+    SpoofProperty(Lighting, "ClockTime");
     Lighting.ClockTime = Times[Time] or Time
 end)
 
 AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot()
+    SpoofProperty(Root, "Velocity");
+    SpoofProperty(Root, "Anchored");
     local OldPos, OldVelocity = Root.CFrame, Root.Velocity
 
     for i, v in next, Target do
@@ -2605,6 +2642,8 @@ AddCommand("reach", {"swordreach"}, "changes handle size of your tool", {1, 3}, 
     local Amount = Args[1] or 2
     local Tool = LocalPlayer.Character:FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
     Tbl[Tool] = Tool.Size
+    SpoofProperty(Tool.Handle, "Size");
+    SpoofProperty(Tool.Handle, "Massless");
     Tool.Handle.Size = Vector3.new(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
     Tool.Handle.Massless = true;
     return "reach on"
@@ -2663,7 +2702,6 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
     return "sword aura enabled with distance " .. SwordDistance
 end)
 
-
 AddCommand("noswordaura", {"noaura"}, "stops the sword aura", {}, function()
     local Aura = LoadCommand("swordaura").CmdExtra
     if (not next(Aura)) then
@@ -2678,6 +2716,7 @@ AddCommand("freeze", {}, "freezes your character", {3}, function(Caller, Args)
         return v:IsA("BasePart");
     end)
     for i, v in next, BaseParts do
+        SpoofProperty(v, "Anchored");
         v.Anchored = true
     end
     return "freeze enabled (client)"
@@ -2794,6 +2833,7 @@ AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Cal
     local filterBoomboxes = function(i,v)
         return v:FindFirstChild("Handle") and v.Handle:FindFirstChildWhichIsA("Sound");
     end
+    SpoofProperty(SoundService, "RespectFilteringEnabled");
     SoundService.RespectFilteringEnabled = false
     for i, v in next, Target do
         local Tools = table.tbl_concat(table.filter(v.Character:GetDescendants(), filterBoomboxes), table.filter(v.Backpack:GetChildren(), filterBoomboxes));
@@ -2838,6 +2878,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
     if (not next(Boombox)) then
         return "you need a boombox to forceplay"
     end
+    SpoofProperty(SoundService, "RespectFilteringEnabled");
     SoundService.RespectFilteringEnabled = false
     Boombox = Boombox[1]
     Boombox.Parent = GetCharacter();
@@ -2961,6 +3002,7 @@ end)
 
 AddCommand("cameralock", {"calock"}, "locks your camera on the the players head", {"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1])[1];
+    SpoofProperty(Workspace.CurrentCamera, "CoordinateFrame", CFrame.new(Workspace.CurrentCamera.CoordinateFrame.p, GetCharacter().Head.CFrame.p));
     AddConnection(RunService.Heartbeat:Connect(function()
         if (GetCharacter(Target) and GetRoot(Target)) then
             Workspace.CurrentCamera.CoordinateFrame = CFrame.new(Workspace.CurrentCamera.CoordinateFrame.p, GetCharacter(Target).Head.CFrame.p);
@@ -3337,6 +3379,7 @@ end)
 
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
     local BP = LocalPlayer.Backpack
+    ProtectInstance(BP);
     for i = 1, 4 do
         Instance.new("HopperBin", BP).BinType = i
     end
@@ -3407,6 +3450,7 @@ AddCommand("truesight", {"ts"}, "shows all the transparent stuff", {}, function(
     for i, v in next, Workspace:GetDescendants() do
         if (v:IsA("Part") and v.Transparency >= 0.3) then
             Tbl[v] = v.Transparency
+            SpoofProperty(v, "Transparency");
             v.Transparency = 0
             amount = amount + 1
         end
@@ -3419,6 +3463,7 @@ AddCommand("notruesight", {"nots"}, "removes truesight", {}, function(Caller, Ar
     local showing = LoadCommand("truesight").CmdExtra
     local time = tick() or os.clock();
     for i, v in next, showing do
+        SpoofProperty(v, "Transparency");
         i.Transparency = v
     end
 
@@ -3429,6 +3474,7 @@ AddCommand("xray", {}, "see through wallks", {}, function(Caller, Args, Tbl)
     for i, v in next, Workspace:GetDescendants() do
         if v:IsA("Part") and v.Transparency <= 0.3 then
             Tbl[v] = v.Transparency
+            SpoofProperty(v, "Transparency");
             v.Transparency = 0.3
         end
     end
@@ -3445,6 +3491,7 @@ AddCommand("noxray", {"unxray"}, "stops xray", {}, function(Caller, Args)
 end)
 
 AddCommand("nolights", {}, "removes all lights", {}, function(Caller, Args, Tbl)
+    SpoofProperty(Lighting, "GlobalShadows");
     for i, v in next, game:GetDescendants() do
         if (v:IsA("PointLight") or v:IsA("SurfaceLight") or v:IsA("SpotLight")) then
             Tbl[v] = v.Parent
@@ -3468,11 +3515,13 @@ AddCommand("fullbright", {"fb"}, "turns on fullbright", {}, function(Caller, Arg
     for i, v in next, game:GetDescendants() do
         if (v:IsA("PointLight") or v:IsA("SurfaceLight") or v:IsA("SpotLight")) then
             Tbl[v] = v.Range
+            SpoofInstance(v);
             v.Enabled = true
             v.Shadows = false
             v.Range = math.huge
         end
     end
+    SpoofProperty(Lighting, "GlobalShadows");
     Lighting.GlobalShadows = false
     return "fullbright enabled"
 end)
@@ -3482,17 +3531,19 @@ AddCommand("nofullbright", {"revertlights", "unfullbright", "nofb"}, "reverts fu
     for i, v in next, Lights do
         i.Range = v
     end
-    Lighting.GlobalShadows = false
+    Lighting.GlobalShadows = true
     return "fullbright disabled"
 end)
 
 AddCommand("swim", {}, "allows you to use the swim state", {3}, function(Caller, Args, Tbl)
     local Humanoid = GetHumanoid();
+    SpoofInstance(Humanoid);
     for i, v in next, Enum.HumanoidStateType:GetEnumItems() do
         Humanoid:SetStateEnabled(v, false);
     end
     Tbl[1] = Humanoid:GetState();
     Humanoid:ChangeState(Enum.HumanoidStateType.Swimming);
+    SpoofProperty(Workspace, "Gravity");
     Workspace.Gravity = 0
     coroutine.wrap(function()
         Humanoid.Died:Wait();
@@ -3512,7 +3563,9 @@ AddCommand("unswim", {"noswim"}, "removes swim", {}, function(Caller, Args)
 end)
 
 AddCommand("disableanims", {"noanims"}, "disables character animations", {3}, function(Caller, Args)
-    GetCharacter():FindFirstChild("Animate").Disabled = true
+    local Animate = GetCharacter():FindFirstChild("Animate");
+    SpoofProperty(Animate, "Disabled");
+    Animate.Disabled = true
     return "animations disabled"
 end)
 
@@ -3536,6 +3589,7 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyPos.maxForce = Vector3.new(1, 1, 1) * math.huge
+    SpoofProperty(GetHumanoid(), "PlatformStand");
     GetHumanoid().PlatformStand = true
     coroutine.wrap(function()
         BodyPos.Position = GetRoot().Position
@@ -3638,6 +3692,7 @@ AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)"
         Part.CFrame = CFrame.new(0, -10000, 0);
         Part.Size = Vector3.new(2, .2, 1.5);
         Part.Material = "Grass"
+        ProtectInstance(Part);
         Part.Parent = Workspace
         Part.Anchored = true
 
@@ -3664,6 +3719,7 @@ end)
 
 AddCommand("fov", {}, "sets your fov", {}, function(Caller, Args)
     local Amount = tonumber(Args[1]) or 70
+    SpoofInstance(Workspace.CurrentCamera, "FieldOfView");
     Workspace.CurrentCamera.FieldOfView = Amount
 end)
 
@@ -3672,6 +3728,7 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, T
     local Noclipping = RunService.Stepped:Connect(function()
         for i, v in next, Char:GetChildren() do
             if (v:IsA("BasePart") and v.CanCollide) then
+                SpoofInstance(v, "CanCollide");
                 v.CanCollide = false
             end
         end
@@ -3724,7 +3781,7 @@ AddCommand("anim", {"animation"}, "plays an animation", {3, "1"}, function(Calle
 end)
 
 AddCommand("lastcommand", {"lastcmd"}, "executes the last command", {}, function(Caller)
-    local Command = LastCommand[1]
+    local Command = LastCommand[#LastCommand]
     LoadCommand(Command[1]).Function()(Command[2], Command[3], Command[4]);
     return ("command %s executed"):format(Command[1]);
 end)
@@ -4017,13 +4074,11 @@ end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
 	local Target = GetPlayer(Args[1])[1];
-    if Target == LocalPlayer then
-
+    if (Target == LocalPlayer) then
         return "You cannot orbit yourself."
-
     end
-	local Radius = tonumber(Args[3]) or 7
-	local Speed = tonumber(Args[4]) or 1
+	local Radius = tonumber(Args[2]) or 7
+	local Speed = tonumber(Args[3]) or 1
 	local random = math.random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
