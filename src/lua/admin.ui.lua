@@ -31,7 +31,7 @@ local NotificationBar = UI.NotificationBar
 local Stats = UI.Notification:Clone();
 local StatsBar = UI.NotificationBar:Clone();
 
-local RobloxChat = PlayerGui:FindFirstChild("Chat")
+local RobloxChat = PlayerGui and PlayerGui:FindFirstChild("Chat")
 if (RobloxChat) then
     local RobloxChatFrame = RobloxChat:WaitForChild("Frame", .1)
     if RobloxChatFrame then

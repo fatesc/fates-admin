@@ -20,8 +20,8 @@ end
 ---@param rawPos number
 ---@return boolean
 string.startsWith = function(str, searchString, rawPos)
-    local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
-    return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
+    local pos = rawPos or 0
+    return searchString == "" and true or string.sub(str, pos, pos) == searchString
 end
 
 ---@param str any
@@ -222,6 +222,17 @@ mt.__namecall = newcclosure(function(self, ...)
             return Method == "IsA" and false or nil
         end
     end
+
+    if (AntiKick and string.lower(Method) == "kick") then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+
+    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
+        return
+    end
+
     return __Namecall(self, ...);
 end)
 
@@ -298,10 +309,10 @@ end)
 setreadonly(mt, true);
 
 local OldKick
-OldKick = hookfunction(game.Players.LocalPlayer.Kick, newcclosure(function(self, ...)
+OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
     if (AntiKick) then
         local Args = {...}
-        getgenv().F_A.Utils.Notify(LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
         return
     end
 
@@ -311,16 +322,18 @@ end))
 local OldTeleportToPlaceInstance
 OldTeleportToPlaceInstance = hookfunction(game:GetService("TeleportService").TeleportToPlaceInstance, newcclosure(function(self, ...)
     if (AntiTeleport) then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
         return
     end
-    return TeleportToPlaceInstance(self, ...)
+    return OldTeleportToPlaceInstance(self, ...);
 end))
 local OldTeleport
 OldTeleport = hookfunction(game:GetService("TeleportService").Teleport, newcclosure(function(self, ...)
     if (AntiTeleport) then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
         return
     end
-    return Teleport(self, ...)
+    return OldTeleport(self, ...);
 end))
 
 local OldGetMemoryUsageMbForTag

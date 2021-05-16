@@ -1,5 +1,5 @@
 --[[
-	fates admin - 16/5/2021
+    fates admin - 16/5/2021
 ]]
 
 --IMPORT [extend]
@@ -25,8 +25,8 @@ end
 ---@param rawPos number
 ---@return boolean
 string.startsWith = function(str, searchString, rawPos)
-    local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
-    return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
+    local pos = rawPos or 0
+    return searchString == "" and true or string.sub(str, pos, pos) == searchString
 end
 
 ---@param str any
@@ -227,6 +227,17 @@ mt.__namecall = newcclosure(function(self, ...)
             return Method == "IsA" and false or nil
         end
     end
+
+    if (AntiKick and string.lower(Method) == "kick") then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+
+    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
+        return
+    end
+
     return __Namecall(self, ...);
 end)
 
@@ -303,10 +314,10 @@ end)
 setreadonly(mt, true);
 
 local OldKick
-OldKick = hookfunction(game.Players.LocalPlayer.Kick, newcclosure(function(self, ...)
+OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
     if (AntiKick) then
         local Args = {...}
-        getgenv().F_A.Utils.Notify(LocalPlayer, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
         return
     end
 
@@ -316,16 +327,18 @@ end))
 local OldTeleportToPlaceInstance
 OldTeleportToPlaceInstance = hookfunction(game:GetService("TeleportService").TeleportToPlaceInstance, newcclosure(function(self, ...)
     if (AntiTeleport) then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
         return
     end
-    return TeleportToPlaceInstance(self, ...)
+    return OldTeleportToPlaceInstance(self, ...);
 end))
 local OldTeleport
 OldTeleport = hookfunction(game:GetService("TeleportService").Teleport, newcclosure(function(self, ...)
     if (AntiTeleport) then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
         return
     end
-    return Teleport(self, ...)
+    return OldTeleport(self, ...);
 end))
 
 local OldGetMemoryUsageMbForTag
@@ -375,7 +388,7 @@ end
 --END IMPORT [extend]
 
 
-UndetectedMode = syn and UndetectedMode or false -- we need que_on_teleport
+UndetectedMode = UndetectedMode or false
 if (not UndetectedMode and not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     game.Loaded:Wait();
@@ -390,7 +403,6 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
----@type number
 local start = start or tick() or os.clock();
 
 RunService = game:GetService("RunService");
@@ -412,36 +424,26 @@ local SoundService = game:GetService("SoundService");
 local Lighting = game:GetService("Lighting");
  
 LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse();
-local PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
+local Mouse = LocalPlayer and LocalPlayer:GetMouse();
+local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
 
 local PluginLibrary = {}
 
----gets a players character if none arguments passed it will return your character
----@param Plr table
----@return any
 local GetCharacter = function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
 end
 PluginLibrary.GetCharacter = GetCharacter
----gets a players root if none arguments passed it will return your root
----@param Plr any
----@return any
+
 local GetRoot = function(Plr)
     return Plr and GetCharacter(Plr):FindFirstChild("HumanoidRootPart") or GetCharacter():FindFirstChild("HumanoidRootPart");
 end
 PluginLibrary.GetRoot = GetRoot
----gets a players humanoid if none arguments passed it will return your humanoid
----@param Plr any
----@return any
+
 local GetHumanoid = function(Plr)
     return Plr and GetCharacter(Plr):FindFirstChildWhichIsA("Humanoid") or GetCharacter():FindFirstChildWhichIsA("Humanoid");
 end
 PluginLibrary.GetHumanoid = GetHumanoid
 
----comment
----@param Plr any
----@return any
 local GetMagnitude = function(Plr)
     return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
@@ -521,10 +523,6 @@ local ChatLogsEnabled = true
 local GlobalChatLogsEnabled = false
 local HttpLogsEnabled = true
 
----gets the player in your game from string
----@param str string
----@param noerror boolean
----@return table
 local GetPlayer = function(str, noerror)
     local CurrentPlayers = table.filter(Players:GetPlayers(), function(i, v)
         return not table.find(Exceptions, v);
@@ -624,7 +622,7 @@ local NotificationBar = UI.NotificationBar
 local Stats = UI.Notification:Clone();
 local StatsBar = UI.NotificationBar:Clone();
 
-local RobloxChat = PlayerGui:FindFirstChild("Chat")
+local RobloxChat = PlayerGui and PlayerGui:FindFirstChild("Chat")
 if (RobloxChat) then
     local RobloxChatFrame = RobloxChat:WaitForChild("Frame", .1)
     if RobloxChatFrame then
@@ -1128,11 +1126,23 @@ Utils.ToolTip = function(Object, Message)
         end
     end)
 
-    LocalPlayer:GetMouse().Move:Connect(function()
-        if (Clone) then
-            Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
-        end
-    end)
+    if (LocalPlayer) then
+        LocalPlayer:GetMouse().Move:Connect(function()
+            if (Clone) then
+                Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
+            end
+        end)
+    else
+        delay(3, function()
+            LocalPlayer = Players.LocalPlayer
+            Mouse = LocalPlayer:GetMouse()
+            Mouse.Move:Connect(function()
+                if (Clone) then
+                    Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
+                end
+            end)
+        end)
+    end
 end
 
 Utils.ClearAllObjects = function(Object)
@@ -1318,9 +1328,6 @@ end
 local CommandsTable = {}
 local RespawnTimes = {}
 
---- returns true if the player has a tool
----@param plr any
----@type boolean
 local HasTool = function(plr)
     plr = plr or LocalPlayer
     local CharChildren, BackpackChildren = GetCharacter(plr):GetChildren(), plr.Backpack:GetChildren()
@@ -1335,8 +1342,6 @@ local HasTool = function(plr)
 end
 PluginLibrary.HasTool = HasTool
 
---- returs true if the player is r6
----@param plr any
 local isR6 = function(plr)
     plr = plr or LocalPlayer
     local Humanoid = GetHumanoid(plr);
@@ -1382,13 +1387,6 @@ local CommandRequirements = {
     }
 }
 
---- Adds a command into the handler
----@param name string
----@param aliases table
----@param description string
----@param options table
----@param func function
----@type table
 local AddCommand = function(name, aliases, description, options, func)
     local Cmd = {
         Name = name,
@@ -1432,8 +1430,6 @@ local AddCommand = function(name, aliases, description, options, func)
     return Success
 end
 
---- gets the function of the command
----@param name string
 local LoadCommand = function(name)
     local Command = rawget(CommandsTable, name);
     if (Command) then
@@ -1441,9 +1437,6 @@ local LoadCommand = function(name)
     end
 end
 
----replaces your humanoid
----@param Hum any
----@return table
 local ReplaceHumanoid = function(Hum)
     local Humanoid = Hum or GetHumanoid();
     local NewHumanoid = Humanoid:Clone();
@@ -1455,7 +1448,6 @@ local ReplaceHumanoid = function(Hum)
     return NewHumanoid
 end
 
----replaces your character
 local ReplaceCharacter = function()
     local Char = LocalPlayer.Character
     local Model = Instance.new("Model");
@@ -1484,10 +1476,6 @@ local Sanitize = function(value)
     end
 end
 
----add a connection to the players connection table
----@param Player table
----@param Connection any
----@param Tbl table
 local AddPlayerConnection = function(Player, Connection, Tbl)
     if (Tbl) then
         Tbl[#Tbl + 1] = Connection
@@ -1497,10 +1485,6 @@ local AddPlayerConnection = function(Player, Connection, Tbl)
     return Connection
 end
 
----add a connection to the connections table
----@param Connection any
----@param Tbl table
----@param TblOnly boolean
 AddConnection = function(Connection, Tbl, TblOnly)
     if (Tbl) then
         Tbl[#Tbl + 1] = Connection
@@ -1513,8 +1497,6 @@ AddConnection = function(Connection, Tbl, TblOnly)
 end
 PluginLibrary.AddConnection = AddConnection
 
----disables all connections in a running command
----@param Cmd string
 local DisableAllCmdConnections = function(Cmd)
     local Command = LoadCommand(Cmd)
     if (Command and Command.CmdExtra) then
@@ -2486,11 +2468,11 @@ AddCommand("removespawn", {}, "removes your spawn location", {}, function(Caller
 end)
 
 AddCommand("ping", {}, "shows you your ping", {}, function()
-    return Stats.Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1] .. "ms"
+    return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValueString():split(" ")[1] .. "ms"
 end)
 
 AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
-    return tostring(math.round(Stats:GetTotalMemoryUsageMb())) .. " mb";
+    return tostring(math.round(game:GetService("Stats"):GetTotalMemoryUsageMb())) .. " mb";
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
@@ -3111,12 +3093,12 @@ end)
 
 AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
     AntiKick = not AntiKick
-    return "client sided antikick" .. (AntiKick and "enabled" or "disabled")
+    return "client sided antikick " .. (AntiKick and "enabled" or "disabled")
 end)
 
 AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, function()
-    AntiTelport = not AntiTelport
-    return "client sided antiteleport" .. (AntiTelport and "enabled" or "disabled")
+    AntiTeleport = not AntiTeleport
+    return "client sided antiteleport " .. (AntiTeleport and "enabled" or "disabled")
 end)
 
 AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)
@@ -3796,6 +3778,42 @@ AddCommand("whisper", {}, "whispers something to another user", {"2"}, function(
     end
 end)
 
+AddCommand("chat", {}, "sends a message", {"1"}, function(Caller, Args)
+    local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+    local toChat = table.concat(Args, " ");
+    ChatRemote:FireServer(toChat, "All");
+    return "chatted " .. toChat
+end)
+
+AddCommand("silentchat", {"chatsilent"}, "sends a message but will not show in the chat (fires .Chatted signals)", {"1"}, function(Caller, Args)
+    local toChat = table.concat(Args, " ");
+    Players:Chat(toChat);
+    return "silent chatted " .. toChat
+end)
+
+AddCommand("spamsilentchat", {"spamchatlogs"}, "spams sending messages with what you want", {"1"}, function(Caller, Args, Tbl)
+    local toChat = table.concat(Args, " ");
+    local ChatMsg = Players.Chat
+    for i = 1, 100 do
+        ChatMsg(Players, toChat);
+    end
+    AddConnection(Players.Chatted:Connect(function()
+        for i = 1, 100 do
+            ChatMsg(Players, toChat);
+        end
+    end), Tbl);
+    return "spamming chat sliently"
+end)
+
+AddCommand("unspamsilentchat", {"nospamsilentchat", "unspamchatlogs", "nospamchatlogs"}, "stops the spam of chat", {}, function()
+    local Spamming = LoadCommand("spamsilentchat").CmdExtra
+    if (not next(Spamming)) then
+        return "you are not spamming slient chat"
+    end
+    DisableAllCmdConnections("spamsilentchat");
+    return "stopped spamming slient chat"
+end)
+
 AddCommand("advertise", {}, "advertises the script", {}, function()
     local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
     ChatRemote:FireServer("I am using fates admin, join the server 5epGRYR", "All");
@@ -3913,10 +3931,13 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         end);
         UI:Destroy();
         getgenv().F_A = nil
+        setreadonly(mt, true);
+        for i, v in next, OldMetaMethods do
+            mt[i] = v
+        end
+        setreadonly(mt, true);
         for i, v in next, getfenv() do
-            if (not v == OldMetaMethods) then
-                getfenv()[i] = nil
-            end
+            getfenv()[i] = nil
         end
     end
 end)
@@ -4073,13 +4094,13 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
-	local Target = GetPlayer(Args[1])[1];
+    local Target = GetPlayer(Args[1])[1];
     if (Target == LocalPlayer) then
         return "You cannot orbit yourself."
     end
-	local Radius = tonumber(Args[2]) or 7
-	local Speed = tonumber(Args[3]) or 1
-	local random = math.random(tick() / 2, tick());
+    local Radius = tonumber(Args[3]) or 7
+    local Speed = tonumber(Args[2]) or 1
+    local random = math.random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
         Root.CFrame = CFrame.new(TRoot.Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), TRoot.Position);
@@ -4110,8 +4131,6 @@ AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
     return "clientsided bypass enabled"
 end)
 
----@param i any
----@param plr any
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}

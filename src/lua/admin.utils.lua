@@ -394,11 +394,23 @@ Utils.ToolTip = function(Object, Message)
         end
     end)
 
-    LocalPlayer:GetMouse().Move:Connect(function()
-        if (Clone) then
-            Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
-        end
-    end)
+    if (LocalPlayer) then
+        LocalPlayer:GetMouse().Move:Connect(function()
+            if (Clone) then
+                Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
+            end
+        end)
+    else
+        delay(3, function()
+            LocalPlayer = Players.LocalPlayer
+            Mouse = LocalPlayer:GetMouse()
+            Mouse.Move:Connect(function()
+                if (Clone) then
+                    Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
+                end
+            end)
+        end)
+    end
 end
 
 Utils.ClearAllObjects = function(Object)
