@@ -447,7 +447,7 @@ PluginLibrary.GetHumanoid = GetHumanoid
 local GetMagnitude = function(Plr)
     return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
-PluginLibrary.GetHumanoid = GetMagnitude
+PluginLibrary.GetMagnitude = GetMagnitude
 
 local Settings = {
     Prefix = "!",
@@ -3701,7 +3701,7 @@ end)
 
 AddCommand("fov", {}, "sets your fov", {}, function(Caller, Args)
     local Amount = tonumber(Args[1]) or 70
-    SpoofInstance(Workspace.CurrentCamera, "FieldOfView");
+    SpoofProperty(Workspace.CurrentCamera, "FieldOfView");
     Workspace.CurrentCamera.FieldOfView = Amount
 end)
 
@@ -3710,7 +3710,7 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, T
     local Noclipping = RunService.Stepped:Connect(function()
         for i, v in next, Char:GetChildren() do
             if (v:IsA("BasePart") and v.CanCollide) then
-                SpoofInstance(v, "CanCollide");
+                SpoofProperty(v, "CanCollide");
                 v.CanCollide = false
             end
         end
