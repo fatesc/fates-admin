@@ -1,30 +1,4 @@
-pcall(function()
-    mt = getrawmetatable(game);
-    OldMetaMethods = {}
-    setreadonly(mt, false);
-    for i, v in next, mt do
-        OldMetaMethods[i] = v
-    end
-    local CurrentMem = game:GetService("Stats"):GetTotalMemoryUsageMb();
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod();
-        if (method == "GetTotalMemoryUsageMb" and not checkcaller()) then
-            return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
-        end
-        return OldMetaMethods.__namecall(self, ...)
-    end)
-
-    mt.__index = newcclosure(function(t, i)
-        if (tostring(t) == "Stats" and i == "GetTotalMemoryUsageMb" and not checkcaller()) then
-            return function()
-                return tonumber(math.round(CurrentMem) .. "." .. math.random(10000000, 20000000)) + (math.random(2) == 2 and -.5 or .5);
-            end
-        end
-        return OldMetaMethods.__index(t, i);
-    end)
-    setreadonly(mt, true);
-end)
-
+Debug = true
 if (getconnections) then
     local ErrorConnections = getconnections(game:GetService("ScriptContext").Error);
     if (next(ErrorConnections)) then
@@ -46,8 +20,8 @@ end
 ---@param rawPos number
 ---@return boolean
 string.startsWith = function(str, searchString, rawPos)
-    local pos = rawPos and (rawPos > 0 and rawPos or 0) or 0
-    return searchString == "" and true or string.sub(str, pos, pos + #searchString) == searchString
+    local pos = rawPos or 0
+    return searchString == "" and true or string.sub(str, pos, pos) == searchString
 end
 
 ---@param str any
@@ -195,4 +169,214 @@ hookfunction = hookfunction or function(func, newfunc)
 
     func = newcclosure and newcclosure(newfunc) or newfunc
     return newfunc
+end
+
+local ProtectedInstances = {}
+local SpoofedInstances = {}
+local SpoofedProperties = {}
+local Methods = {
+    "FindFirstChild",
+    "FindFirstChildWhichIsA",
+    "FindFirstChildOfClass",
+    "IsA"
+}
+local AllowedIndexes = {
+    "RootPart",
+    "Parent"
+}
+local AllowedNewIndexes = {
+    "Jump"
+}
+local AntiKick = false
+local AntiTeleport = false
+
+local OldMemoryTags = {}
+local Stats = game:GetService("Stats");
+for i, v in next, Enum.DeveloperMemoryTag:GetEnumItems() do
+    OldMemoryTags[v] = Stats:GetMemoryUsageMbForTag(v);
+end
+
+local mt = getrawmetatable(game);
+local OldMetaMethods = {}
+setreadonly(mt, false);
+for i, v in next, mt do
+    OldMetaMethods[i] = v
+end
+local __Namecall = OldMetaMethods.__namecall
+local __Index = OldMetaMethods.__index
+local __NewIndex = OldMetaMethods.__newindex
+
+mt.__namecall = newcclosure(function(self, ...)
+    if (checkcaller()) then
+        return __Namecall(self, ...);
+    end
+    
+    local Method = getnamecallmethod():gsub("%z", function(x)
+        return x
+    end):gsub("%z", "");
+
+    local Protected = ProtectedInstances[self]
+
+    if (Protected) then
+        if (table.find(Methods, Method)) then
+            return Method == "IsA" and false or nil
+        end
+    end
+
+    if (AntiKick and string.lower(Method) == "kick") then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+
+    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
+        return
+    end
+
+    return __Namecall(self, ...);
+end)
+
+mt.__index = newcclosure(function(Instance_, Index)
+    if (checkcaller()) then
+        return __Index(Instance_, Index);
+    end
+
+    Index = type(Index) == 'string' and Index:gsub("%z", function(x)
+        return x
+    end):gsub("%z", "") or Index
+    
+    local ProtectedInstance = ProtectedInstances[Instance_]
+    local SpoofedInstance = SpoofedInstances[Instance_]
+    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+    if (SpoofedInstance) then
+        if (table.find(AllowedIndexes, Index)) then
+            return __Index(Instance_, Index);
+        end
+        if (Instance_:IsA("Humanoid") and game.PlaceId == 6650331930) then
+            for i, v in next, getconnections(Instance_:GetPropertyChangedSignal("WalkSpeed")) do
+                v:Disable();
+            end
+        end
+        return __Index(SpoofedInstance, Index);
+    end
+
+    if (SpoofedPropertiesForInstance) then
+        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+            if (Index == SpoofedProperty.Property) then
+                return SpoofedProperty.Value
+            end
+        end
+    end
+
+    if (ProtectedInstance) then
+        if (table.find(Methods, Index)) then
+            return function()
+                return Index == "IsA" and false or nil
+            end
+        end
+    end
+
+    return __Index(Instance_, Index);
+end)
+
+mt.__newindex = newcclosure(function(Instance_, Index, Value)
+    if (checkcaller()) then
+        return __NewIndex(Instance_, Index, Value);
+    end
+
+    local SpoofedInstance = SpoofedInstances[Instance_]
+    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+    if (SpoofedInstance) then
+        if (table.find(AllowedNewIndexes, Index)) then
+            return __NewIndex(Instance_, Index, Value);
+        end
+        return __NewIndex(SpoofedInstance, Index, SpoofedInstance[Index]);
+    end
+
+    if (SpoofedPropertiesForInstance) then
+        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+            if (SpoofedProperty.Property == Index) then
+                return __NewIndex(Instance_, Index, SpoofedProperty.Value);
+            end
+        end
+    end
+
+    return __NewIndex(Instance_, Index, Value);
+end)
+
+setreadonly(mt, true);
+
+local OldKick
+OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
+    if (AntiKick) then
+        local Args = {...}
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
+        return
+    end
+
+    return OldKick(self, ...);
+end))
+
+local OldTeleportToPlaceInstance
+OldTeleportToPlaceInstance = hookfunction(game:GetService("TeleportService").TeleportToPlaceInstance, newcclosure(function(self, ...)
+    if (AntiTeleport) then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
+        return
+    end
+    return OldTeleportToPlaceInstance(self, ...);
+end))
+local OldTeleport
+OldTeleport = hookfunction(game:GetService("TeleportService").Teleport, newcclosure(function(self, ...)
+    if (AntiTeleport) then
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", ("attempt to teleport to place \"%s\""):format(Args[1]));
+        return
+    end
+    return OldTeleport(self, ...);
+end))
+
+local OldGetMemoryUsageMbForTag
+OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosure(function(self, ...)
+    if (game.PlaceId == 6650331930) then
+        local Args = {...}
+        if (Args[1] == Enum.DeveloperMemoryTag.Gui) then
+            return Stats:GetMemoryUsageMbForTag(Args[1]) - 1
+        end
+    end
+    return OldGetMemoryUsageMbForTag(self, ...);
+end))
+
+local ProtectInstance = function(Instance_)
+    if (not ProtectedInstances[Instance_]) then
+        ProtectedInstances[#ProtectedInstances + 1] = Instance_
+        if (syn and syn.protect_gui) then
+            syn.protect_gui(Instance_);
+        end
+    end
+end
+
+local SpoofInstance = function(Instance_, Instance2)
+    if (not SpoofedInstances[Instance_]) then
+        SpoofedInstances[Instance_] = Instance2 and Instance2 or Instance_:Clone();
+    end
+end
+
+local SpoofProperty = function(Instance_, Property, Value)
+    if (SpoofedProperties[Instance_]) then
+        local Properties = table.map(SpoofedProperties[Instance_], function(i, v)
+            return v.Property
+        end)
+        if (not table.find(Properties, Property)) then
+            table.insert(SpoofedProperties[Instance_], {
+                Property = Property,
+                Value = Value and Value or Instance_[Property]
+            });
+        end
+        return
+    end
+    SpoofedProperties[Instance_] = {{
+        Property = Property,
+        Value = Value and Value or Instance_[Property]
+    }}
 end

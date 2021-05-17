@@ -20,6 +20,7 @@ Utils.Draggable(HttpLogs);
 ParentGui(UI);
 Connections.UI = {}
 -- tweencommand bar on prefix
+local Times = #LastCommand
 AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     if (Input.KeyCode == CommandBarPrefix and (not GameProccesed)) then
         CommandBarOpen = not CommandBarOpen
@@ -54,23 +55,38 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
         if (writefile) then
             Utils.Notify(LocalPlayer, nil, "use command saveprefix to save your prefix");
         end
+    elseif (GameProccesed and CommandBarOpen) then
+        if (Input.KeyCode == Enum.KeyCode.Up) then
+            Times = Times >= 3 and Times or Times + 1
+            CommandBar.Input.Text = LastCommand[Times][1] .. " "
+            CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 2
+        end
+        if (Input.KeyCode == Enum.KeyCode.Down) then
+            Times = Times <= 1 and 1 or Times - 1
+            CommandBar.Input.Text = LastCommand[Times][1] .. " "
+            CommandBar.Input.CursorPosition = #CommandBar.Input.Text + 2
+        end
     end
 end), Connections.UI, true);
 
 -- smooth scroll commands
 Utils.SmoothScroll(Commands.Frame.List, .14)
 -- fill commands with commands!
+local CommandsList = Commands.Frame.List
+RunService.Stepped:Wait();
 for _, v in next, CommandsTable do -- auto size
-    if (not Commands.Frame.List:FindFirstChild(v.Name)) then
-        local Clone = Command:Clone()
-
-        Utils.Hover(Clone, "BackgroundColor3") -- add tooltip
-        Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description)
-        Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "")
-        Clone.Name = v.Name
-        Clone.Visible = true
-        Clone.Parent = Commands.Frame.List
-    end
+    coroutine.wrap(function()
+        if (not CommandsList:FindFirstChild(v.Name)) then
+            local Clone = Command:Clone()
+            Utils.Hover(Clone, "BackgroundColor3") -- add tooltip
+            Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description)
+            Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "")
+            Clone.Name = v.Name
+            Clone.Visible = true
+            Clone.Parent = CommandsList
+            RunService.Heartbeat:Wait();
+        end
+    end)()
 end
 
 
@@ -223,29 +239,6 @@ end), Connections.UI, true);
 AddConnection(HttpLogs.Save.MouseButton1Click:Connect(function()
     print("saved");
 end), Connections.UI, true);
-
-local function RainbowChatOnAdded(v)
-    if (v:IsA("TextButton")) then
-        local Player = Players and Players:FindFirstChild(v.Text:sub(2, #v.Text - 2));
-        if (Player) then
-            local Tag = PlayerTags[tostring(Player.UserId):gsub(".", function(x)
-                return x:byte();    
-            end)]
-            if (Tag and Tag.Rainbow) then
-                Utils.Rainbow(v);
-            end
-        end
-    end
-end
-
-coroutine.wrap(function()
-    for _, v in next, RobloxScroller:GetDescendants() do
-        RainbowChatOnAdded(v)
-        wait();
-    end
-end)()
-
-AddConnection(RobloxScroller.DescendantAdded:Connect(RainbowChatOnAdded));
 
 -- auto correct
 AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
