@@ -1,5 +1,5 @@
 --[[
-    fates admin - 16/5/2021
+	fates admin - 17/5/2021
 ]]
 
 --IMPORT [extend]
@@ -447,7 +447,7 @@ PluginLibrary.GetHumanoid = GetHumanoid
 local GetMagnitude = function(Plr)
     return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
-PluginLibrary.GetMagnitude = GetMagnitude
+PluginLibrary.GetHumanoid = GetMagnitude
 
 local Settings = {
     Prefix = "!",
@@ -3913,8 +3913,25 @@ AddCommand("clearexceptions", {}, "removes users from exceptions list", {}, func
     Exceptions = {}
     return "exceptions list cleared"
 end)
-
+local CommandsLoaded = false
 AddCommand("commands", {"cmds"}, "shows you all the commands listed in fates admin", {}, function()
+    if (not CommandsLoaded) then
+        local CommandsList = Commands.Frame.List
+        for _, v in next, CommandsTable do
+            if (not CommandsList:FindFirstChild(v.Name)) then
+                local Clone = Command:Clone()
+                Utils.Hover(Clone, "BackgroundColor3");
+                Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description);
+                Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "");
+                Clone.Name = v.Name
+                Clone.Visible = true
+                Clone.Parent = CommandsList
+            end
+        end
+        CommandsTransparencyClone = Commands:Clone();
+        Utils.SetAllTrans(Commands)
+        CommandsLoaded = true
+    end
     Commands.Visible = true
     Utils.TweenAllTransToObject(Commands, .25, CommandsTransparencyClone);
     return "Commands Loaded"
@@ -4094,13 +4111,13 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
-    local Target = GetPlayer(Args[1])[1];
+	local Target = GetPlayer(Args[1])[1];
     if (Target == LocalPlayer) then
         return "You cannot orbit yourself."
     end
-    local Radius = tonumber(Args[3]) or 7
-    local Speed = tonumber(Args[2]) or 1
-    local random = math.random(tick() / 2, tick());
+	local Radius = tonumber(Args[3]) or 7
+	local Speed = tonumber(Args[2]) or 1
+	local random = math.random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
         Root.CFrame = CFrame.new(TRoot.Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), TRoot.Position);
@@ -4287,32 +4304,8 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     end
 end), Connections.UI, true);
 
--- smooth scroll commands
-Utils.SmoothScroll(Commands.Frame.List, .14)
--- fill commands with commands!
-local CommandsList = Commands.Frame.List
-RunService.Stepped:Wait();
-for _, v in next, CommandsTable do -- auto size
-    coroutine.wrap(function()
-        if (not CommandsList:FindFirstChild(v.Name)) then
-            local Clone = Command:Clone()
-            Utils.Hover(Clone, "BackgroundColor3") -- add tooltip
-            Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description)
-            Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "")
-            Clone.Name = v.Name
-            Clone.Visible = true
-            Clone.Parent = CommandsList
-            RunService.Heartbeat:Wait();
-        end
-    end)()
-end
-
-
-
 Utils.Click(Commands.Close, "TextColor3")
 Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
-CommandsTransparencyClone = Commands:Clone()
-Utils.SetAllTrans(Commands)
 Utils.Click(ChatLogs.Clear, "BackgroundColor3")
 Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")

@@ -69,32 +69,8 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
     end
 end), Connections.UI, true);
 
--- smooth scroll commands
-Utils.SmoothScroll(Commands.Frame.List, .14)
--- fill commands with commands!
-local CommandsList = Commands.Frame.List
-RunService.Stepped:Wait();
-for _, v in next, CommandsTable do -- auto size
-    coroutine.wrap(function()
-        if (not CommandsList:FindFirstChild(v.Name)) then
-            local Clone = Command:Clone()
-            Utils.Hover(Clone, "BackgroundColor3") -- add tooltip
-            Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description)
-            Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "")
-            Clone.Name = v.Name
-            Clone.Visible = true
-            Clone.Parent = CommandsList
-            RunService.Heartbeat:Wait();
-        end
-    end)()
-end
-
-
-
 Utils.Click(Commands.Close, "TextColor3")
 Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
-CommandsTransparencyClone = Commands:Clone()
-Utils.SetAllTrans(Commands)
 Utils.Click(ChatLogs.Clear, "BackgroundColor3")
 Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")

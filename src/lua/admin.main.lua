@@ -2512,7 +2512,7 @@ end)
 
 AddCommand("fov", {}, "sets your fov", {}, function(Caller, Args)
     local Amount = tonumber(Args[1]) or 70
-    SpoofInstance(Workspace.CurrentCamera, "FieldOfView");
+    SpoofProperty(Workspace.CurrentCamera, "FieldOfView");
     Workspace.CurrentCamera.FieldOfView = Amount
 end)
 
@@ -2521,7 +2521,7 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, T
     local Noclipping = RunService.Stepped:Connect(function()
         for i, v in next, Char:GetChildren() do
             if (v:IsA("BasePart") and v.CanCollide) then
-                SpoofInstance(v, "CanCollide");
+                SpoofProperty(v, "CanCollide");
                 v.CanCollide = false
             end
         end
@@ -2724,8 +2724,25 @@ AddCommand("clearexceptions", {}, "removes users from exceptions list", {}, func
     Exceptions = {}
     return "exceptions list cleared"
 end)
-
+local CommandsLoaded = false
 AddCommand("commands", {"cmds"}, "shows you all the commands listed in fates admin", {}, function()
+    if (not CommandsLoaded) then
+        local CommandsList = Commands.Frame.List
+        for _, v in next, CommandsTable do
+            if (not CommandsList:FindFirstChild(v.Name)) then
+                local Clone = Command:Clone()
+                Utils.Hover(Clone, "BackgroundColor3");
+                Utils.ToolTip(Clone, v.Name .. "\n" .. v.Description);
+                Clone.CommandText.Text = v.Name .. (#v.Aliases > 0 and " (" ..table.concat(v.Aliases, ", ") .. ")" or "");
+                Clone.Name = v.Name
+                Clone.Visible = true
+                Clone.Parent = CommandsList
+            end
+        end
+        CommandsTransparencyClone = Commands:Clone();
+        Utils.SetAllTrans(Commands)
+        CommandsLoaded = true
+    end
     Commands.Visible = true
     Utils.TweenAllTransToObject(Commands, .25, CommandsTransparencyClone);
     return "Commands Loaded"
