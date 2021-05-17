@@ -1748,6 +1748,7 @@ end)
 
 AddCommand("grippos", {}, "changes grippos of your tool", {"3"}, function(Caller, Args, Tbl)
     local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    SpoofProperty(Tool, "GripPos");
     Tool.GripPos = Vector3.new(tonumber(Args[1]), tonumber(Args[2]), tonumber(Args[3]));
     Tool.Parent = GetCharacter();
     return "grippos set"
@@ -1757,6 +1758,7 @@ AddCommand("truesightguis", {"tsg"}, "true sight on all guis", {}, function(Call
     for i, v in next, game:GetDescendants() do
         if (v:IsA("Frame") or v:IsA("ScrollingFrame") and not v.Visible) then
             Tbl[v] = v.Visible
+            SpoofProperty(v, "Visible");
             v.Visible = true
         end
     end
@@ -2949,7 +2951,7 @@ AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
         GetCharacter():WaitForChild("Humanoid");
         wait(.4);
         SpoofInstance(GetHumanoid());
-        SpoofInstance(GetRoot(), GetCharacter().Torso);
+        SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
         ProtectInstance(GetRoot());
         ProtectInstance(GetHumanoid());
     end));

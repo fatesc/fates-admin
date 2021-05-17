@@ -1320,6 +1320,49 @@ Utils.TextFont = function(Text, RGB)
     end)) .. " "
 end
 
+local Tracing = {}
+Utils.Trace = function(Player, Color)
+    if (not Drawing) then
+        return
+    end
+    local Head = GetCharacter(Player) and GetCharacter(Player).Head
+    if (not Head) then
+        return
+    end
+    local Camera = Workspace.Camera
+
+    local Tracer = Drawing.new("Line");
+    local Tuple = Camera:WorldToViewportPoint(Head.Position);
+    Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
+    Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y);
+    Tracer.Color = Color or Color3.fromRGB(255, 255, 255);
+    Tracer.Thickness = .1
+    Tracer.Transparency = 1
+    Tracer.Visible = true
+    Tracing[Player] = Tracer
+end
+local Updating = false
+Utils.UpdateTracers = function()
+    if (not Updating) then
+        Updating = true
+        AddConnection(RunService.Heartbeat:Connect(function()
+            for i, Tracer in next, Tracing do
+                local Head = GetCharacter(i) and GetCharacter(i).Head
+                if (not Head) then
+                    continue
+                end
+                local Tuple = Camera:WorldToViewportPoint(Head.Position);
+                Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
+            end
+        end))
+    end
+end
+
+Utils.DestroyTracers = function()
+    for i, Tracer in next, Tracers do
+        Tracer:Remove();
+    end
+end
 --END IMPORT [utils]
 
 
@@ -2937,6 +2980,7 @@ end)
 
 AddCommand("grippos", {}, "changes grippos of your tool", {"3"}, function(Caller, Args, Tbl)
     local Tool = GetCharacter():FindFirstChildWhichIsA("Tool") or LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool");
+    SpoofProperty(Tool, "GripPos");
     Tool.GripPos = Vector3.new(tonumber(Args[1]), tonumber(Args[2]), tonumber(Args[3]));
     Tool.Parent = GetCharacter();
     return "grippos set"
@@ -2946,6 +2990,7 @@ AddCommand("truesightguis", {"tsg"}, "true sight on all guis", {}, function(Call
     for i, v in next, game:GetDescendants() do
         if (v:IsA("Frame") or v:IsA("ScrollingFrame") and not v.Visible) then
             Tbl[v] = v.Visible
+            SpoofProperty(v, "Visible");
             v.Visible = true
         end
     end
@@ -4138,7 +4183,7 @@ AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
         GetCharacter():WaitForChild("Humanoid");
         wait(.4);
         SpoofInstance(GetHumanoid());
-        SpoofInstance(GetRoot(), GetCharacter().Torso);
+        SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
         ProtectInstance(GetRoot());
         ProtectInstance(GetHumanoid());
     end));
