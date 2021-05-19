@@ -3993,11 +3993,11 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         end);
         UI:Destroy();
         getgenv().F_A = nil
-        setreadonly(mt, true);
+        setreadonly(mt, false);
         for i, v in next, OldMetaMethods do
             mt[i] = v
         end
-        setreadonly(mt, false);
+        setreadonly(mt, true);
         for i, v in next, getfenv() do
             getfenv()[i] = nil
         end
