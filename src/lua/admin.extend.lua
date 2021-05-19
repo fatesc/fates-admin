@@ -20,7 +20,7 @@ end
 ---@param rawPos number
 ---@return boolean
 string.startsWith = function(str, searchString, rawPos)
-    local pos = rawPos or 0
+    local pos = rawPos or 1
     return searchString == "" and true or string.sub(str, pos, pos) == searchString
 end
 

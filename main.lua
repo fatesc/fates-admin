@@ -1,5 +1,5 @@
 --[[
-	fates admin - 17/5/2021
+	fates admin - 19/5/2021
 ]]
 
 --IMPORT [extend]
@@ -25,7 +25,7 @@ end
 ---@param rawPos number
 ---@return boolean
 string.startsWith = function(str, searchString, rawPos)
-    local pos = rawPos or 0
+    local pos = rawPos or 1
     return searchString == "" and true or string.sub(str, pos, pos) == searchString
 end
 
@@ -1351,7 +1351,7 @@ Utils.UpdateTracers = function()
                 if (not Head) then
                     continue
                 end
-                local Tuple = Camera:WorldToViewportPoint(Head.Position);
+                local Tuple = Workspace.Camera:WorldToViewportPoint(Head.Position);
                 Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
             end
         end))
@@ -3997,7 +3997,7 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         for i, v in next, OldMetaMethods do
             mt[i] = v
         end
-        setreadonly(mt, true);
+        setreadonly(mt, false);
         for i, v in next, getfenv() do
             getfenv()[i] = nil
         end

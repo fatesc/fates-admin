@@ -2765,7 +2765,7 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         for i, v in next, OldMetaMethods do
             mt[i] = v
         end
-        setreadonly(mt, true);
+        setreadonly(mt, false);
         for i, v in next, getfenv() do
             getfenv()[i] = nil
         end
