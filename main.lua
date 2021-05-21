@@ -1127,18 +1127,21 @@ Utils.StringFind = function(Table, String)
 end
 
 Utils.GetPlayerArgs = function(Arg)
-    Arg = Arg:lower()
+    Arg = Arg:lower();
     local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
+    if (Utils.StringFind(SpecialCases, Arg)) then
+        return Utils.StringFind(SpecialCases, Arg);
+    end
 
-    return Utils.StringFind(SpecialCases, Arg) or (function()
-        for _, v in ipairs(Players:GetPlayers()) do
-            local Name = string.lower(v.Name)
-
-            if (Utils.MatchSearch(Arg, Name)) then
-                return Name
-            end
+    local CurrentPlayers = Players:GetPlayers();
+    for i, v in next, CurrentPlayers do
+        if (v.Name ~= v.DisplayName and Utils.MatchSearch(Arg, v.DisplayName:lower())) then
+            return v.DisplayName:lower();
         end
-    end)()
+        if (Utils.MatchSearch(Arg, v.Name:lower())) then
+            return v.Name:lower();
+        end
+    end
 end
 
 Utils.ToolTip = function(Object, Message)
