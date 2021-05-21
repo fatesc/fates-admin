@@ -63,7 +63,7 @@ PluginLibrary.GetHumanoid = GetHumanoid
 local GetMagnitude = function(Plr)
     return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
-PluginLibrary.GetHumanoid = GetMagnitude
+PluginLibrary.GetMagnitude = GetMagnitude
 
 local Settings = {
     Prefix = "!",
@@ -3002,6 +3002,14 @@ AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
     CommandsTable["goto"].Function = CommandsTable["tweento"].Function
     CommandsTable["to"].Function = CommandsTable["tweento"].Function
     return "clientsided bypass enabled"
+end)
+
+AddCommand("shiftlock", {}, "enables shiftlock in your game (some games have it off)", {}, function()
+    if (LocalPlayer.DevEnableMouseLock) then
+        return "shiftlock is already on"
+    end
+    LocalPlayer.DevEnableMouseLock = true
+    return "shiftlock is now on"
 end)
 
 local PlrChat = function(i, plr)
