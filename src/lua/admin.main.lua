@@ -2377,6 +2377,8 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             v:Destroy();
         end
     end
+    SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
+    ProtectInstance(GetRoot());
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());
     ProtectInstance(BodyPos);

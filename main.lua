@@ -329,7 +329,7 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
             if (SpoofedProperty.Property == Index) then
-                return __NewIndex(Instance_, Index, SpoofedProperty.Value);
+                return Instance_[Index]
             end
         end
     end
@@ -860,7 +860,7 @@ Utils.Draggable = function(Ui, DragUi)
         Utils.Tween(Ui, "Linear", "Out", .25, {
             Position = Position
         })
-        TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play()
+        TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play();
     end
 
     Connections["UIInputBegan" .. #Connections] = Ui.InputBegan:Connect(function(Input)
@@ -3644,6 +3644,8 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             v:Destroy();
         end
     end
+    SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
+    ProtectInstance(GetRoot());
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());
     ProtectInstance(BodyPos);

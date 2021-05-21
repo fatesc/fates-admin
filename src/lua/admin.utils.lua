@@ -93,7 +93,7 @@ Utils.Draggable = function(Ui, DragUi)
         Utils.Tween(Ui, "Linear", "Out", .25, {
             Position = Position
         })
-        --TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play()
+        TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play();
     end
 
     Connections["UIInputBegan" .. #Connections] = Ui.InputBegan:Connect(function(Input)

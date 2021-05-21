@@ -324,7 +324,7 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
             if (SpoofedProperty.Property == Index) then
-                return __NewIndex(Instance_, Index, SpoofedProperty.Value);
+                return Instance_[Index]
             end
         end
     end
