@@ -70,7 +70,6 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
 end), Connections.UI, true);
 
 Utils.Click(Commands.Close, "TextColor3")
-Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
 Utils.Click(ChatLogs.Clear, "BackgroundColor3")
 Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")

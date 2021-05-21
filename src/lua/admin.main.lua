@@ -2730,6 +2730,7 @@ local CommandsLoaded = false
 AddCommand("commands", {"cmds"}, "shows you all the commands listed in fates admin", {}, function()
     if (not CommandsLoaded) then
         local CommandsList = Commands.Frame.List
+        Utils.SmoothScroll(CommandsList, .14);
         for _, v in next, CommandsTable do
             if (not CommandsList:FindFirstChild(v.Name)) then
                 local Clone = Command:Clone()
@@ -2741,6 +2742,7 @@ AddCommand("commands", {"cmds"}, "shows you all the commands listed in fates adm
                 Clone.Parent = CommandsList
             end
         end
+        Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         CommandsTransparencyClone = Commands:Clone();
         Utils.SetAllTrans(Commands)
         CommandsLoaded = true
