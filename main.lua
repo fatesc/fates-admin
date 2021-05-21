@@ -228,6 +228,18 @@ mt.__namecall = newcclosure(function(self, ...)
         end
     end
 
+    if (Method == "GetChildren" or Method == "GetDescendants") then
+        return table.filter(__Namecall(self, ...), function(i, v)
+            return not table.find(ProtectedInstances, v);
+        end)
+    end
+
+    if (Method == "GetFocusedTextBox") then
+        if (table.find(ProtectedInstances, __Namecall(self, ...))) then
+            return nil
+        end
+    end
+
     if (AntiKick and string.lower(Method) == "kick") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
         return
@@ -279,6 +291,20 @@ mt.__index = newcclosure(function(Instance_, Index)
             return function()
                 return Index == "IsA" and false or nil
             end
+        end
+    end
+
+    if (Index == "GetChildren" or Index == "GetDescendants") then
+        return function()
+            return table.filter(__Index(Instance_, Index)(Instance_), function(i, v)
+                return not table.find(ProtectedInstances, v);
+            end)
+        end
+    end
+
+    if (Index == "GetFocusedTextBox") then
+        if (table.find(ProtectedInstances, __Index(Instance_, Index)(Instance_))) then
+            return nil
         end
     end
 
@@ -352,10 +378,17 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
     return OldGetMemoryUsageMbForTag(self, ...);
 end))
 
-local ProtectInstance = function(Instance_)
+for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
+    v:Disable();
+end
+for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocusReleased) do
+    v:Disable();
+end
+
+local ProtectInstance = function(Instance_, disallow)
     if (not ProtectedInstances[Instance_]) then
         ProtectedInstances[#ProtectedInstances + 1] = Instance_
-        if (syn and syn.protect_gui) then
+        if (syn and syn.protect_gui and not disallow) then
             syn.protect_gui(Instance_);
         end
     end
@@ -693,7 +726,9 @@ if (RobloxChatBarFrame) then
 end
 
 -- position CommandBar
-CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
+CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
+ProtectInstance(CommandBar.Input, true);
+ProtectInstance(Commands.Search, true);
 --END IMPORT [ui]
 
 
@@ -825,7 +860,7 @@ Utils.Draggable = function(Ui, DragUi)
         Utils.Tween(Ui, "Linear", "Out", .25, {
             Position = Position
         })
-        --TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play()
+        TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play()
     end
 
     Connections["UIInputBegan" .. #Connections] = Ui.InputBegan:Connect(function(Input)
@@ -3995,11 +4030,9 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         end);
         UI:Destroy();
         getgenv().F_A = nil
-        setreadonly(mt, true);
-        for i, v in next, OldMetaMethods do
-            mt[i] = v
-        end
         setreadonly(mt, false);
+        mt = OldMetaMethods
+        setreadonly(mt, true);
         for i, v in next, getfenv() do
             getfenv()[i] = nil
         end

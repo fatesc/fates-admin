@@ -102,4 +102,6 @@ if (RobloxChatBarFrame) then
 end
 
 -- position CommandBar
-CommandBar.Position = UDim2.new(0.5, -100, 1, 5)
+CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
+ProtectInstance(CommandBar.Input, true);
+ProtectInstance(Commands.Search, true);

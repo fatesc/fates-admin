@@ -223,6 +223,18 @@ mt.__namecall = newcclosure(function(self, ...)
         end
     end
 
+    if (Method == "GetChildren" or Method == "GetDescendants") then
+        return table.filter(__Namecall(self, ...), function(i, v)
+            return not table.find(ProtectedInstances, v);
+        end)
+    end
+
+    if (Method == "GetFocusedTextBox") then
+        if (table.find(ProtectedInstances, __Namecall(self, ...))) then
+            return nil
+        end
+    end
+
     if (AntiKick and string.lower(Method) == "kick") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
         return
@@ -274,6 +286,20 @@ mt.__index = newcclosure(function(Instance_, Index)
             return function()
                 return Index == "IsA" and false or nil
             end
+        end
+    end
+
+    if (Index == "GetChildren" or Index == "GetDescendants") then
+        return function()
+            return table.filter(__Index(Instance_, Index)(Instance_), function(i, v)
+                return not table.find(ProtectedInstances, v);
+            end)
+        end
+    end
+
+    if (Index == "GetFocusedTextBox") then
+        if (table.find(ProtectedInstances, __Index(Instance_, Index)(Instance_))) then
+            return nil
         end
     end
 
@@ -347,10 +373,17 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
     return OldGetMemoryUsageMbForTag(self, ...);
 end))
 
-local ProtectInstance = function(Instance_)
+for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
+    v:Disable();
+end
+for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocusReleased) do
+    v:Disable();
+end
+
+local ProtectInstance = function(Instance_, disallow)
     if (not ProtectedInstances[Instance_]) then
         ProtectedInstances[#ProtectedInstances + 1] = Instance_
-        if (syn and syn.protect_gui) then
+        if (syn and syn.protect_gui and not disallow) then
             syn.protect_gui(Instance_);
         end
     end
