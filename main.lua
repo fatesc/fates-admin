@@ -3653,10 +3653,8 @@ AddCommand("notruesight", {"nots"}, "removes truesight", {}, function(Caller, Ar
     local showing = LoadCommand("truesight").CmdExtra
     local time = tick() or os.clock();
     for i, v in next, showing do
-        SpoofProperty(v, "Transparency");
         i.Transparency = v
     end
-
     return ("%d items hidden in %.3f (s)"):format(#showing, (tick() or os.clock()) - time);
 end)
 
