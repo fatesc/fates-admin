@@ -455,7 +455,9 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Chat = game:GetService("Chat");
 local SoundService = game:GetService("SoundService");
 local Lighting = game:GetService("Lighting");
- 
+
+local Camera = Workspace.Camera
+
 LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer and LocalPlayer:GetMouse();
 local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
@@ -1231,7 +1233,7 @@ Utils.Rainbow = function(TextObject)
     end)
 end
 
-Utils.Locate = function(Player, Color)
+Utils.Locate2 = function(Player, Color)
     local Billboard = Instance.new("BillboardGui");
     coroutine.wrap(function()
         if (GetCharacter(Player)) then
@@ -1281,7 +1283,65 @@ Utils.Locate = function(Player, Color)
         end
     end)()
 
-    return Billboard
+    return function()
+        Billboard:Destroy();
+    end
+end
+
+Utils.Vector3toVector2 = function(Vector)
+    local Tuple = Camera:WorldToViewportPoint(Vector)
+    return Vector2.new(Tuple.X, Tuple.Y);
+end
+
+local Locating = {}
+local Drawings = {}
+
+Utils.Locate = function(Plr, Color, OutlineColor)
+    if (not Drawing) then
+        return Utils.Locate2(Plr, Color);
+    end
+    local Head = GetCharacter(Plr) and GetCharacter(Plr).Head
+    if (not Head) then
+        return
+    end
+
+    local Text = Drawing.new("Text");
+    Drawings[#Drawings + 1] = Text
+
+    Text.Position = Utils.Vector3toVector2(Head.Position) + Vector2.new(0, -100, 0);
+    Text.Color = Color or Color3.fromRGB(255, 255, 255);
+    Text.OutlineColor = OutlineColor or Color3.new();
+    Text.Text = ("%s\n[%s] [%s/%s]"):format(Plr.Name, math.floor(GetMagnitude(Plr)), math.floor(GetHumanoid(Plr).Health), math.floor(GetHumanoid(Plr).MaxHealth));
+    Text.Size = 16
+    Text.Transparency = 1
+    Text.Center = true
+    Text.Outline = true
+    Text.Visible = true
+    Locating[Text] = Plr
+    return function()
+        Text:Remove();
+        Locating[Text] = nil
+    end
+end
+
+local UpdatingLocations = false
+Utils.UpdateLocations = function(Toggle)
+    if (not UpdatingLocations) then
+        UpdatingLocations = AddConnection(RunService.Heartbeat:Connect(function()
+            for i, v in next, Locating do
+                if (GetCharacter(v) and GetCharacter(v).Head) then
+                    local Tuple, Viewable = Camera:WorldToViewportPoint(GetCharacter(v).Head.Position);
+                    if (Viewable) then
+                        i.Visible = true
+                        i.Position = Utils.Vector3toVector2(GetCharacter(v).Head.Position) + Vector2.new(0, -100, 0);           
+                        i.Text = ("%s\n[%s] [%s/%s]"):format(v.Name, math.floor(GetMagnitude(v)), math.floor(GetHumanoid(v).Health), math.floor(GetHumanoid(v).MaxHealth));    
+                        continue
+                    end
+                end
+                i.Visible = false
+            end
+        end))
+    end
 end
 
 Utils.CheckTag = function(Plr)
@@ -1367,6 +1427,8 @@ Utils.Trace = function(Player, Color)
     local Camera = Workspace.Camera
 
     local Tracer = Drawing.new("Line");
+    Drawings[#Drawings + 1] = Tracer
+
     local Tuple = Camera:WorldToViewportPoint(Head.Position);
     Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
     Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y);
@@ -1375,19 +1437,28 @@ Utils.Trace = function(Player, Color)
     Tracer.Transparency = 1
     Tracer.Visible = true
     Tracing[Player] = Tracer
+    return function()
+        Tracer:Remove();
+        Tracing[Player] = nil
+    end
 end
-local Updating = false
+
+local UpdatingTracers = false
 Utils.UpdateTracers = function()
     if (not Updating) then
-        Updating = true
-        AddConnection(RunService.Heartbeat:Connect(function()
+        UpdatingTracers = AddConnection(RunService.Heartbeat:Connect(function()
             for i, Tracer in next, Tracing do
                 local Head = GetCharacter(i) and GetCharacter(i).Head
                 if (not Head) then
                     continue
                 end
-                local Tuple = Workspace.Camera:WorldToViewportPoint(Head.Position);
-                Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
+                local Tuple, Viewable = Workspace.Camera:WorldToViewportPoint(Head.Position);
+                if (Viewable) then
+                    Tracer.Visible = true
+                    Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
+                else
+                    Tracer.Visible = false
+                end
             end
         end))
     end
@@ -1396,6 +1467,21 @@ end
 Utils.DestroyTracers = function()
     for i, Tracer in next, Tracers do
         Tracer:Remove();
+    end
+    if (UpdatingTracers) then
+        UpdatingTracers:Disconnect();
+    end
+end
+
+Utils.DestroyDrawings = function()
+    for i, Drawing in next, Drawings do
+        Drawing:Remove();
+    end
+    if (UpdatingTracers) then
+        UpdatingTracers:Disconnect();
+    end
+    if (UpdatingLocations) then
+        UpdatingLocations:Disconnect();
     end
 end
 --END IMPORT [utils]
@@ -3045,6 +3131,10 @@ AddCommand("locate", {}, "locates a player", {"1"}, function(Caller, Args, Tbl)
     for i, v in next, Player do
         Tbl[v.Name] = Utils.Locate(v);
     end
+    if (not UpdatingLocations) then
+        Utils.UpdateLocations();
+    end
+    return "locating player"
 end)
 
 AddCommand("unlocate", {"nolocate"}, "disables location for a player", {"1"}, function(Caller, Args)
@@ -3053,8 +3143,9 @@ AddCommand("unlocate", {"nolocate"}, "disables location for a player", {"1"}, fu
     for i, v in next, Locating do
         for i2, v2 in next, Target do
             if (i == v2.Name) then
-                v:Destroy();
+                v();
                 Utils.Notify(Caller, "Command", v2.Name .. " is no longer being located");
+                break
             else
                 Utils.Notify(Caller, "Command", v2.Name .. " isn't being located");
             end
@@ -3084,7 +3175,7 @@ end)
 
 AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
     Tbl.Billboards = {}
-    table.forEach(Players:GetPlayers(), function(i,v)
+    table.forEach(GetPlayer("others"), function(i,v)
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
         AddConnection(v.CharacterAdded:Connect(function()
             v.Character:WaitForChild("HumanoidRootPart");
@@ -3094,9 +3185,10 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
     end);
 
     AddConnection(Players.PlayerAdded:Connect(function(Player)
+        Player.CharacterAdded:Wait();
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
-        Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
+        Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
         AddConnection(Player.CharacterAdded:Connect(function()
             Player.Character:WaitForChild("HumanoidRootPart");
             Player.Character:WaitForChild("Head");
@@ -3104,19 +3196,54 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
         end), Tbl);
     end), Tbl);
 
+    if (not UpdatingLocations) then
+        Utils.UpdateLocations();
+    end
+
     return "esp enabled"
 end)
 
 AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
     local Esp = LoadCommand("esp").CmdExtra
     for i, v in next, Esp.Billboards do
-        if (v:IsA("BillboardGui")) then
-            v:Destroy();
-        end
+        v();
     end
     Esp.Billboards = nil
     DisableAllCmdConnections("esp")
     return "esp disabled"
+end)
+
+AddCommand("trace", {}, "traces a player", {
+    function()
+        return Drawing ~= nil
+    end,
+    "1"
+}, function(Caller, Args, Tbl)
+    local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        Tbl[v.Name] = Utils.Trace(v)
+    end
+
+    if (not UpdatingTracers) then
+        Utils.UpdateTracers();
+    end
+
+    return "tracing player"
+end)
+
+AddCommand("untrace", {"notrace"}, "removes the trace from a player", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local Tracing = LoadCommand("trace").CmdExtra
+    if (not next(Tracing)) then
+        return "you aren't tracing anyone"
+    end
+    for i, v in next, Target do
+        if (Tracing[v.Name]) then
+            Tracing[v.Name]()
+            Tracing[v.Name] = nil
+        end
+    end
+    return "tracing disabled"
 end)
 
 AddCommand("walkto", {}, "walks to a player", {"1", 3}, function(Caller, Args)
@@ -3452,6 +3579,7 @@ AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Ca
     local Speed = Args[1] or 5
     local Spin = Instance.new("BodyAngularVelocity");
     ProtectInstance(Spin);
+    ProtectInstance(GetRoot());
     Spin.Parent = GetRoot();
     Spin.MaxTorque = Vector3.new(0, math.huge, 0);
     Spin.AngularVelocity = Vector3.new(0, Speed, 0);
@@ -3644,7 +3772,6 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             v:Destroy();
         end
     end
-    SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
     ProtectInstance(GetRoot());
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());

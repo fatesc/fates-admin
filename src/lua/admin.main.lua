@@ -36,7 +36,9 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Chat = game:GetService("Chat");
 local SoundService = game:GetService("SoundService");
 local Lighting = game:GetService("Lighting");
- 
+
+local Camera = Workspace.Camera
+
 LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer and LocalPlayer:GetMouse();
 local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
@@ -1778,6 +1780,10 @@ AddCommand("locate", {}, "locates a player", {"1"}, function(Caller, Args, Tbl)
     for i, v in next, Player do
         Tbl[v.Name] = Utils.Locate(v);
     end
+    if (not UpdatingLocations) then
+        Utils.UpdateLocations();
+    end
+    return "locating player"
 end)
 
 AddCommand("unlocate", {"nolocate"}, "disables location for a player", {"1"}, function(Caller, Args)
@@ -1786,8 +1792,9 @@ AddCommand("unlocate", {"nolocate"}, "disables location for a player", {"1"}, fu
     for i, v in next, Locating do
         for i2, v2 in next, Target do
             if (i == v2.Name) then
-                v:Destroy();
+                v();
                 Utils.Notify(Caller, "Command", v2.Name .. " is no longer being located");
+                break
             else
                 Utils.Notify(Caller, "Command", v2.Name .. " isn't being located");
             end
@@ -1817,7 +1824,7 @@ end)
 
 AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
     Tbl.Billboards = {}
-    table.forEach(Players:GetPlayers(), function(i,v)
+    table.forEach(GetPlayer("others"), function(i,v)
         Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
         AddConnection(v.CharacterAdded:Connect(function()
             v.Character:WaitForChild("HumanoidRootPart");
@@ -1827,9 +1834,10 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
     end);
 
     AddConnection(Players.PlayerAdded:Connect(function(Player)
+        Player.CharacterAdded:Wait();
         Player.Character:WaitForChild("HumanoidRootPart");
         Player.Character:WaitForChild("Head");
-        Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
+        Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
         AddConnection(Player.CharacterAdded:Connect(function()
             Player.Character:WaitForChild("HumanoidRootPart");
             Player.Character:WaitForChild("Head");
@@ -1837,19 +1845,54 @@ AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
         end), Tbl);
     end), Tbl);
 
+    if (not UpdatingLocations) then
+        Utils.UpdateLocations();
+    end
+
     return "esp enabled"
 end)
 
 AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
     local Esp = LoadCommand("esp").CmdExtra
     for i, v in next, Esp.Billboards do
-        if (v:IsA("BillboardGui")) then
-            v:Destroy();
-        end
+        v();
     end
     Esp.Billboards = nil
     DisableAllCmdConnections("esp")
     return "esp disabled"
+end)
+
+AddCommand("trace", {}, "traces a player", {
+    function()
+        return Drawing ~= nil
+    end,
+    "1"
+}, function(Caller, Args, Tbl)
+    local Target = GetPlayer(Args[1]);
+    for i, v in next, Target do
+        Tbl[v.Name] = Utils.Trace(v)
+    end
+
+    if (not UpdatingTracers) then
+        Utils.UpdateTracers();
+    end
+
+    return "tracing player"
+end)
+
+AddCommand("untrace", {"notrace"}, "removes the trace from a player", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local Tracing = LoadCommand("trace").CmdExtra
+    if (not next(Tracing)) then
+        return "you aren't tracing anyone"
+    end
+    for i, v in next, Target do
+        if (Tracing[v.Name]) then
+            Tracing[v.Name]()
+            Tracing[v.Name] = nil
+        end
+    end
+    return "tracing disabled"
 end)
 
 AddCommand("walkto", {}, "walks to a player", {"1", 3}, function(Caller, Args)
@@ -2185,6 +2228,7 @@ AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Ca
     local Speed = Args[1] or 5
     local Spin = Instance.new("BodyAngularVelocity");
     ProtectInstance(Spin);
+    ProtectInstance(GetRoot());
     Spin.Parent = GetRoot();
     Spin.MaxTorque = Vector3.new(0, math.huge, 0);
     Spin.AngularVelocity = Vector3.new(0, Speed, 0);
@@ -2377,7 +2421,6 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             v:Destroy();
         end
     end
-    SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
     ProtectInstance(GetRoot());
     local BodyPos = Instance.new("BodyPosition", GetRoot());
     local BodyGyro = Instance.new("BodyGyro", GetRoot());

@@ -464,7 +464,7 @@ Utils.Rainbow = function(TextObject)
     end)
 end
 
-Utils.Locate = function(Player, Color)
+Utils.Locate2 = function(Player, Color)
     local Billboard = Instance.new("BillboardGui");
     coroutine.wrap(function()
         if (GetCharacter(Player)) then
@@ -514,7 +514,65 @@ Utils.Locate = function(Player, Color)
         end
     end)()
 
-    return Billboard
+    return function()
+        Billboard:Destroy();
+    end
+end
+
+Utils.Vector3toVector2 = function(Vector)
+    local Tuple = Camera:WorldToViewportPoint(Vector)
+    return Vector2.new(Tuple.X, Tuple.Y);
+end
+
+local Locating = {}
+local Drawings = {}
+
+Utils.Locate = function(Plr, Color, OutlineColor)
+    if (not Drawing) then
+        return Utils.Locate2(Plr, Color);
+    end
+    local Head = GetCharacter(Plr) and GetCharacter(Plr).Head
+    if (not Head) then
+        return
+    end
+
+    local Text = Drawing.new("Text");
+    Drawings[#Drawings + 1] = Text
+
+    Text.Position = Utils.Vector3toVector2(Head.Position) + Vector2.new(0, -100, 0);
+    Text.Color = Color or Color3.fromRGB(255, 255, 255);
+    Text.OutlineColor = OutlineColor or Color3.new();
+    Text.Text = ("%s\n[%s] [%s/%s]"):format(Plr.Name, math.floor(GetMagnitude(Plr)), math.floor(GetHumanoid(Plr).Health), math.floor(GetHumanoid(Plr).MaxHealth));
+    Text.Size = 16
+    Text.Transparency = 1
+    Text.Center = true
+    Text.Outline = true
+    Text.Visible = true
+    Locating[Text] = Plr
+    return function()
+        Text:Remove();
+        Locating[Text] = nil
+    end
+end
+
+local UpdatingLocations = false
+Utils.UpdateLocations = function(Toggle)
+    if (not UpdatingLocations) then
+        UpdatingLocations = AddConnection(RunService.Heartbeat:Connect(function()
+            for i, v in next, Locating do
+                if (GetCharacter(v) and GetCharacter(v).Head) then
+                    local Tuple, Viewable = Camera:WorldToViewportPoint(GetCharacter(v).Head.Position);
+                    if (Viewable) then
+                        i.Visible = true
+                        i.Position = Utils.Vector3toVector2(GetCharacter(v).Head.Position) + Vector2.new(0, -100, 0);           
+                        i.Text = ("%s\n[%s] [%s/%s]"):format(v.Name, math.floor(GetMagnitude(v)), math.floor(GetHumanoid(v).Health), math.floor(GetHumanoid(v).MaxHealth));    
+                        continue
+                    end
+                end
+                i.Visible = false
+            end
+        end))
+    end
 end
 
 Utils.CheckTag = function(Plr)
@@ -600,6 +658,8 @@ Utils.Trace = function(Player, Color)
     local Camera = Workspace.Camera
 
     local Tracer = Drawing.new("Line");
+    Drawings[#Drawings + 1] = Tracer
+
     local Tuple = Camera:WorldToViewportPoint(Head.Position);
     Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
     Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y);
@@ -608,19 +668,28 @@ Utils.Trace = function(Player, Color)
     Tracer.Transparency = 1
     Tracer.Visible = true
     Tracing[Player] = Tracer
+    return function()
+        Tracer:Remove();
+        Tracing[Player] = nil
+    end
 end
-local Updating = false
+
+local UpdatingTracers = false
 Utils.UpdateTracers = function()
     if (not Updating) then
-        Updating = true
-        AddConnection(RunService.Heartbeat:Connect(function()
+        UpdatingTracers = AddConnection(RunService.Heartbeat:Connect(function()
             for i, Tracer in next, Tracing do
                 local Head = GetCharacter(i) and GetCharacter(i).Head
                 if (not Head) then
                     continue
                 end
-                local Tuple = Workspace.Camera:WorldToViewportPoint(Head.Position);
-                Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
+                local Tuple, Viewable = Workspace.Camera:WorldToViewportPoint(Head.Position);
+                if (Viewable) then
+                    Tracer.Visible = true
+                    Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
+                else
+                    Tracer.Visible = false
+                end
             end
         end))
     end
@@ -629,5 +698,20 @@ end
 Utils.DestroyTracers = function()
     for i, Tracer in next, Tracers do
         Tracer:Remove();
+    end
+    if (UpdatingTracers) then
+        UpdatingTracers:Disconnect();
+    end
+end
+
+Utils.DestroyDrawings = function()
+    for i, Drawing in next, Drawings do
+        Drawing:Remove();
+    end
+    if (UpdatingTracers) then
+        UpdatingTracers:Disconnect();
+    end
+    if (UpdatingLocations) then
+        UpdatingLocations:Disconnect();
     end
 end
