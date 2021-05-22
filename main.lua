@@ -1851,7 +1851,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                             v2:Destroy();
                         end
                     end
-                    CFrameTool(Tool, GetRoot(v).CFrame)
+                    CFrameTool(Tool, GetRoot(v).CFrame * CFrame.new(0, 6, 0));
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
                     wait();
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
@@ -1875,7 +1875,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     end
     local Humanoid = GetCharacter():FindFirstChildWhichIsA("Humanoid");
     ReplaceCharacter();
-    wait(Players.RespawnTime - (#Target == 1 and .03 or .07)); -- this really kinda depends on ping
+    wait(Players.RespawnTime - (#Target == 1 and .05 or .09)); -- this really kinda depends on ping
     local OldPos = GetRoot().CFrame
     Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
@@ -1914,7 +1914,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                     SpoofInstance(Tool);
                     Tool.Parent = GetCharacter();
                     Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    CFrameTool(Tool, GetRoot(v).CFrame)
+                    CFrameTool(Tool, GetRoot(v).CFrame * CFrame.new(0, 6, 0));
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
                     wait();
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
@@ -2728,6 +2728,65 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     local Stepped = RunService.Stepped:Connect(function()
         Root.Velocity = OldVelocity
         Root.CFrame = OldPos
+    end)
+    wait(2);
+    Root.Anchored = true
+    Stepped:Disconnect();
+    Root.Anchored = false
+    Root.Velocity = OldVelocity
+    Root.CFrame = OldPos
+end)
+
+AddCommand("fling2", {}, "another variant of fling", {}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local Root = GetRoot();
+    local OldPos = Root.CFrame
+    local OldVelocity = Root.Velocity
+    local BodyVelocity = Instance.new("BodyAngularVelocity");
+    ProtectInstance(BodyVelocity);
+    BodyVelocity.MaxTorque = Vector3.new(1, 1, 1) * math.huge
+    BodyVelocity.P = math.huge
+    BodyVelocity.AngularVelocity = Vector3.new(0, 9e5, 0);
+    BodyVelocity.Parent = Root
+
+    local Char = GetCharacter():GetChildren()
+    for i, v in next, Char do
+        if (v:IsA("BasePart")) then
+            v.CanCollide = false
+            v.Massless = true
+            v.Velocity = Vector3.new(0, 0, 0);
+        end
+    end
+    local Noclipping = RunService.Stepped:Connect(function()
+        for i, v in next, Char do
+            if (v:IsA("BasePart")) then
+                v.CanCollide = false
+            end
+        end
+    end)
+    for i, v in next, Target do
+        local Fling
+        Fling = RunService.Stepped:Connect(function()
+            Root.CFrame = GetRoot(v).CFrame
+        end)
+        local Continue = false
+        delay(2, function()
+            Continue = true
+        end)
+        repeat wait() until GetMagnitude(v) >= 60 or Continue
+        Fling:Disconnect()
+    end
+    BodyVelocity:Destroy();
+    Noclipping:Disconnect();
+    for i, v in next, Char do
+        if (v:IsA("BasePart")) then
+            v.CanCollide = true
+            v.Massless = false
+        end
+    end
+    local Stepped = RunService.Stepped:Connect(function()
+        Root.CFrame = OldPos
+        Root.Velocity = OldVelocity        
     end)
     wait(2);
     Root.Anchored = true
@@ -3893,7 +3952,7 @@ AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)"
         Part.CFrame = CFrame.new(0, -10000, 0);
         Part.Size = Vector3.new(2, .2, 1.5);
         Part.Material = "Grass"
-        -- ProtectInstance(Part);
+        ProtectInstance(Part);
         Part.Parent = Workspace
         Part.Anchored = true
 
