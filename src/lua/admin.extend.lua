@@ -299,7 +299,9 @@ mt.__index = newcclosure(function(Instance_, Index)
 
     if (Index == "GetFocusedTextBox") then
         if (table.find(ProtectedInstances, __Index(Instance_, Index)(Instance_))) then
-            return nil
+            return function()
+                return nil
+            end
         end
     end
 

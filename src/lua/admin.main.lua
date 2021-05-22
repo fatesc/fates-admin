@@ -2217,9 +2217,11 @@ end)
 
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
     local BP = LocalPlayer.Backpack
-    ProtectInstance(BP);
     for i = 1, 4 do
-        Instance.new("HopperBin", BP).BinType = i
+        local Bin = Instance.new("HopperBin");
+        Bin.BinType = i
+        ProtectInstance(Bin);
+        Bin.Parent = BP
     end
     return "client sided btools loaded"
 end)
@@ -2228,7 +2230,6 @@ AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Ca
     local Speed = Args[1] or 5
     local Spin = Instance.new("BodyAngularVelocity");
     ProtectInstance(Spin);
-    ProtectInstance(GetRoot());
     Spin.Parent = GetRoot();
     Spin.MaxTorque = Vector3.new(0, math.huge, 0);
     Spin.AngularVelocity = Vector3.new(0, Speed, 0);
@@ -2419,15 +2420,17 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             v:Destroy();
         end
     end
-    ProtectInstance(GetRoot());
-    local BodyPos = Instance.new("BodyPosition", GetRoot());
-    local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    local BodyPos = Instance.new("BodyPosition");
+    local BodyGyro = Instance.new("BodyGyro");
     ProtectInstance(BodyPos);
     ProtectInstance(BodyGyro);
+    SpoofProperty(GetHumanoid(), "FloorMaterial");
+    SpoofProperty(GetHumanoid(), "PlatformStand");
+    BodyPos.Parent = GetRoot();
+    BodyGyro.Parent = GetRoot();    
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyPos.maxForce = Vector3.new(1, 1, 1) * math.huge
-    SpoofProperty(GetHumanoid(), "PlatformStand");
     GetHumanoid().PlatformStand = true
     coroutine.wrap(function()
         BodyPos.Position = GetRoot().Position
@@ -2468,10 +2471,14 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
             v:Destroy();
         end
     end
-    local BodyPos = Instance.new("BodyPosition", GetRoot());
-    local BodyGyro = Instance.new("BodyGyro", GetRoot());
+    local BodyPos = Instance.new("BodyPosition");
+    local BodyGyro = Instance.new("BodyGyro");
     ProtectInstance(BodyPos);
     ProtectInstance(BodyGyro);
+    SpoofProperty(GetHumanoid(), "FloorMaterial");
+    SpoofProperty(GetHumanoid(), "PlatformStand");
+    BodyPos.Parent = GetRoot();
+    BodyGyro.Parent = GetRoot();
     BodyGyro.maxTorque = Vector3.new(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyGyro.D = 0
