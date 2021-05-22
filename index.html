@@ -45,7 +45,7 @@
                 name: v.groups.cmdName,
                 ...parseDesc(v.groups.desc),
                 alias: parseTable(v.groups.alias)
-            }))
+            })).sort((a, b) => a.name.localeCompare(b.name));
             for (let data of parsed) {
                 let newBox = $('#cmdexmaple').clone(false).attr("hidden", false);
                 Object.entries(data).map(([idx, val]) => idx == "alias" ? newBox.find('.cmd' + idx).text(val.join(', ')) : newBox.find('.cmd' + idx).text(val))
