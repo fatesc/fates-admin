@@ -176,6 +176,22 @@ hookfunction = hookfunction or function(func, newfunc)
     return newfunc
 end
 
+getconnections = getconnections or function()
+    return {}
+end
+
+getrawmetatable = getrawmetatable or function()
+    return setmetatable({}, {});
+end
+
+getnamecallmethod = getnamecallmethod or function()
+    return ""
+end
+
+checkcaller = checkcaller or function()
+    return false
+end
+
 local ProtectedInstances = {}
 local SpoofedInstances = {}
 local SpoofedProperties = {}
@@ -403,6 +419,9 @@ local SpoofInstance = function(Instance_, Instance2)
 end
 
 local SpoofProperty = function(Instance_, Property, Value)
+    for i, v in next, getconnections(Instance_:GetPropertyChangedSignal(Property)) do
+        v:Disable();
+    end
     if (SpoofedProperties[Instance_]) then
         local Properties = table.map(SpoofedProperties[Instance_], function(i, v)
             return v.Property
