@@ -1,3 +1,4 @@
+local start = start or tick() or os.clock();
 --[[
     require - extend
 ]]
@@ -16,8 +17,6 @@ end
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
-
-local start = start or tick() or os.clock();
 
 RunService = game:GetService("RunService");
 Players = game:GetService("Players");

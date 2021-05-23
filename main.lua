@@ -1,7 +1,8 @@
 --[[
-	fates admin - 22/5/2021
+	fates admin - 23/5/2021
 ]]
 
+local start = start or tick() or os.clock();
 --IMPORT [extend]
 Debug = true
 if (getconnections) then
@@ -457,8 +458,6 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-local start = start or tick() or os.clock();
-
 RunService = game:GetService("RunService");
 Players = game:GetService("Players");
 UserInputService = game:GetService("UserInputService");
@@ -648,15 +647,7 @@ local LastCommand = {}
 Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
-
-    if ((not is_sirhurt_closure) and (syn and syn.protect_gui)) then
-        syn.protect_gui(Gui);
-        Gui.Parent = Parent or CoreGui
-    elseif (CoreGui:FindFirstChild("RobloxGui")) then
-        Gui.Parent = Parent or CoreGui.RobloxGui
-    else
-        Gui.Parent = Parent or CoreGui
-    end
+    Gui.Parent = Parent or CoreGui
     ProtectInstance(Gui);
     Guis[#Guis + 1] = Gui
     return Gui
@@ -742,6 +733,7 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Name = "Predict"
                     PredictionClone.Size = UDim2.new(1, 0, 1, 0);
                     PredictionClone.BackgroundTransparency = 1
+                    ParentGui(PredictionClone, Frame2);
                 end
             end
         end
@@ -4354,13 +4346,13 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
 
-AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    ParentGui(PredictionClone, Frame2);
-    Frame2:WaitForChild('ChatBar', .1):CaptureFocus();
-    wait();
-    Frame2:WaitForChild('ChatBar', .1).Text = Prefix
-    return "chat prediction enabled"
-end)
+-- AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
+--     ParentGui(PredictionClone, Frame2);
+--     Frame2:WaitForChild('ChatBar', .1):CaptureFocus();
+--     wait();
+--     Frame2:WaitForChild('ChatBar', .1).Text = Prefix
+--     return "chat prediction enabled"
+-- end)
 
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     local Speed = tonumber(Args[1]) or 5

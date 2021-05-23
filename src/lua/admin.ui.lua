@@ -1,15 +1,7 @@
 Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
-
-    if ((not is_sirhurt_closure) and (syn and syn.protect_gui)) then
-        syn.protect_gui(Gui);
-        Gui.Parent = Parent or CoreGui
-    elseif (CoreGui:FindFirstChild("RobloxGui")) then
-        Gui.Parent = Parent or CoreGui.RobloxGui
-    else
-        Gui.Parent = Parent or CoreGui
-    end
+    Gui.Parent = Parent or CoreGui
     ProtectInstance(Gui);
     Guis[#Guis + 1] = Gui
     return Gui
