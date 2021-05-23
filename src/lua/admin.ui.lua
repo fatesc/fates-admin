@@ -1,8 +1,8 @@
 Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
-    Gui.Parent = Parent or CoreGui
     ProtectInstance(Gui);
+    Gui.Parent = Parent or CoreGui
     Guis[#Guis + 1] = Gui
     return Gui
 end

@@ -647,8 +647,8 @@ local LastCommand = {}
 Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
-    Gui.Parent = Parent or CoreGui
     ProtectInstance(Gui);
+    Gui.Parent = Parent or CoreGui
     Guis[#Guis + 1] = Gui
     return Gui
 end
@@ -733,7 +733,6 @@ if (RobloxChatBarFrame) then
                     PredictionClone.Name = "Predict"
                     PredictionClone.Size = UDim2.new(1, 0, 1, 0);
                     PredictionClone.BackgroundTransparency = 1
-                    ParentGui(PredictionClone, Frame2);
                 end
             end
         end
@@ -2187,7 +2186,6 @@ end)
 
 AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
-    SpoofProperty(Workspace.Camera, "CameraSubject");
     for i, v in next, Target do
         Workspace.Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
     end
@@ -2199,7 +2197,6 @@ end)
 
 AddCommand("loopview", {}, "loopviews a user", {3, "1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
-    SpoofProperty(Workspace.Camera, "CameraSubject");
     for i, v in next, Target do
         Workspace.Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
         local LoopView = Workspace.Camera:GetPropertyChangedSignal("CameraSubject"):Connect(function()
@@ -3010,9 +3007,9 @@ AddCommand("firetouchinterests", {"fti"}, "fires all the touch interests", {3}, 
     local howmany = Args[1]
     for i, v in next, Workspace:GetDescendants() do
         if (v:IsA("TouchTransmitter")) then
-            firetouchinterest(Utils.GetRoot(LocalPlayer.Character), v.Parent, 0);
+            firetouchinterest(GetRoot(), v.Parent, 0);
             wait();
-            firetouchinterest(Utils.GetRoot(LocalPlayer.Character), v.Parent, 1);
+            firetouchinterest(GetRoot(), v.Parent, 1);
             amount = amount + 1
             if (howmany and amount == tonumber(howmany)) then break; end
         end
@@ -4148,7 +4145,7 @@ AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, fun
     local ChangeLogs = HttpService:JSONDecode(game:HttpGetAsync("https://api.github.com/repos/fatesc/fates-admin/commits?per_page=100&path=main.lua"));
     ChangeLogs = table.map(ChangeLogs, function(i, v)
         return {
-            ["Author"] = v.author.login,
+            ["Author"] = v.commit.author.name,
             ["Date"] = v.commit.committer.date:gsub("[T|Z]", " "),
             ["Message"] = v.commit.message
         }
@@ -4346,13 +4343,13 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     return ("draggable command bar %s"):format(Draggable and "enabled" or "disabled")
 end)
 
--- AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
---     ParentGui(PredictionClone, Frame2);
---     Frame2:WaitForChild('ChatBar', .1):CaptureFocus();
---     wait();
---     Frame2:WaitForChild('ChatBar', .1).Text = Prefix
---     return "chat prediction enabled"
--- end)
+AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
+    ParentGui(PredictionClone, Frame2);
+    Frame2:WaitForChild('ChatBar', .1):CaptureFocus();
+    wait();
+    Frame2:WaitForChild('ChatBar', .1).Text = Prefix
+    return "chat prediction enabled"
+end)
 
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     local Speed = tonumber(Args[1]) or 5
