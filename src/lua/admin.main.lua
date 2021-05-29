@@ -1,7 +1,4 @@
 local start = start or tick() or os.clock();
---[[
-    require - extend
-]]
 
 UndetectedMode = UndetectedMode or false
 if (not UndetectedMode and not game:IsLoaded()) then
@@ -17,6 +14,10 @@ end
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
+
+--[[
+    require - extend
+]]
 
 RunService = game:GetService("RunService");
 Players = game:GetService("Players");
@@ -2626,27 +2627,35 @@ end)
 
 AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, Tbl)
     local Char = GetCharacter()
-    local Noclipping = RunService.Stepped:Connect(function()
+    local Noclipping = AddConnection(RunService.Stepped:Connect(function()
         for i, v in next, Char:GetChildren() do
             if (v:IsA("BasePart") and v.CanCollide) then
                 SpoofProperty(v, "CanCollide");
                 v.CanCollide = false
             end
         end
-    end)
-    Tbl[1] = Noclipping
+    end), Tbl);
+    local Noclipping2 = AddConnection(GetRoot().Touched:Connect(function(Part)
+        if (Part.CanCollide) then
+            SpoofProperty(Part, "CanCollide");
+            Part.CanCollide = false
+            Part.Transparency = Part.Transparency <= 0.5 and 0.6 or Part.Transparency
+            wait(2);
+            Part.CanCollide = true
+            Part.Transparency = 0
+        end
+    end), Tbl);
     Utils.Notify(Caller, "Command", "noclip enabled");
     GetHumanoid().Died:Wait();
-    Noclipping:Disconnect();
+    DisableAllCmdConnections("noclip");
     return "noclip disabled"
 end)
 
 AddCommand("clip", {}, "disables noclip", {}, function(Caller, Args)
-    local Noclip = LoadCommand("noclip").CmdExtra[1]
-    if (not Noclip) then
+    if (not next(LoadCommand("noclip").CmdExtra)) then
         return "you aren't in noclip"
     else
-        Noclip:Disconnect();
+        DisableAllCmdConnections("noclip");
         return "noclip disabled"
     end
 end)

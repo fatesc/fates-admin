@@ -1,8 +1,24 @@
 --[[
-	fates admin - 23/5/2021
+	fates admin - 29/5/2021
 ]]
 
 local start = start or tick() or os.clock();
+
+UndetectedMode = UndetectedMode or false
+if (not UndetectedMode and not game:IsLoaded()) then
+    print("fates admin: waiting for game to load...");
+    game.Loaded:Wait();
+end
+
+if (game:IsLoaded() and UndetectedMode and syn) then
+    syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+    return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
+end
+
+if (getgenv().F_A and getgenv().F_A.Loaded) then
+    return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
+end
+
 --IMPORT [extend]
 Debug = true
 if (getconnections) then
@@ -442,21 +458,6 @@ local SpoofProperty = function(Instance_, Property, Value)
 end
 --END IMPORT [extend]
 
-
-UndetectedMode = UndetectedMode or false
-if (not UndetectedMode and not game:IsLoaded()) then
-    print("fates admin: waiting for game to load...");
-    game.Loaded:Wait();
-end
-
-if (game:IsLoaded() and UndetectedMode and syn) then
-    syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
-    return game:GetService("TeleportService").TeleportToPlaceInstance(game:GetService("TeleportService"), game.PlaceId, game.JobId);
-end
-
-if (getgenv().F_A and getgenv().F_A.Loaded) then
-    return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
-end
 
 RunService = game:GetService("RunService");
 Players = game:GetService("Players");
@@ -3993,27 +3994,35 @@ end)
 
 AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, Tbl)
     local Char = GetCharacter()
-    local Noclipping = RunService.Stepped:Connect(function()
+    local Noclipping = AddConnection(RunService.Stepped:Connect(function()
         for i, v in next, Char:GetChildren() do
             if (v:IsA("BasePart") and v.CanCollide) then
                 SpoofProperty(v, "CanCollide");
                 v.CanCollide = false
             end
         end
-    end)
-    Tbl[1] = Noclipping
+    end), Tbl);
+    local Noclipping2 = AddConnection(GetRoot().Touched:Connect(function(Part)
+        if (Part.CanCollide) then
+            SpoofProperty(Part, "CanCollide");
+            Part.CanCollide = false
+            Part.Transparency = Part.Transparency <= 0.5 and 0.6 or Part.Transparency
+            wait(2);
+            Part.CanCollide = true
+            Part.Transparency = 0
+        end
+    end), Tbl);
     Utils.Notify(Caller, "Command", "noclip enabled");
     GetHumanoid().Died:Wait();
-    Noclipping:Disconnect();
+    DisableAllCmdConnections("noclip");
     return "noclip disabled"
 end)
 
 AddCommand("clip", {}, "disables noclip", {}, function(Caller, Args)
-    local Noclip = LoadCommand("noclip").CmdExtra[1]
-    if (not Noclip) then
+    if (not next(LoadCommand("noclip").CmdExtra)) then
         return "you aren't in noclip"
     else
-        Noclip:Disconnect();
+        DisableAllCmdConnections("noclip");
         return "noclip disabled"
     end
 end)
