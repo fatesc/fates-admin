@@ -434,3 +434,20 @@ local SpoofProperty = function(Instance_, Property, Value)
         Value = Value and Value or Instance_[Property]
     }}
 end
+
+if (game.PlaceId == 292439477) then
+    local GetBodyParts = nil
+    for i, v in next, getgc(true) do
+        if (type(v) == "table" and rawget(v, "getbodyparts")) then
+            GetBodyParts = rawget(v, "getbodyparts");
+        end
+    end
+    GetCharacter = function(Plr)
+        if (not Plr or Plr == LocalPlayer) then
+            return LocalPlayer.Character            
+        end
+        local Char = GetBodyParts(Plr);
+        Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil 
+		return Plr and Plr.Character or LocalPlayer.Character
+    end
+end

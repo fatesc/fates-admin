@@ -45,23 +45,23 @@ local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
 
 local PluginLibrary = {}
 
-local GetCharacter = function(Plr)
+local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
 end
 PluginLibrary.GetCharacter = GetCharacter
 
 local GetRoot = function(Plr)
-    return Plr and GetCharacter(Plr):FindFirstChild("HumanoidRootPart") or GetCharacter():FindFirstChild("HumanoidRootPart");
+    return Plr and GetCharacter(Plr) and GetCharacter(Plr):FindFirstChild("HumanoidRootPart") or GetCharacter() and GetCharacter():FindFirstChild("HumanoidRootPart");
 end
 PluginLibrary.GetRoot = GetRoot
 
 local GetHumanoid = function(Plr)
-    return Plr and GetCharacter(Plr):FindFirstChildWhichIsA("Humanoid") or GetCharacter():FindFirstChildWhichIsA("Humanoid");
+    return Plr and GetCharacter(Plr) and GetCharacter(Plr):FindFirstChildWhichIsA("Humanoid") or GetCharacter() and GetCharacter():FindFirstChildWhichIsA("Humanoid");
 end
 PluginLibrary.GetHumanoid = GetHumanoid
 
 local GetMagnitude = function(Plr)
-    return Plr and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
+    return Plr and GetRoot(Plr) and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
 PluginLibrary.GetMagnitude = GetMagnitude
 
@@ -289,7 +289,7 @@ local AddCommand = function(name, aliases, description, options, func)
         Function = function()
             for i, v in next, options do
                 if (type(v) == 'function' and v() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", ("You are missing something that is needed for this command (%s)"):format(debug.getinfo(v).namewhat));
+                    Utils.Notify(LocalPlayer, "Fail", ("You are missing something that is needed for this command"));
                     return nil
                 elseif (type(v) == 'number' and CommandRequirements[v].Func() == false) then
                     Utils.Notify(LocalPlayer, "Fail", CommandRequirements[v].Message);
@@ -1950,6 +1950,34 @@ AddCommand("untrace", {"notrace"}, "removes the trace from a player", {"1"}, fun
         end
     end
     return "tracing disabled"
+end)
+
+AddCommand("crosshair", {}, "enables a crosshair", {function()
+    return Drawing ~= nil
+end}, function(Caller, Args, Tbl)
+    if (Tbl[1] and Tbl[2] and Tbl[1].Transparency ~= 0) then
+        Tbl[1]:Remove();
+        Tbl[2]:Remove();
+        Tbl[1] = nil
+        Tbl[2] = nil
+        return "crosshair disabled"
+    end
+    local Viewport = Camera.ViewportSize
+    local Y = Drawing.new("Line");
+    local X = Drawing.new("Line");
+    Y.Thickness = 1
+    X.Thickness = 1
+    Y.Transparency = 1
+    X.Transparency = 1
+    Y.Visible = true
+    X.Visible = true
+    Y.To = Vector2.new(Viewport.X / 2, Viewport.Y / 2 - 10);
+    X.To = Vector2.new(Viewport.X / 2 - 10, Viewport.Y / 2);
+    Y.From = Vector2.new(Viewport.X / 2, Viewport.Y / 2 + 10);
+    X.From = Vector2.new(Viewport.X / 2 + 10, Viewport.Y / 2);
+    Tbl[1] = Y
+    Tbl[2] = X
+    return "crosshair enabled"
 end)
 
 AddCommand("walkto", {}, "walks to a player", {"1", 3}, function(Caller, Args)
