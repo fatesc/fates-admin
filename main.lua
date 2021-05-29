@@ -1,5 +1,5 @@
 --[[
-	fates admin - 30/5/2021
+    fates admin - 30/5/2021
 ]]
 
 local start = start or tick() or os.clock();
@@ -207,6 +207,10 @@ end
 
 checkcaller = checkcaller or function()
     return false
+end
+
+getgc = getgc or function()
+    return {}
 end
 
 local ProtectedInstances = {}
@@ -470,7 +474,7 @@ if (game.PlaceId == 292439477) then
         end
         local Char = GetBodyParts(Plr);
         Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil 
-		return Plr and Plr.Character or LocalPlayer.Character
+        return Plr and Plr.Character or LocalPlayer.Character
     end
 end
 --END IMPORT [extend]
@@ -4451,13 +4455,13 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
-	local Target = GetPlayer(Args[1])[1];
+    local Target = GetPlayer(Args[1])[1];
     if (Target == LocalPlayer) then
         return "You cannot orbit yourself."
     end
-	local Radius = tonumber(Args[3]) or 7
-	local Speed = tonumber(Args[2]) or 1
-	local random = math.random(tick() / 2, tick());
+    local Radius = tonumber(Args[3]) or 7
+    local Speed = tonumber(Args[2]) or 1
+    local random = math.random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
         Root.CFrame = CFrame.new(TRoot.Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), TRoot.Position);

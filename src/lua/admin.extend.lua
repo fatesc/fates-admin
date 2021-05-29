@@ -187,6 +187,10 @@ checkcaller = checkcaller or function()
     return false
 end
 
+getgc = getgc or function()
+    return {}
+end
+
 local ProtectedInstances = {}
 local SpoofedInstances = {}
 local SpoofedProperties = {}
