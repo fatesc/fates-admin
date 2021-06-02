@@ -294,7 +294,7 @@ mt.__index = newcclosure(function(Instance_, Index)
     if (checkcaller()) then
         return __Index(Instance_, Index);
     end
-
+OldIndex = type(Index) == 'string' and Index:gsub("%z", function(x) return x end)
     Index = type(Index) == 'string' and Index:gsub("%z", function(x)
         return x
     end):gsub("%z", "") or Index
@@ -331,7 +331,7 @@ mt.__index = newcclosure(function(Instance_, Index)
         end
     end
 
-    return __Index(Instance_, Index);
+    return __Index(Instance_, OldIndex);
 end)
 
 mt.__newindex = newcclosure(function(Instance_, Index, Value)
@@ -815,6 +815,11 @@ PlayerTags = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
         ["Colour"] = {134,0,125} -- more accurate colour for tes.
+    },
+    ["545551525553"] = {
+        ["Tag"] = "Contributor",
+        ["Name"] = "Stan",
+        ["Rainbow"] = true
     }
 }
 
@@ -4264,6 +4269,19 @@ AddCommand("exceptions", {}, "blocks user from being used in stuff like kill all
         Utils.Notify(Caller, "Command", v.Name .. " is added to the exceptions list");
     end
 end)
+AddCommand("blockhats", {}, "turns all your hats into blocks (won't work in r15)", {}, function(Caller, Args)
+    for i,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+    if v:IsA("Accessory") then
+    if v.Handle:FindFirstChildOfClass("SpecialMesh") then						
+    v.Handle:FindFirstChildOfClass("SpecialMesh"):Destroy()
+    return "done"
+    else
+     return "command does not work in this game"
+            end
+        end
+     end
+end)
+
 
 AddCommand("noexception", {}, "removes user from exceptions list", {"1"}, function(Caller, Args)
     for i2, v2 in next, Exceptions do
