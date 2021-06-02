@@ -273,16 +273,16 @@ mt.__index = newcclosure(function(Instance_, Index)
         return __Index(Instance_, Index);
     end
 
-    Index = type(Index) == 'string' and Index:gsub("%z", function(x)
+    local SanitisedIndex = type(Index) == 'string' and Index:gsub("%z", function(x)
         return x
     end):gsub("%z", "") or Index
-    
+
     local ProtectedInstance = ProtectedInstances[Instance_]
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (SpoofedInstance) then
-        if (table.find(AllowedIndexes, Index)) then
+        if (table.find(AllowedIndexes, SanitisedIndex)) then
             return __Index(Instance_, Index);
         end
         if (Instance_:IsA("Humanoid") and game.PlaceId == 6650331930) then
@@ -295,16 +295,16 @@ mt.__index = newcclosure(function(Instance_, Index)
 
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
-            if (Index == SpoofedProperty.Property) then
+            if (SanitisedIndex == SpoofedProperty.Property) then
                 return SpoofedProperty.Value
             end
         end
     end
 
     if (ProtectedInstance) then
-        if (table.find(Methods, Index)) then
+        if (table.find(Methods, SanitisedIndex)) then
             return function()
-                return Index == "IsA" and false or nil
+                return SanitisedIndex == "IsA" and false or nil
             end
         end
     end
