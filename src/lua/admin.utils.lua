@@ -561,7 +561,7 @@ end
 local UpdatingLocations = false
 Utils.UpdateLocations = function(Toggle)
     if (not UpdatingLocations) then
-        UpdatingLocations = AddConnection(RunService.Heartbeat:Connect(function()
+        UpdatingLocations = AddConnection(RunService.RenderStepped:Connect(function()
             for i, v in next, Locating do
                 if (GetCharacter(v) and GetCharacter(v).Head) then
                     local Tuple, Viewable = Camera:WorldToViewportPoint(GetCharacter(v).Head.Position);
@@ -680,7 +680,7 @@ end
 local UpdatingTracers = false
 Utils.UpdateTracers = function()
     if (not Updating) then
-        UpdatingTracers = AddConnection(RunService.Heartbeat:Connect(function()
+        UpdatingTracers = AddConnection(RunService.RenderStepped:Connect(function()
             for i, Tracer in next, Tracing do
                 local Head = GetCharacter(i) and GetCharacter(i).Head
                 if (not Head) then

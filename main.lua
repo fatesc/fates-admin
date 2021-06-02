@@ -1,5 +1,5 @@
 --[[
-    fates admin - 30/5/2021
+	fates admin - 2/6/2021
 ]]
 
 local start = start or tick() or os.clock();
@@ -331,22 +331,6 @@ mt.__index = newcclosure(function(Instance_, Index)
         end
     end
 
-    if (Index == "GetChildren" or Index == "GetDescendants") then
-        return function()
-            return table.filter(__Index(Instance_, Index)(Instance_), function(i, v)
-                return not table.find(ProtectedInstances, v);
-            end)
-        end
-    end
-
-    if (Index == "GetFocusedTextBox") then
-        if (table.find(ProtectedInstances, __Index(Instance_, Index)(Instance_))) then
-            return function()
-                return nil
-            end
-        end
-    end
-
     return __Index(Instance_, Index);
 end)
 
@@ -377,6 +361,43 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
 end)
 
 setreadonly(mt, true);
+
+local OldGetChildren
+OldGetChildren = hookfunction(game.GetChildren, function(...)
+    if (not checkcaller()) then
+        local Children = OldGetChildren(...);
+        if (table.find(Children, ProtectedInstances)) then
+            return table.filter(Children, function(i, v)
+                return not table.find(ProtectedInstances, v);
+            end)
+        end
+    end
+    return OldGetChildren(...);
+end)
+
+local OldGetDescendants
+OldGetDescendants = hookfunction(game.GetDescendants, function(...)
+    if (not checkcaller()) then
+        local Descendants = OldGetDescendants(self, ...);
+        if (table.find(Descendants, ProtectedInstances)) then
+            return table.filter(Descendants, function(i, v)
+                return not table.find(ProtectedInstances, v);
+            end)
+        end
+    end
+    return OldGetDescendants(...);
+end)
+
+local OldGetFocusedTextBox
+OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocusedTextBox, function(...)
+    if (not checkcaller()) then
+        local FocusedTextBox = OldGetFocusedTextBox(...);
+        if (FocusedTextBox and table.find(ProtectedInstances, FocusedTextBox)) then
+            return nil
+        end
+    end
+    return OldGetFocusedTextBox(...);
+end)
 
 local OldKick
 OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
@@ -474,7 +495,7 @@ if (game.PlaceId == 292439477) then
         end
         local Char = GetBodyParts(Plr);
         Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil 
-        return Plr and Plr.Character or LocalPlayer.Character
+		return Plr and Plr.Character or LocalPlayer.Character
     end
 end
 --END IMPORT [extend]
@@ -4455,13 +4476,13 @@ AddCommand("x", {}, "", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
-    local Target = GetPlayer(Args[1])[1];
+	local Target = GetPlayer(Args[1])[1];
     if (Target == LocalPlayer) then
         return "You cannot orbit yourself."
     end
-    local Radius = tonumber(Args[3]) or 7
-    local Speed = tonumber(Args[2]) or 1
-    local random = math.random(tick() / 2, tick());
+	local Radius = tonumber(Args[3]) or 7
+	local Speed = tonumber(Args[2]) or 1
+	local random = math.random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(RunService.Heartbeat:Connect(function()
         Root.CFrame = CFrame.new(TRoot.Position + Vector3.new(math.sin(tick() + random * Speed) * Radius, 0, math.cos(tick() + random * Speed) * Radius), TRoot.Position);

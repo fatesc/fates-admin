@@ -309,22 +309,6 @@ mt.__index = newcclosure(function(Instance_, Index)
         end
     end
 
-    if (Index == "GetChildren" or Index == "GetDescendants") then
-        return function()
-            return table.filter(__Index(Instance_, Index)(Instance_), function(i, v)
-                return not table.find(ProtectedInstances, v);
-            end)
-        end
-    end
-
-    if (Index == "GetFocusedTextBox") then
-        if (table.find(ProtectedInstances, __Index(Instance_, Index)(Instance_))) then
-            return function()
-                return nil
-            end
-        end
-    end
-
     return __Index(Instance_, Index);
 end)
 
@@ -355,6 +339,43 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
 end)
 
 setreadonly(mt, true);
+
+local OldGetChildren
+OldGetChildren = hookfunction(game.GetChildren, function(...)
+    if (not checkcaller()) then
+        local Children = OldGetChildren(...);
+        if (table.find(Children, ProtectedInstances)) then
+            return table.filter(Children, function(i, v)
+                return not table.find(ProtectedInstances, v);
+            end)
+        end
+    end
+    return OldGetChildren(...);
+end)
+
+local OldGetDescendants
+OldGetDescendants = hookfunction(game.GetDescendants, function(...)
+    if (not checkcaller()) then
+        local Descendants = OldGetDescendants(self, ...);
+        if (table.find(Descendants, ProtectedInstances)) then
+            return table.filter(Descendants, function(i, v)
+                return not table.find(ProtectedInstances, v);
+            end)
+        end
+    end
+    return OldGetDescendants(...);
+end)
+
+local OldGetFocusedTextBox
+OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocusedTextBox, function(...)
+    if (not checkcaller()) then
+        local FocusedTextBox = OldGetFocusedTextBox(...);
+        if (FocusedTextBox and table.find(ProtectedInstances, FocusedTextBox)) then
+            return nil
+        end
+    end
+    return OldGetFocusedTextBox(...);
+end)
 
 local OldKick
 OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
