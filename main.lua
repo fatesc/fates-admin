@@ -1,14 +1,14 @@
 --[[
-	fates admin - 2/6/2021
+	fates admin - 3/6/2021
 ]]
-
-local start = start or tick() or os.clock();
 
 UndetectedMode = UndetectedMode or false
 if (not UndetectedMode and not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     game.Loaded:Wait();
 end
+
+local start = start or tick() or os.clock();
 
 if (game:IsLoaded() and UndetectedMode and syn) then
     syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
@@ -17,6 +17,33 @@ end
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
+end
+
+RunService = game:GetService("RunService");
+Players = game:GetService("Players");
+UserInputService = game:GetService("UserInputService");
+local Workspace = game:GetService("Workspace");
+local ReplicatedStorage = game:GetService("ReplicatedStorage");
+local StarterPlayer = game:GetService("StarterPlayer");
+local StarterPack = game:GetService("StarterPack");
+local StarterGui = game:GetService("StarterGui");
+local TeleportService = game:GetService("TeleportService");
+local CoreGui = game:GetService("CoreGui");
+local TweenService = game:GetService("TweenService");
+local HttpService = game:GetService("HttpService");
+local TextService = game:GetService("TextService");
+local MarketplaceService = game:GetService("MarketplaceService")
+local Chat = game:GetService("Chat");
+local SoundService = game:GetService("SoundService");
+local Lighting = game:GetService("Lighting");
+
+local Camera = Workspace.Camera
+
+LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer and LocalPlayer:GetMouse();
+
+local GetCharacter = GetCharacter or function(Plr)
+    return Plr and Plr.Character or LocalPlayer.Character
 end
 
 --IMPORT [extend]
@@ -229,6 +256,8 @@ local AllowedIndexes = {
 local AllowedNewIndexes = {
     "Jump"
 }
+local SilentAimingPlayers = {} -- when i get the ui i'll make it support multiple players
+local SilentAimingPlayer = nil
 local AntiKick = false
 local AntiTeleport = false
 
@@ -253,6 +282,8 @@ mt.__namecall = newcclosure(function(self, ...)
         return __Namecall(self, ...);
     end
     
+    local Args = {...}
+
     local Method = getnamecallmethod():gsub("%z", function(x)
         return x
     end):gsub("%z", "");
@@ -277,6 +308,20 @@ mt.__namecall = newcclosure(function(self, ...)
         end
     end
 
+    if (self == Workspace == Method == "FindPartOnRay" and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            return Char.Head, Char.Head.Position
+        end
+    end
+
+    if (self == Workspace and Method == "RayCast" and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            -- return Char.Head
+        end
+    end
+
     if (AntiKick and string.lower(Method) == "kick") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
         return
@@ -287,7 +332,7 @@ mt.__namecall = newcclosure(function(self, ...)
         return
     end
 
-    return __Namecall(self, ...);
+    return __Namecall(self, unpack(Args));
 end)
 
 mt.__index = newcclosure(function(Instance_, Index)
@@ -327,6 +372,22 @@ mt.__index = newcclosure(function(Instance_, Index)
         if (table.find(Methods, SanitisedIndex)) then
             return function()
                 return SanitisedIndex == "IsA" and false or nil
+            end
+        end
+    end
+
+    if (Instance_ == Mouse and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char.Head.Position);
+            if (SanitisedIndex:lower() == "target") then
+                return Char.Head
+            elseif (SanitisedIndex:lower() == "hit") then
+                return Char.Head.CFrame
+            elseif (SanitisedIndex:lower() == "x" and Viewable) then
+                return ViewportPoint.X
+            elseif (SanitisedIndex == "y" and Viewable) then
+                return ViewportPoint.Y
             end
         end
     end
@@ -378,7 +439,7 @@ end)
 local OldGetDescendants
 OldGetDescendants = hookfunction(game.GetDescendants, function(...)
     if (not checkcaller()) then
-        local Descendants = OldGetDescendants(self, ...);
+        local Descendants = OldGetDescendants(...);
         if (table.find(Descendants, ProtectedInstances)) then
             return table.filter(Descendants, function(i, v)
                 return not table.find(ProtectedInstances, v);
@@ -437,6 +498,15 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
     end
     return OldGetMemoryUsageMbForTag(self, ...);
 end))
+
+local OldFindPartOnRay
+OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, function(...)
+    local Char = GetCharacter(SilentAimingPlayer);
+    if (Char and Char.Head) then
+        return Char.Head 
+    end
+    return OldFindPartOnRay(...);
+end)
 
 for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
     v:Disable();
@@ -501,35 +571,11 @@ end
 --END IMPORT [extend]
 
 
-RunService = game:GetService("RunService");
-Players = game:GetService("Players");
-UserInputService = game:GetService("UserInputService");
-local Workspace = game:GetService("Workspace");
-local ReplicatedStorage = game:GetService("ReplicatedStorage");
-local StarterPlayer = game:GetService("StarterPlayer");
-local StarterPack = game:GetService("StarterPack");
-local StarterGui = game:GetService("StarterGui");
-local TeleportService = game:GetService("TeleportService");
-local CoreGui = game:GetService("CoreGui");
-local TweenService = game:GetService("TweenService");
-local HttpService = game:GetService("HttpService");
-local TextService = game:GetService("TextService");
-local MarketplaceService = game:GetService("MarketplaceService")
-local Chat = game:GetService("Chat");
-local SoundService = game:GetService("SoundService");
-local Lighting = game:GetService("Lighting");
-
-local Camera = Workspace.Camera
-
-LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer and LocalPlayer:GetMouse();
 local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
 
 local PluginLibrary = {}
 
-local GetCharacter = GetCharacter or function(Plr)
-    return Plr and Plr.Character or LocalPlayer.Character
-end
+
 PluginLibrary.GetCharacter = GetCharacter
 
 local GetRoot = function(Plr)
@@ -4519,6 +4565,24 @@ AddCommand("shiftlock", {}, "enables shiftlock in your game (some games have it 
     end
     LocalPlayer.DevEnableMouseLock = true
     return "shiftlock is now on"
+end)
+
+AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])[1];
+    if (setclipboard) then
+        setclipboard(Target.Name);
+    else
+        Frame2.Chatbar:CaptureFocus();
+        wait();
+        Frame2.Chatbar.Text = Target.Name
+    end
+    return "copied " + Target.Name + "'s username"
+end)
+
+AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])[1];
+    SilentAimingPlayer = Target
+    return "now silent aiming " .. Target.Name
 end)
 
 local PlrChat = function(i, plr)

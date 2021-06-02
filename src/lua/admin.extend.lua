@@ -207,6 +207,8 @@ local AllowedIndexes = {
 local AllowedNewIndexes = {
     "Jump"
 }
+local SilentAimingPlayers = {} -- when i get the ui i'll make it support multiple players
+local SilentAimingPlayer = nil
 local AntiKick = false
 local AntiTeleport = false
 
@@ -231,6 +233,8 @@ mt.__namecall = newcclosure(function(self, ...)
         return __Namecall(self, ...);
     end
     
+    local Args = {...}
+
     local Method = getnamecallmethod():gsub("%z", function(x)
         return x
     end):gsub("%z", "");
@@ -255,6 +259,20 @@ mt.__namecall = newcclosure(function(self, ...)
         end
     end
 
+    if (self == Workspace == Method == "FindPartOnRay" and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            return Char.Head, Char.Head.Position
+        end
+    end
+
+    if (self == Workspace and Method == "RayCast" and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            -- return Char.Head
+        end
+    end
+
     if (AntiKick and string.lower(Method) == "kick") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", ("attempt to kick with message \"%s\""):format(Args[1]));
         return
@@ -265,7 +283,7 @@ mt.__namecall = newcclosure(function(self, ...)
         return
     end
 
-    return __Namecall(self, ...);
+    return __Namecall(self, unpack(Args));
 end)
 
 mt.__index = newcclosure(function(Instance_, Index)
@@ -305,6 +323,22 @@ mt.__index = newcclosure(function(Instance_, Index)
         if (table.find(Methods, SanitisedIndex)) then
             return function()
                 return SanitisedIndex == "IsA" and false or nil
+            end
+        end
+    end
+
+    if (Instance_ == Mouse and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char.Head.Position);
+            if (SanitisedIndex:lower() == "target") then
+                return Char.Head
+            elseif (SanitisedIndex:lower() == "hit") then
+                return Char.Head.CFrame
+            elseif (SanitisedIndex:lower() == "x" and Viewable) then
+                return ViewportPoint.X
+            elseif (SanitisedIndex == "y" and Viewable) then
+                return ViewportPoint.Y
             end
         end
     end
@@ -356,7 +390,7 @@ end)
 local OldGetDescendants
 OldGetDescendants = hookfunction(game.GetDescendants, function(...)
     if (not checkcaller()) then
-        local Descendants = OldGetDescendants(self, ...);
+        local Descendants = OldGetDescendants(...);
         if (table.find(Descendants, ProtectedInstances)) then
             return table.filter(Descendants, function(i, v)
                 return not table.find(ProtectedInstances, v);
@@ -415,6 +449,15 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
     end
     return OldGetMemoryUsageMbForTag(self, ...);
 end))
+
+local OldFindPartOnRay
+OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, function(...)
+    local Char = GetCharacter(SilentAimingPlayer);
+    if (Char and Char.Head) then
+        return Char.Head 
+    end
+    return OldFindPartOnRay(...);
+end)
 
 for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
     v:Disable();

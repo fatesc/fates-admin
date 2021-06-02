@@ -1,10 +1,10 @@
-local start = start or tick() or os.clock();
-
 UndetectedMode = UndetectedMode or false
 if (not UndetectedMode and not game:IsLoaded()) then
     print("fates admin: waiting for game to load...");
     game.Loaded:Wait();
 end
+
+local start = start or tick() or os.clock();
 
 if (game:IsLoaded() and UndetectedMode and syn) then
     syn.queue_on_teleport("loadstring(game:HttpGet(\"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
@@ -14,10 +14,6 @@ end
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
-
---[[
-    require - extend
-]]
 
 RunService = game:GetService("RunService");
 Players = game:GetService("Players");
@@ -41,13 +37,20 @@ local Camera = Workspace.Camera
 
 LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer and LocalPlayer:GetMouse();
-local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
-
-local PluginLibrary = {}
 
 local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
 end
+
+--[[
+    require - extend
+]]
+
+local PlayerGui = LocalPlayer and LocalPlayer:FindFirstChildOfClass('PlayerGui')
+
+local PluginLibrary = {}
+
+
 PluginLibrary.GetCharacter = GetCharacter
 
 local GetRoot = function(Plr)
@@ -3110,6 +3113,24 @@ AddCommand("shiftlock", {}, "enables shiftlock in your game (some games have it 
     end
     LocalPlayer.DevEnableMouseLock = true
     return "shiftlock is now on"
+end)
+
+AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])[1];
+    if (setclipboard) then
+        setclipboard(Target.Name);
+    else
+        Frame2.Chatbar:CaptureFocus();
+        wait();
+        Frame2.Chatbar.Text = Target.Name
+    end
+    return "copied " + Target.Name + "'s username"
+end)
+
+AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])[1];
+    SilentAimingPlayer = Target
+    return "now silent aiming " .. Target.Name
 end)
 
 local PlrChat = function(i, plr)
