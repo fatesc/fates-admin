@@ -314,7 +314,7 @@ mt.__index = newcclosure(function(Instance_, Index)
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
             if (SanitisedIndex == SpoofedProperty.Property) then
-                return SpoofedProperty.Value
+                return __Index(SpoofedProperty.Property, Index);
             end
         end
     end
@@ -358,13 +358,13 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
         if (table.find(AllowedNewIndexes, Index)) then
             return __NewIndex(Instance_, Index, Value);
         end
-        return __NewIndex(SpoofedInstance, Index, SpoofedInstance[Index]);
+        return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
     end
 
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
             if (SpoofedProperty.Property == Index) then
-                return Instance_[Index]
+                return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
             end
         end
     end
@@ -481,7 +481,7 @@ local SpoofInstance = function(Instance_, Instance2)
     end
 end
 
-local SpoofProperty = function(Instance_, Property, Value)
+local SpoofProperty = function(Instance_, Property)
     for i, v in next, getconnections(Instance_:GetPropertyChangedSignal(Property)) do
         v:Disable();
     end
@@ -491,15 +491,15 @@ local SpoofProperty = function(Instance_, Property, Value)
         end)
         if (not table.find(Properties, Property)) then
             table.insert(SpoofedProperties[Instance_], {
+                SpoofedProperty = Instance_:Clone(),
                 Property = Property,
-                Value = Value and Value or Instance_[Property]
             });
         end
         return
     end
     SpoofedProperties[Instance_] = {{
+        SpoofedProperty = Instance_:Clone(),
         Property = Property,
-        Value = Value and Value or Instance_[Property]
     }}
 end
 
