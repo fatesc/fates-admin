@@ -207,7 +207,6 @@ local AllowedIndexes = {
 local AllowedNewIndexes = {
     "Jump"
 }
-local SilentAimingPlayers = {} -- when i get the ui i'll make it support multiple players
 local SilentAimingPlayer = nil
 local AntiKick = false
 local AntiTeleport = false
@@ -321,9 +320,9 @@ mt.__index = newcclosure(function(Instance_, Index)
 
     if (ProtectedInstance) then
         if (table.find(Methods, SanitisedIndex)) then
-            return function()
+            return newcclosure(function()
                 return SanitisedIndex == "IsA" and false or nil
-            end
+            end);
         end
     end
 
@@ -388,7 +387,7 @@ OldGetChildren = hookfunction(game.GetChildren, function(...)
 end)
 
 local OldGetDescendants
-OldGetDescendants = hookfunction(game.GetDescendants, function(...)
+OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
     if (not checkcaller()) then
         local Descendants = OldGetDescendants(...);
         if (table.find(Descendants, ProtectedInstances)) then
@@ -398,10 +397,10 @@ OldGetDescendants = hookfunction(game.GetDescendants, function(...)
         end
     end
     return OldGetDescendants(...);
-end)
+end))
 
 local OldGetFocusedTextBox
-OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocusedTextBox, function(...)
+OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller()) then
         local FocusedTextBox = OldGetFocusedTextBox(...);
         if (FocusedTextBox and table.find(ProtectedInstances, FocusedTextBox)) then
@@ -409,7 +408,7 @@ OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocus
         end
     end
     return OldGetFocusedTextBox(...);
-end)
+end))
 
 local OldKick
 OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
@@ -451,13 +450,13 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
 end))
 
 local OldFindPartOnRay
-OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, function(...)
+OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(...)
     local Char = GetCharacter(SilentAimingPlayer);
     if (Char and Char.Head) then
         return Char.Head 
     end
     return OldFindPartOnRay(...);
-end)
+end))
 
 for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
     v:Disable();
@@ -491,7 +490,7 @@ local SpoofProperty = function(Instance_, Property)
         end)
         if (not table.find(Properties, Property)) then
             table.insert(SpoofedProperties[Instance_], {
-                SpoofedProperty = Instance_:Clone(),
+                SpoofedProperty = SpoofedProperties[Instance_].SpoofedProperty,
                 Property = Property,
             });
         end
@@ -511,8 +510,8 @@ if (game.PlaceId == 292439477) then
         end
     end
     GetCharacter = function(Plr)
-        if (not Plr or Plr == LocalPlayer) then
-            return LocalPlayer.Character            
+        if (not Plr or Plr == LocalPlayer and not GetBodyParts) then
+            return LocalPlayer.Character
         end
         local Char = GetBodyParts(Plr);
         Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil 

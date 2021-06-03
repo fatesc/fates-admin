@@ -256,7 +256,6 @@ local AllowedIndexes = {
 local AllowedNewIndexes = {
     "Jump"
 }
-local SilentAimingPlayers = {} -- when i get the ui i'll make it support multiple players
 local SilentAimingPlayer = nil
 local AntiKick = false
 local AntiTeleport = false
@@ -370,9 +369,9 @@ mt.__index = newcclosure(function(Instance_, Index)
 
     if (ProtectedInstance) then
         if (table.find(Methods, SanitisedIndex)) then
-            return function()
+            return newcclosure(function()
                 return SanitisedIndex == "IsA" and false or nil
-            end
+            end);
         end
     end
 
@@ -437,7 +436,7 @@ OldGetChildren = hookfunction(game.GetChildren, function(...)
 end)
 
 local OldGetDescendants
-OldGetDescendants = hookfunction(game.GetDescendants, function(...)
+OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
     if (not checkcaller()) then
         local Descendants = OldGetDescendants(...);
         if (table.find(Descendants, ProtectedInstances)) then
@@ -447,10 +446,10 @@ OldGetDescendants = hookfunction(game.GetDescendants, function(...)
         end
     end
     return OldGetDescendants(...);
-end)
+end))
 
 local OldGetFocusedTextBox
-OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocusedTextBox, function(...)
+OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller()) then
         local FocusedTextBox = OldGetFocusedTextBox(...);
         if (FocusedTextBox and table.find(ProtectedInstances, FocusedTextBox)) then
@@ -458,7 +457,7 @@ OldGetFocusedTextBox = hookfunction(game:GetService("UserInputService").GetFocus
         end
     end
     return OldGetFocusedTextBox(...);
-end)
+end))
 
 local OldKick
 OldKick = hookfunction(Instance.new("Player").Kick, newcclosure(function(self, ...)
@@ -500,13 +499,13 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
 end))
 
 local OldFindPartOnRay
-OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, function(...)
+OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(...)
     local Char = GetCharacter(SilentAimingPlayer);
     if (Char and Char.Head) then
         return Char.Head 
     end
     return OldFindPartOnRay(...);
-end)
+end))
 
 for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
     v:Disable();
@@ -530,7 +529,7 @@ local SpoofInstance = function(Instance_, Instance2)
     end
 end
 
-local SpoofProperty = function(Instance_, Property, Value)
+local SpoofProperty = function(Instance_, Property)
     for i, v in next, getconnections(Instance_:GetPropertyChangedSignal(Property)) do
         v:Disable();
     end
@@ -540,9 +539,8 @@ local SpoofProperty = function(Instance_, Property, Value)
         end)
         if (not table.find(Properties, Property)) then
             table.insert(SpoofedProperties[Instance_], {
-                SpoofedProperty = Instance_:Clone(),
+                SpoofedProperty = SpoofedProperties[Instance_].SpoofedProperty,
                 Property = Property,
-                Value = Value and Value or Instance_[Property]
             });
         end
         return
@@ -550,7 +548,6 @@ local SpoofProperty = function(Instance_, Property, Value)
     SpoofedProperties[Instance_] = {{
         SpoofedProperty = Instance_:Clone(),
         Property = Property,
-        Value = Value and Value or Instance_[Property]
     }}
 end
 
@@ -1346,7 +1343,7 @@ Utils.Locate2 = function(Player, Color)
             Billboard.Parent = UI
             Billboard.Name = HttpService:GenerateGUID();
             Billboard.AlwaysOnTop = true
-            Billboard.Adornee = Player.Character.Head
+            Billboard.Adornee = Player.Character:FindFirstChild("Head");
             Billboard.Size = UDim2.new(0, 200, 0, 50)
             Billboard.StudsOffset = Vector3.new(0, 4, 0);
 
@@ -1406,7 +1403,7 @@ Utils.Locate = function(Plr, Color, OutlineColor)
     if (not Drawing) then
         return Utils.Locate2(Plr, Color);
     end
-    local Head = GetCharacter(Plr) and GetCharacter(Plr).Head
+    local Head = GetCharacter(Plr) and GetCharacter(Plr):FindFirstChild("Head");
     if (not Head) then
         return
     end
@@ -1435,7 +1432,7 @@ Utils.UpdateLocations = function(Toggle)
     if (not UpdatingLocations) then
         UpdatingLocations = AddConnection(RunService.RenderStepped:Connect(function()
             for i, v in next, Locating do
-                if (GetCharacter(v) and GetCharacter(v).Head) then
+                if (GetCharacter(v) and GetCharacter(v):FindFirstChild("Head")) then
                     local Tuple, Viewable = Camera:WorldToViewportPoint(GetCharacter(v).Head.Position);
                     if (Viewable) then
                         i.Visible = true
@@ -1445,6 +1442,10 @@ Utils.UpdateLocations = function(Toggle)
                     end
                 end
                 i.Visible = false
+                if (v == nil) then
+                    i:Remove();
+                    Locating[v] = nil
+                end
             end
         end))
     end
@@ -1473,8 +1474,8 @@ Utils.AddTag = function(Tag)
     Billboard.Parent = UI
     Billboard.Name = HttpService:GenerateGUID();
     Billboard.AlwaysOnTop = true
-    Billboard.Adornee = PlrCharacter.Head or nil
-    Billboard.Enabled = PlrCharacter.Head and true or false
+    Billboard.Adornee = PlrCharacter:FindFirstChild("Head") or nil
+    Billboard.Enabled = PlrCharacter:FindFirstChild("Head") and true or false
     Billboard.Size = UDim2.new(0, 200, 0, 50)
     Billboard.StudsOffset = Vector3.new(0, 4, 0);
 
@@ -1526,7 +1527,7 @@ Utils.Trace = function(Player, Color)
     if (not Drawing) then
         return
     end
-    local Head = GetCharacter(Player) and GetCharacter(Player).Head
+    local Head = GetCharacter(Player) and GetCharacter(Player):FindFirstChild("Head");
     if (not Head) then
         return
     end
@@ -1554,8 +1555,13 @@ Utils.UpdateTracers = function()
     if (not Updating) then
         UpdatingTracers = AddConnection(RunService.RenderStepped:Connect(function()
             for i, Tracer in next, Tracing do
-                local Head = GetCharacter(i) and GetCharacter(i).Head
+                if (i == nil) then
+                    Tracer:Remove();
+                    Tracing[Tracer] = nil
+                end
+                local Head = GetCharacter(i) and GetCharacter(i):FindFirstChild("Head");
                 if (not Head) then
+                    Tracer.Visible = false
                     continue
                 end
                 local Tuple, Viewable = Workspace.Camera:WorldToViewportPoint(Head.Position);
@@ -4123,11 +4129,12 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, T
     local Noclipping2 = AddConnection(GetRoot().Touched:Connect(function(Part)
         if (Part.CanCollide) then
             SpoofProperty(Part, "CanCollide");
+            local OldTransparency = Part.Transparency
             Part.CanCollide = false
             Part.Transparency = Part.Transparency <= 0.5 and 0.6 or Part.Transparency
             wait(2);
             Part.CanCollide = true
-            Part.Transparency = 0
+            Part.Transparency = OldTransparency
         end
     end), Tbl);
     Utils.Notify(Caller, "Command", "noclip enabled");
@@ -4361,6 +4368,10 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = false
             end
         end);
+        for i, v in next, Drawings do
+            v:Remove();
+        end
+        Drawings = nil
         UI:Destroy();
         getgenv().F_A = nil
         setreadonly(mt, false);
@@ -4581,10 +4592,70 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
     return "copied " + Target.Name + "'s username"
 end)
 
-AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {"1"}, function(Caller, Args)
-    local Target = GetPlayer(Args[1])[1];
-    SilentAimingPlayer = Target
-    return "now silent aiming " .. Target.Name
+local SnapLines = nil
+
+AddCommand("snaplines", {}, "enables/disables snaplines", {}, function()
+    if (SnapLines ~= nil) then
+        SnapLines:Remove();
+        SnapLines = nil
+        return "snaplines disabled"
+    end
+    SnapLines = Drawing.new("Line");
+    SnapLines.From = Vector2.new(Mouse.X, Mouse.Y);  
+    SnapLines.Color = Color3.fromRGB(255, 255, 255);
+    SnapLines.Thickness = .1
+    SnapLines.Transparency = 1
+    SnapLines.Visible = true
+
+    return "snaplines enabled"
+end)
+
+AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {}, function(Caller, Args)
+    if (Drawing) then
+        local Fov = tonumber(Args[1]) or 150
+        local Circle = Drawing.new("Circle");
+        Circle.Color = Color3.new();
+        Circle.Thickness = 1
+        Circle.Transparency = 1
+        Circle.Filled = false
+        Circle.Radius = Fov
+        Circle.Position = Vector2.new(Mouse.X, Mouse.Y);
+        Circle.Visible = true
+
+        Drawings[#Drawings + 1] = Circle
+        AddConnection(RunService.RenderStepped:Connect(function()   
+            local MouseVector = Vector2.new(Mouse.X, Mouse.Y);
+            Circle.Position = MouseVector
+            local Target = nil
+            local Distance = math.huge
+            if (SnapLines) then
+                SnapLines.Visible = false
+            end
+            
+            for i, v in next, Players:GetPlayers() do
+                if (v == LocalPlayer) then 
+                    continue 
+                end
+                local Char = GetCharacter(v);
+                if (Char and Char:FindFirstChild("HumanoidRootPart") and Char:FindFirstChild("Head")) then
+                    local Root = GetRoot(v);
+                    local Tuple, Viewable = Camera:WorldToViewportPoint(Char.Head.Position);
+                    local Magnitude = (MouseVector - Vector2.new(Tuple.X, Tuple.Y)).Magnitude
+                    if (Viewable and Distance > Magnitude and Magnitude <= Fov) then
+                        Target = v
+                        Distance = Magnitude
+                        if (SnapLines) then
+                            SnapLines.Visible = true
+                            SnapLines.From = MouseVector
+                            SnapLines.To = Vector2.new(Tuple.X, Tuple.Y);
+                        end
+                    end
+                end
+            end
+            SilentAimingPlayer = Target
+        end))
+        return "silent aim enabled"
+    end
 end)
 
 local PlrChat = function(i, plr)

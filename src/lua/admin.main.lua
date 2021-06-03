@@ -2669,11 +2669,12 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, T
     local Noclipping2 = AddConnection(GetRoot().Touched:Connect(function(Part)
         if (Part.CanCollide) then
             SpoofProperty(Part, "CanCollide");
+            local OldTransparency = Part.Transparency
             Part.CanCollide = false
             Part.Transparency = Part.Transparency <= 0.5 and 0.6 or Part.Transparency
             wait(2);
             Part.CanCollide = true
-            Part.Transparency = 0
+            Part.Transparency = OldTransparency
         end
     end), Tbl);
     Utils.Notify(Caller, "Command", "noclip enabled");
@@ -2907,6 +2908,10 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = false
             end
         end);
+        for i, v in next, Drawings do
+            v:Remove();
+        end
+        Drawings = nil
         UI:Destroy();
         getgenv().F_A = nil
         setreadonly(mt, false);
@@ -3127,10 +3132,70 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
     return "copied " + Target.Name + "'s username"
 end)
 
-AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {"1"}, function(Caller, Args)
-    local Target = GetPlayer(Args[1])[1];
-    SilentAimingPlayer = Target
-    return "now silent aiming " .. Target.Name
+local SnapLines = nil
+
+AddCommand("snaplines", {}, "enables/disables snaplines", {}, function()
+    if (SnapLines ~= nil) then
+        SnapLines:Remove();
+        SnapLines = nil
+        return "snaplines disabled"
+    end
+    SnapLines = Drawing.new("Line");
+    SnapLines.From = Vector2.new(Mouse.X, Mouse.Y);  
+    SnapLines.Color = Color3.fromRGB(255, 255, 255);
+    SnapLines.Thickness = .1
+    SnapLines.Transparency = 1
+    SnapLines.Visible = true
+
+    return "snaplines enabled"
+end)
+
+AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {}, function(Caller, Args)
+    if (Drawing) then
+        local Fov = tonumber(Args[1]) or 150
+        local Circle = Drawing.new("Circle");
+        Circle.Color = Color3.new();
+        Circle.Thickness = 1
+        Circle.Transparency = 1
+        Circle.Filled = false
+        Circle.Radius = Fov
+        Circle.Position = Vector2.new(Mouse.X, Mouse.Y);
+        Circle.Visible = true
+
+        Drawings[#Drawings + 1] = Circle
+        AddConnection(RunService.RenderStepped:Connect(function()   
+            local MouseVector = Vector2.new(Mouse.X, Mouse.Y);
+            Circle.Position = MouseVector
+            local Target = nil
+            local Distance = math.huge
+            if (SnapLines) then
+                SnapLines.Visible = false
+            end
+            
+            for i, v in next, Players:GetPlayers() do
+                if (v == LocalPlayer) then 
+                    continue 
+                end
+                local Char = GetCharacter(v);
+                if (Char and Char:FindFirstChild("HumanoidRootPart") and Char:FindFirstChild("Head")) then
+                    local Root = GetRoot(v);
+                    local Tuple, Viewable = Camera:WorldToViewportPoint(Char.Head.Position);
+                    local Magnitude = (MouseVector - Vector2.new(Tuple.X, Tuple.Y)).Magnitude
+                    if (Viewable and Distance > Magnitude and Magnitude <= Fov) then
+                        Target = v
+                        Distance = Magnitude
+                        if (SnapLines) then
+                            SnapLines.Visible = true
+                            SnapLines.From = MouseVector
+                            SnapLines.To = Vector2.new(Tuple.X, Tuple.Y);
+                        end
+                    end
+                end
+            end
+            SilentAimingPlayer = Target
+        end))
+        return "silent aim enabled"
+    end
 end)
 
 local PlrChat = function(i, plr)

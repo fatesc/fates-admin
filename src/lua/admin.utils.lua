@@ -474,7 +474,7 @@ Utils.Locate2 = function(Player, Color)
             Billboard.Parent = UI
             Billboard.Name = HttpService:GenerateGUID();
             Billboard.AlwaysOnTop = true
-            Billboard.Adornee = Player.Character.Head
+            Billboard.Adornee = Player.Character:FindFirstChild("Head");
             Billboard.Size = UDim2.new(0, 200, 0, 50)
             Billboard.StudsOffset = Vector3.new(0, 4, 0);
 
@@ -534,7 +534,7 @@ Utils.Locate = function(Plr, Color, OutlineColor)
     if (not Drawing) then
         return Utils.Locate2(Plr, Color);
     end
-    local Head = GetCharacter(Plr) and GetCharacter(Plr).Head
+    local Head = GetCharacter(Plr) and GetCharacter(Plr):FindFirstChild("Head");
     if (not Head) then
         return
     end
@@ -563,7 +563,7 @@ Utils.UpdateLocations = function(Toggle)
     if (not UpdatingLocations) then
         UpdatingLocations = AddConnection(RunService.RenderStepped:Connect(function()
             for i, v in next, Locating do
-                if (GetCharacter(v) and GetCharacter(v).Head) then
+                if (GetCharacter(v) and GetCharacter(v):FindFirstChild("Head")) then
                     local Tuple, Viewable = Camera:WorldToViewportPoint(GetCharacter(v).Head.Position);
                     if (Viewable) then
                         i.Visible = true
@@ -573,6 +573,10 @@ Utils.UpdateLocations = function(Toggle)
                     end
                 end
                 i.Visible = false
+                if (v == nil) then
+                    i:Remove();
+                    Locating[v] = nil
+                end
             end
         end))
     end
@@ -601,8 +605,8 @@ Utils.AddTag = function(Tag)
     Billboard.Parent = UI
     Billboard.Name = HttpService:GenerateGUID();
     Billboard.AlwaysOnTop = true
-    Billboard.Adornee = PlrCharacter.Head or nil
-    Billboard.Enabled = PlrCharacter.Head and true or false
+    Billboard.Adornee = PlrCharacter:FindFirstChild("Head") or nil
+    Billboard.Enabled = PlrCharacter:FindFirstChild("Head") and true or false
     Billboard.Size = UDim2.new(0, 200, 0, 50)
     Billboard.StudsOffset = Vector3.new(0, 4, 0);
 
@@ -654,7 +658,7 @@ Utils.Trace = function(Player, Color)
     if (not Drawing) then
         return
     end
-    local Head = GetCharacter(Player) and GetCharacter(Player).Head
+    local Head = GetCharacter(Player) and GetCharacter(Player):FindFirstChild("Head");
     if (not Head) then
         return
     end
@@ -682,8 +686,13 @@ Utils.UpdateTracers = function()
     if (not Updating) then
         UpdatingTracers = AddConnection(RunService.RenderStepped:Connect(function()
             for i, Tracer in next, Tracing do
-                local Head = GetCharacter(i) and GetCharacter(i).Head
+                if (i == nil) then
+                    Tracer:Remove();
+                    Tracing[Tracer] = nil
+                end
+                local Head = GetCharacter(i) and GetCharacter(i):FindFirstChild("Head");
                 if (not Head) then
+                    Tracer.Visible = false
                     continue
                 end
                 local Tuple, Viewable = Workspace.Camera:WorldToViewportPoint(Head.Position);
