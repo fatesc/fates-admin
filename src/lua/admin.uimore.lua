@@ -217,7 +217,7 @@ end), Connections.UI, true);
 
 -- auto correct
 AddConnection(CommandBar.Input:GetPropertyChangedSignal("Text"):Connect(function() -- make it so that every space a players name will appear
-    CommandBar.Input.Text = CommandBar.Input.Text:lower();
+    CommandBar.Input.Text = CommandBar.Input.Text
     local Text = CommandBar.Input.Text
     local Prediction = CommandBar.Input.Predict
     local PredictionText = Prediction.Text
@@ -294,7 +294,7 @@ end))
 
 if (ChatBar) then
     AddConnection(ChatBar:GetPropertyChangedSignal("Text"):Connect(function() -- todo: add detection for /e
-        local Text = string.lower(ChatBar.Text)
+        local Text = ChatBar.Text
         local Prediction = PredictionClone
         local PredictionText = PredictionClone.Text
     

@@ -3197,6 +3197,24 @@ AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {}, function(Cal
     end
 end)
 
+AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Args)
+    local Team = Args[1]
+    Team = game:GetService("Teams"):FindFirstChild(Team);
+    if (not Team) then
+        return Team.. " is not a valid team"
+    end
+    for i, v in next, Workspace:GetDescendants() do
+        if (v:IsA("SpawnLocation") and v.BrickColor == Team.TeamColor) then
+            firetouchinterest(v, GetRoot(), 0);
+            firetouchinterest(v, GetRoot(), 1);
+            break
+        end
+    end
+    wait(.1);
+    return LocalPlayer.Team == Team and "changed team to " .. Team.Name or "could'nt change team to " .. Team.Name
+end)
+
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
