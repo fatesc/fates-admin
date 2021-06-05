@@ -2668,7 +2668,6 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, T
     end), Tbl);
     local Noclipping2 = AddConnection(GetRoot().Touched:Connect(function(Part)
         if (Part.CanCollide) then
-            SpoofProperty(Part, "CanCollide");
             local OldTransparency = Part.Transparency
             Part.CanCollide = false
             Part.Transparency = Part.Transparency <= 0.5 and 0.6 or Part.Transparency

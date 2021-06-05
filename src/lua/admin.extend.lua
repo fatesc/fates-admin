@@ -191,6 +191,32 @@ getgc = getgc or function()
     return {}
 end
 
+local ISPF, GetBodyParts, GunTbl
+if (game.PlaceId == 292439477) then
+    ISPF = true
+    for i, v in next, getgc(true) do
+        if (type(v) == "table") then
+            if (rawget(v, "getbodyparts")) then
+                GetBodyParts = rawget(v, "getbodyparts");
+            end
+            if (rawget(v, "setsprintdisable")) then
+                GunTbl = v
+            end
+            if (GunTbl and GetBodyParts) then
+                break
+            end
+        end
+    end
+    GetCharacter = function(Plr)
+        if (Plr == nil or Plr == LocalPlayer) then
+            return LocalPlayer.Character
+        end
+        local Char = GetBodyParts(Plr);
+        Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil
+		return Plr and Plr.Character or LocalPlayer.Character
+    end
+end
+
 local ProtectedInstances = {}
 local SpoofedInstances = {}
 local SpoofedProperties = {}
@@ -258,17 +284,17 @@ mt.__namecall = newcclosure(function(self, ...)
         end
     end
 
-    if (self == Workspace == Method == "FindPartOnRay" and SilentAimingPlayer) then
+    if (not ISPF and self == Workspace and Method == "FindPartOnRay" and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
         if (Char and Char.Head) then
             return Char.Head, Char.Head.Position
         end
     end
 
-    if (self == Workspace and Method == "RayCast" and SilentAimingPlayer) then
+    if (not ISPF and self == Workspace and Method == "FindPartOnRayWithIgnoreList" and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
         if (Char and Char.Head) then
-            -- return Char.Head
+            return Char.Head, Char.Head.Position
         end
     end
 
@@ -339,6 +365,13 @@ mt.__index = newcclosure(function(Instance_, Index)
             elseif (SanitisedIndex == "y" and Viewable) then
                 return ViewportPoint.Y
             end
+        end
+    end
+
+    if (ISPF and GunTbl.currentgun and tostring(Instance_) == "SightMark" and Index == "CFrame" and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            return CFrame.new(Instance_.Position, Char.Head.Position);
         end
     end
 
@@ -451,11 +484,23 @@ end))
 
 local OldFindPartOnRay
 OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(...)
-    local Char = GetCharacter(SilentAimingPlayer);
-    if (Char and Char.Head) then
-        return Char.Head 
+    if (not ISPF and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            return Char.Head, Char.Head.Position
+        end
     end
     return OldFindPartOnRay(...);
+end))
+local OldFindPartOnRayWithIgnoreList
+OldFindPartOnRayWithIgnoreList = hookfunction(Workspace.FindPartOnRayWithIgnoreList, newcclosure(function(...)
+    if (not ISPF and SilentAimingPlayer) then
+        local Char = GetCharacter(SilentAimingPlayer);
+        if (Char and Char.Head) then
+            return Char.Head, Char.Head.Position
+        end
+    end
+    return OldFindPartOnRayWithIgnoreList(...);
 end))
 
 for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
@@ -500,21 +545,4 @@ local SpoofProperty = function(Instance_, Property)
         SpoofedProperty = Instance_:Clone(),
         Property = Property,
     }}
-end
-
-if (game.PlaceId == 292439477) then
-    local GetBodyParts = nil
-    for i, v in next, getgc(true) do
-        if (type(v) == "table" and rawget(v, "getbodyparts")) then
-            GetBodyParts = rawget(v, "getbodyparts");
-        end
-    end
-    GetCharacter = function(Plr)
-        if (not Plr or Plr == LocalPlayer and not GetBodyParts) then
-            return LocalPlayer.Character
-        end
-        local Char = GetBodyParts(Plr);
-        Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil 
-		return Plr and Plr.Character or LocalPlayer.Character
-    end
 end
