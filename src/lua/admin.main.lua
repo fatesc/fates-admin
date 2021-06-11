@@ -2910,6 +2910,17 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         for i, v in next, Drawings do
             v:Remove();
         end
+        for i, v in next, SpoofedProperties do
+            for i2, v2 in next, v do
+                i[v2.Property] = v2.SpoofedProperty[v2.Property]
+                v2.SpoofedProperty:Destroy();
+            end
+        end
+        for i, v in next, SpoofedInstances do
+            v:Destroy();
+        end
+        SpoofedInstances = {}
+        SpoofedProperties = {}
         Drawings = nil
         UI:Destroy();
         getgenv().F_A = nil
@@ -2921,6 +2932,7 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         end
     end
 end)
+
 
 AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for when games detect by textbox", {}, function()
     if (not CLI) then
@@ -3305,6 +3317,10 @@ end
 WideBar = false
 Draggable = false
 AddConnection(CommandBar.Input.FocusLost:Connect(function()
+    for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
+        v:Enable();
+    end
+
     local Text = string.trim(CommandBar.Input.Text);
     local CommandArgs = Text:split(" ");
 
@@ -3341,6 +3357,7 @@ AddConnection(CommandBar.Input.FocusLost:Connect(function()
     else
         Utils.Notify(plr, "Error", ("couldn't find the command %s"):format(Command));
     end
+
 end), Connections.UI, true);
 
 local CurrentPlayers = Players:GetPlayers();

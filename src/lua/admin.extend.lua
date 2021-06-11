@@ -191,29 +191,44 @@ getgc = getgc or function()
     return {}
 end
 
-local ISPF, GetBodyParts, GunTbl
+local ISPF, Network, Client, GetBodyParts, GunTbl, Trajectory
 if (game.PlaceId == 292439477) then
     ISPF = true
     for i, v in next, getgc(true) do
         if (type(v) == "table") then
+            if (rawget(v, "send")) then
+                Network = v
+            end
             if (rawget(v, "getbodyparts")) then
                 GetBodyParts = rawget(v, "getbodyparts");
             end
             if (rawget(v, "setsprintdisable")) then
                 GunTbl = v
             end
-            if (GunTbl and GetBodyParts) then
-                break
+            if (rawget(v, "setsway")) then
+                Client = v
             end
+        elseif (type(v) == "function") then
+            local funcinfo = debug.getinfo(v);
+            if (funcinfo.name == "trajectory") then
+                Trajectory = v
+            end
+        end
+        if (GunTbl and GetBodyParts and Network and Trajectory) then
+            break
         end
     end
     GetCharacter = function(Plr)
-        if (Plr == nil or Plr == LocalPlayer) then
+        if (Plr == LocalPlayer or not Plr) then
             return LocalPlayer.Character
         end
         local Char = GetBodyParts(Plr);
-        Plr.Character = type(Char) == "table" and rawget(Char, "rootpart") and rawget(Char, "rootpart").Parent or nil
-		return Plr and Plr.Character or LocalPlayer.Character
+        if (type(Char) == "table") then
+            if (rawget(Char, "rootpart")) then
+                Plr.Character = rawget(Char, "rootpart").Parent
+            end
+        end
+		return Plr and Plr.Character or nil
     end
 end
 
@@ -234,6 +249,9 @@ local AllowedNewIndexes = {
     "Jump"
 }
 local SilentAimingPlayer = nil
+local SilentAimHitChance = 70
+local AimBone = "Head"
+local Wallbang = false
 local AntiKick = false
 local AntiTeleport = false
 
@@ -260,9 +278,8 @@ mt.__namecall = newcclosure(function(self, ...)
     
     local Args = {...}
 
-    local Method = getnamecallmethod():gsub("%z", function(x)
-        return x
-    end):gsub("%z", "");
+    local Method = getnamecallmethod():gsub("%z.*", "");
+
 
     local Protected = ProtectedInstances[self]
 
@@ -286,15 +303,25 @@ mt.__namecall = newcclosure(function(self, ...)
 
     if (not ISPF and self == Workspace and Method == "FindPartOnRay" and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
-        if (Char and Char.Head) then
-            return Char.Head, Char.Head.Position
+        local Chance = math.random(1, 100) < SilentAimHitChance
+
+        if (Char and Char[AimBone] and Chance) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+            if (Viewable or Wallbang) then
+                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+            end
         end
     end
 
     if (not ISPF and self == Workspace and Method == "FindPartOnRayWithIgnoreList" and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
-        if (Char and Char.Head) then
-            return Char.Head, Char.Head.Position
+        local Chance = math.random(1, 100) < SilentAimHitChance
+
+        if (Char and Char[AimBone] and Chance) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+            if (Viewable or Wallbang) then
+                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+            end
         end
     end
 
@@ -316,9 +343,7 @@ mt.__index = newcclosure(function(Instance_, Index)
         return __Index(Instance_, Index);
     end
 
-    local SanitisedIndex = type(Index) == 'string' and Index:gsub("%z", function(x)
-        return x
-    end):gsub("%z", "") or Index
+    local SanitisedIndex = type(Index) == 'string' and Index:gsub("%z.*", "") or Index
 
     local ProtectedInstance = ProtectedInstances[Instance_]
     local SpoofedInstance = SpoofedInstances[Instance_]
@@ -339,7 +364,7 @@ mt.__index = newcclosure(function(Instance_, Index)
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
             if (SanitisedIndex == SpoofedProperty.Property) then
-                return __Index(SpoofedProperty.Property, Index);
+                return __Index(SpoofedProperty.SpoofedProperty, Index);
             end
         end
     end
@@ -354,40 +379,61 @@ mt.__index = newcclosure(function(Instance_, Index)
 
     if (Instance_ == Mouse and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
-        if (Char and Char.Head) then
-            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char.Head.Position);
+        local Chance = math.random(1, 100) < SilentAimHitChance
+        if (Char and Char[AimBone] and Chance) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
             if (SanitisedIndex:lower() == "target") then
-                return Char.Head
+                if (Viewable or Wallbang) then
+                    return Char[AimBone]
+                end
             elseif (SanitisedIndex:lower() == "hit") then
-                return Char.Head.CFrame
+                if (Viewable or Wallbang) then
+                    return Char[AimBone].CFrame * CFrame.new(math.random(0, 2), math.random(0, 2), math.random(0, 2))
+                end
             elseif (SanitisedIndex:lower() == "x" and Viewable) then
-                return ViewportPoint.X
+                return ViewportPoint.X + math.random(0.5, 1.5);
             elseif (SanitisedIndex == "y" and Viewable) then
-                return ViewportPoint.Y
+                return ViewportPoint.Y + math.random(0.5, 1.5);
             end
         end
     end
 
-    if (ISPF and GunTbl.currentgun and tostring(Instance_) == "SightMark" and Index == "CFrame" and SilentAimingPlayer) then
-        local Char = GetCharacter(SilentAimingPlayer);
-        if (Char and Char.Head) then
-            return CFrame.new(Instance_.Position, Char.Head.Position);
-        end
-    end
+    -- if (ISPF and GunTbl.currentgun and tostring(Instance_) == "SightMark" and Index == "CFrame" and SilentAimingPlayer) then
+    --     local Char = GetCharacter(SilentAimingPlayer);
+    --     local Chance = math.random(1, 100) < SilentAimHitChance
+    --     if (Char and Char[AimBone] and Chance) then
+    --         return CFrame.new(Instance_.Position, Char[AimBone].Position);
+    --     end
+    -- end
 
     return __Index(Instance_, Index);
 end)
 
 mt.__newindex = newcclosure(function(Instance_, Index, Value)
-    if (checkcaller()) then
-        return __NewIndex(Instance_, Index, Value);
-    end
-
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
+    if (checkcaller()) then
+        local Connections = getconnections(Instance_:GetPropertyChangedSignal(Index));
+        if (next(Connections)) then
+            for i, v in next, Connections do
+                v:Disable();
+            end
+            local Suc, Ret = pcall(function()
+                return __NewIndex(Instance_, Index, Value);
+            end)
+            for i, v in next, Connections do
+                v:Enable();
+            end
+            return Ret
+        end
+        return __NewIndex(Instance_, Index, Value);
+    end
+
+    local SanitisedIndex = type(Index) == 'string' and Index:gsub("%z.*", "") or Index
+
     if (SpoofedInstance) then
-        if (table.find(AllowedNewIndexes, Index)) then
+        if (table.find(AllowedNewIndexes, SanitisedIndex)) then
             return __NewIndex(Instance_, Index, Value);
         end
         return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
@@ -395,7 +441,7 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
 
     if (SpoofedPropertiesForInstance) then
         for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
-            if (SpoofedProperty.Property == Index) then
+            if (SpoofedProperty.Property == SanitisedIndex and not table.find(AllowedIndexes, SanitisedIndex)) then
                 return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
             end
         end
@@ -486,8 +532,12 @@ local OldFindPartOnRay
 OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(...)
     if (not ISPF and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
-        if (Char and Char.Head) then
-            return Char.Head, Char.Head.Position
+        local Chance = math.random(1, 100) < SilentAimHitChance
+        if (Char and Char[AimBone] and Chance) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+            if (Viewable or Wallbang) then
+                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+            end
         end
     end
     return OldFindPartOnRay(...);
@@ -496,18 +546,37 @@ local OldFindPartOnRayWithIgnoreList
 OldFindPartOnRayWithIgnoreList = hookfunction(Workspace.FindPartOnRayWithIgnoreList, newcclosure(function(...)
     if (not ISPF and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
-        if (Char and Char.Head) then
-            return Char.Head, Char.Head.Position
+        local Chance = math.random(1, 100) < SilentAimHitChance
+        if (Char and Char[AimBone] and Chance) then
+            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+            if (Viewable or Wallbang) then
+                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+            end
         end
     end
     return OldFindPartOnRayWithIgnoreList(...);
 end))
-
-for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocused) do
-    v:Disable();
-end
-for i, v in next, getconnections(game:GetService("UserInputService").TextBoxFocusReleased) do
-    v:Disable();
+if (ISPF and Network and Network.send) then
+    local OldSend = Network.send
+    Network.send = function(...)
+        local Args = {...}
+        local Type = Args[2]
+        if (Type == "newbullets") then
+            local Char
+            if (SilentAimingPlayer) then
+                Char = GetCharacter(SilentAimingPlayer);
+            end
+            if (Char and Char[AimBone]) then
+                local AimPos = Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10);
+                Args[3].bullets[1][1] = Trajectory(Client.basecframe * Vector3.new(0, 0, 1), Vector3.new(0, -Workspace.Gravity, 0), AimPos, GunTbl.currentgun.data.bulletspeed);
+      
+                OldSend(Args[1], "newbullets", Args[3], Args[4]);
+                OldSend(Args[1], "bullethit", SilentAimingPlayer, AimPos, GetCharacter(SilentAimingPlayer).Head, Args[3].bullets[1][2]);
+                return
+            end
+        end
+        return OldSend(...)
+    end
 end
 
 local ProtectInstance = function(Instance_, disallow)
@@ -526,9 +595,6 @@ local SpoofInstance = function(Instance_, Instance2)
 end
 
 local SpoofProperty = function(Instance_, Property)
-    for i, v in next, getconnections(Instance_:GetPropertyChangedSignal(Property)) do
-        v:Disable();
-    end
     if (SpoofedProperties[Instance_]) then
         local Properties = table.map(SpoofedProperties[Instance_], function(i, v)
             return v.Property
@@ -539,10 +605,32 @@ local SpoofProperty = function(Instance_, Property)
                 Property = Property,
             });
         end
-        return
+    else
+        SpoofedProperties[Instance_] = {{
+            SpoofedProperty = Instance_:Clone(),
+            Property = Property,
+        }}
     end
-    SpoofedProperties[Instance_] = {{
-        SpoofedProperty = Instance_:Clone(),
-        Property = Property,
-    }}
+end
+
+local UnProtectInstance = function(Instance_)
+    for i, v in next, ProtectedInstances do
+        if (ProtectedInstances[i] == Instance_) then
+            ProtectedInstances[i] = nil
+        end
+    end
+end
+
+local UnSpoofInstance = function(Instance_)
+    if (SpoofedInstances[Instance_]) then
+        SpoofedInstances[Instance_]:Destroy();
+        SpoofedInstances[Instance_] = nil
+    end
+end
+local UnSpoofProperty = function(Instance_, Property)
+    local SpoofedProperty = SpoofedProperties[Instance_]
+    if (SpoofedProperty and SpoofedProperty.Property == Property) then
+        SpoofedProperty.SpoofedProperty:Destroy();
+        SpoofedInstances[Instance_] = nil
+    end
 end

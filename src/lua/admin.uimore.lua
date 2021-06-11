@@ -36,11 +36,25 @@ AddConnection(UserInputService.InputBegan:Connect(function(Input, GameProccesed)
                 })
             end
 
-            CommandBar.Input:CaptureFocus()
+            local Connections = getconnections(UserInputService.TextBoxFocused);
+            for i, v in next, Connections do
+                v:Disable();
+            end
+            for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
+                v:Disable();
+            end
+
+            CommandBar.Input:CaptureFocus();
             coroutine.wrap(function()
                 wait()
                 CommandBar.Input.Text = ""
             end)()
+
+            if (next(Connections)) then
+                for i, v in next, Connections do
+                    v:Enable();
+                end
+            end
         else
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {
