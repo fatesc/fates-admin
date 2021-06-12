@@ -33,7 +33,7 @@ local Chat = game:GetService("Chat");
 local SoundService = game:GetService("SoundService");
 local Lighting = game:GetService("Lighting");
 
-local Camera = Workspace.Camera
+local Camera = Workspace.CurrentCamera
 
 LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer and LocalPlayer:GetMouse();
@@ -1864,10 +1864,10 @@ end)
 
 AddCommand("cameralock", {"calock"}, "locks your camera on the the players head", {"1"}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1])[1];
-    SpoofProperty(Workspace.CurrentCamera, "CoordinateFrame", CFrame.new(Workspace.CurrentCamera.CoordinateFrame.p, GetCharacter().Head.CFrame.p));
+    SpoofProperty(Camera, "CoordinateFrame", CFrame.new(Camera.CoordinateFrame.p, GetCharacter().Head.CFrame.p));
     AddConnection(RunService.Heartbeat:Connect(function()
         if (GetCharacter(Target) and GetRoot(Target)) then
-            Workspace.CurrentCamera.CoordinateFrame = CFrame.new(Workspace.CurrentCamera.CoordinateFrame.p, GetCharacter(Target).Head.CFrame.p);
+            Camera.CoordinateFrame = CFrame.new(Camera.CoordinateFrame.p, GetCharacter(Target).Head.CFrame.p);
         end
     end), Tbl);
     return "now locking camera to " .. Target.Name
@@ -2525,7 +2525,7 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
         while (next(LoadCommand("fly").CmdExtra) and wait()) do
             Speed = LoadCommand("fly").CmdExtra[1]
             local NewPos = (BodyGyro.CFrame - (BodyGyro.CFrame).Position) + BodyPos.Position
-            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
+            local CoordinateFrame = Camera.CoordinateFrame
             if (Keys["W"]) then
                 NewPos = NewPos + CoordinateFrame.lookVector * Speed
 
@@ -2576,7 +2576,7 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
         BodyPos.Position = GetRoot().Position
         while (next(LoadCommand("fly2").CmdExtra) and wait()) do
             Speed = LoadCommand("fly2").CmdExtra[1]
-            local CoordinateFrame = Workspace.CurrentCamera.CoordinateFrame
+            local CoordinateFrame = Camera.CoordinateFrame
             if (Keys["W"]) then
                 GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
                 BodyPos.Position = GetRoot().Position
@@ -2652,8 +2652,8 @@ end)
 
 AddCommand("fov", {}, "sets your fov", {}, function(Caller, Args)
     local Amount = tonumber(Args[1]) or 70
-    SpoofProperty(Workspace.CurrentCamera, "FieldOfView");
-    Workspace.CurrentCamera.FieldOfView = Amount
+    SpoofProperty(Camera, "FieldOfView");
+    Camera.FieldOfView = Amount
 end)
 
 AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, Tbl)
@@ -3023,7 +3023,7 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     Draggable = not Draggable
     CommandBarOpen = not CommandBarOpen
     Utils.Tween(CommandBar, "Quint", "Out", .5, {
-        Position = UDim2.new(0, Mouse.X, 0, Mouse.Y);
+        Position = UDim2.new(0, Mouse.X, 0, Mouse.Y + 36);
     })
     Utils.Draggable(CommandBar);
     local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
@@ -3152,7 +3152,7 @@ AddCommand("snaplines", {}, "enables/disables snaplines", {}, function()
         return "snaplines disabled"
     end
     SnapLines = Drawing.new("Line");
-    SnapLines.From = Vector2.new(Mouse.X, Mouse.Y);  
+    SnapLines.From = Vector2.new(Mouse.X, Mouse.Y + 46);  
     SnapLines.Color = Color3.fromRGB(255, 255, 255);
     SnapLines.Thickness = .1
     SnapLines.Transparency = 1
@@ -3170,12 +3170,12 @@ AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {}, function(Cal
         Circle.Transparency = 1
         Circle.Filled = false
         Circle.Radius = Fov
-        Circle.Position = Vector2.new(Mouse.X, Mouse.Y);
+        Circle.Position = Vector2.new(Mouse.X, Mouse.Y + 36);
         Circle.Visible = true
 
         Drawings[#Drawings + 1] = Circle
         AddConnection(RunService.RenderStepped:Connect(function()   
-            local MouseVector = Vector2.new(Mouse.X, Mouse.Y);
+            local MouseVector = Vector2.new(Mouse.X, Mouse.Y + 36);
             Circle.Position = MouseVector
             local Target = nil
             local Distance = math.huge
@@ -3188,9 +3188,9 @@ AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {}, function(Cal
                     continue 
                 end
                 local Char = GetCharacter(v);
-                if (Char and Char:FindFirstChild("HumanoidRootPart") and Char:FindFirstChild("Head")) then
+                if (Char and Char:FindFirstChild("HumanoidRootPart") and Char:FindFirstChild(AimBone)) then
                     local Root = GetRoot(v);
-                    local Tuple, Viewable = Camera:WorldToViewportPoint(Char.Head.Position);
+                    local Tuple, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
                     local Magnitude = (MouseVector - Vector2.new(Tuple.X, Tuple.Y)).Magnitude
                     if (Viewable and Distance > Magnitude and Magnitude <= Fov) then
                         Target = v

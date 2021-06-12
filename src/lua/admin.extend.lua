@@ -249,9 +249,9 @@ local AllowedNewIndexes = {
     "Jump"
 }
 local SilentAimingPlayer = nil
-local SilentAimHitChance = 70
+local SilentAimHitChance = 100
 local AimBone = "Head"
-local Wallbang = false
+local Wallbang = true
 local AntiKick = false
 local AntiTeleport = false
 
@@ -304,23 +304,22 @@ mt.__namecall = newcclosure(function(self, ...)
     if (not ISPF and self == Workspace and Method == "FindPartOnRay" and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
         local Chance = math.random(1, 100) < SilentAimHitChance
-
-        if (Char and Char[AimBone] and Chance) then
-            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+        if (Char and Char:FindFirstChild(AimBone) and Chance) then  
+            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
             if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
             end
         end
     end
 
-    if (not ISPF and self == Workspace and Method == "FindPartOnRayWithIgnoreList" and SilentAimingPlayer) then
+    if (not ISPF and self == Workspace and Method == "FindPartOnRayWithIgnoreList" and SilentAimingPlayer and getcallingscript().Name ~= "CameraModule") then
         local Char = GetCharacter(SilentAimingPlayer);
         local Chance = math.random(1, 100) < SilentAimHitChance
-
-        if (Char and Char[AimBone] and Chance) then
-            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+        
+        if (Char and Char:FindFirstChild(AimBone)) then
+            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
             if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
             end
         end
     end
@@ -380,20 +379,21 @@ mt.__index = newcclosure(function(Instance_, Index)
     if (Instance_ == Mouse and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
         local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then
-            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+        if (Char and Char:FindFirstChild(AimBone) and Chance) then
+            local ViewportPoint = Camera:WorldToViewportPoint(Char[AimBone].Position);
+            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
             if (SanitisedIndex:lower() == "target") then
                 if (Viewable or Wallbang) then
                     return Char[AimBone]
                 end
-            elseif (SanitisedIndex:lower() == "hit") then
+            elseif (SanitisedIndex:lower() == "hit" and (Viewable or Wallbang)) then
                 if (Viewable or Wallbang) then
-                    return Char[AimBone].CFrame * CFrame.new(math.random(0, 2), math.random(0, 2), math.random(0, 2))
+                    return Char[AimBone].CFrame * CFrame.new(math.random(1, 10) / 10, math.random(1, 10) / 10, math.random(1, 10) / 10);
                 end
-            elseif (SanitisedIndex:lower() == "x" and Viewable) then
-                return ViewportPoint.X + math.random(0.5, 1.5);
-            elseif (SanitisedIndex == "y" and Viewable) then
-                return ViewportPoint.Y + math.random(0.5, 1.5);
+            elseif (SanitisedIndex:lower() == "x" and (Viewable or Wallbang)) then
+                return ViewportPoint.X + (math.random(1, 10) / 10);
+            elseif (SanitisedIndex == "y" and (Viewable or Wallbang)) then
+                return ViewportPoint.Y + (math.random(1, 10) / 10);
             end
         end
     end
@@ -533,10 +533,10 @@ OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(..
     if (not ISPF and SilentAimingPlayer) then
         local Char = GetCharacter(SilentAimingPlayer);
         local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then
-            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+        if (Char and Char:FindFirstChild(AimBone) and Chance) then
+            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
             if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
             end
         end
     end
@@ -544,13 +544,13 @@ OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(..
 end))
 local OldFindPartOnRayWithIgnoreList
 OldFindPartOnRayWithIgnoreList = hookfunction(Workspace.FindPartOnRayWithIgnoreList, newcclosure(function(...)
-    if (not ISPF and SilentAimingPlayer) then
+    if (not ISPF and SilentAimingPlayer and getcallingscript().Name ~= "CameraModule") then
         local Char = GetCharacter(SilentAimingPlayer);
         local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then
-            local ViewportPoint, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
+        if (Char and Char:FindFirstChild(AimBone) and Chance) then
+            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
             if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + Vector3.new(math.random(0, 1), math.random(0, 1), math.random(0, 1));
+                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
             end
         end
     end
@@ -566,7 +566,7 @@ if (ISPF and Network and Network.send) then
             if (SilentAimingPlayer) then
                 Char = GetCharacter(SilentAimingPlayer);
             end
-            if (Char and Char[AimBone]) then
+            if (Char and Char:FindFirstChild(AimBone)) then
                 local AimPos = Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10);
                 Args[3].bullets[1][1] = Trajectory(Client.basecframe * Vector3.new(0, 0, 1), Vector3.new(0, -Workspace.Gravity, 0), AimPos, GunTbl.currentgun.data.bulletspeed);
       
