@@ -1110,6 +1110,7 @@ Utils.Draggable = function(Ui, DragUi)
 end
 
 Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
+    do return end;
     -- get the 'content' scrolling frame, aka the scrolling frame with all the content inside
     -- if smoothing is enabled, disable scrolling
     content.ScrollingEnabled = false
