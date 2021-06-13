@@ -1,5 +1,5 @@
 --[[
-	fates admin - 12/6/2021
+	fates admin - 13/6/2021
 ]]
 
 UndetectedMode = UndetectedMode or false
@@ -1453,61 +1453,6 @@ Utils.Rainbow = function(TextObject)
     end)
 end
 
-Utils.Locate2 = function(Player, Color)
-    local Billboard = Instance.new("BillboardGui");
-    coroutine.wrap(function()
-        if (GetCharacter(Player)) then
-            Billboard.Parent = UI
-            Billboard.Name = HttpService:GenerateGUID();
-            Billboard.AlwaysOnTop = true
-            Billboard.Adornee = Player.Character:FindFirstChild("Head");
-            Billboard.Size = UDim2.new(0, 200, 0, 50)
-            Billboard.StudsOffset = Vector3.new(0, 4, 0);
-
-            local TextLabel = Instance.new("TextLabel", Billboard);
-            TextLabel.Name = HttpService:GenerateGUID();
-            TextLabel.TextStrokeTransparency = 0.6
-            TextLabel.BackgroundTransparency = 1
-            TextLabel.TextColor3 = Color3.new(0, 255, 0);
-            TextLabel.Size = UDim2.new(0, 200, 0, 50);
-            TextLabel.TextScaled = false
-            TextLabel.TextSize = 10
-            TextLabel.Text = Player.Name
-
-            local ColorLabel = Instance.new("TextLabel", Billboard);
-            ColorLabel.Name = HttpService:GenerateGUID();
-            ColorLabel.TextStrokeTransparency = 0.6
-            ColorLabel.BackgroundTransparency = 1
-            ColorLabel.TextColor3 = Color3.new(152, 152, 152);
-            ColorLabel.Size = UDim2.new(0, 200, 0, 50);
-            ColorLabel.TextScaled = false
-            ColorLabel.TextSize = 8
-
-            local EspLoop = RunService.Heartbeat:Connect(function()
-                local Humanoid = GetCharacter(Player) and GetHumanoid(Player);
-                local HumanoidRootPart = GetCharacter(Player) and GetRoot(Player);
-                if (Humanoid and HumanoidRootPart) then
-                    local Distance = math.floor((Workspace.CurrentCamera.CFrame.p - HumanoidRootPart.CFrame.p).Magnitude)
-                    ColorLabel.Text = ("\n \n \n [%s] [%s/%s]"):format(Distance, math.floor(Humanoid.Health), math.floor(Humanoid.MaxHealth))
-                else
-                    EspLoop:Disconnect();
-                    Billboard:Destroy();
-                end
-            end)
-            AddConnection(EspLoop);
-            AddConnection(Players.PlayerRemoving:Connect(function(Plr)
-                if (Plr == Player) then
-                    Billboard:Destroy();
-                end
-            end))
-        end
-    end)()
-
-    return function()
-        Billboard:Destroy();
-    end
-end
-
 Utils.Vector3toVector2 = function(Vector)
     local Tuple = Camera:WorldToViewportPoint(Vector)
     return Vector2.new(Tuple.X, Tuple.Y);
@@ -1515,58 +1460,6 @@ end
 
 local Locating = {}
 local Drawings = {}
-
-Utils.Locate = function(Plr, Color, OutlineColor)
-    if (not Drawing) then
-        return Utils.Locate2(Plr, Color);
-    end
-    local Head = GetCharacter(Plr) and GetCharacter(Plr):FindFirstChild("Head");
-    if (not Head) then
-        return
-    end
-
-    local Text = Drawing.new("Text");
-    Drawings[#Drawings + 1] = Text
-
-    Text.Position = Utils.Vector3toVector2(Head.Position) + Vector2.new(0, -100, 0);
-    Text.Color = Color or Color3.fromRGB(255, 255, 255);
-    Text.OutlineColor = OutlineColor or Color3.new();
-    Text.Text = ("%s\n[%s] [%s/%s]"):format(Plr.Name, math.floor(GetMagnitude(Plr)), math.floor(GetHumanoid(Plr).Health), math.floor(GetHumanoid(Plr).MaxHealth));
-    Text.Size = 16
-    Text.Transparency = 1
-    Text.Center = true
-    Text.Outline = true
-    Text.Visible = true
-    Locating[Text] = Plr
-    return function()
-        Text:Remove();
-        Locating[Text] = nil
-    end
-end
-
-local UpdatingLocations = false
-Utils.UpdateLocations = function(Toggle)
-    if (not UpdatingLocations) then
-        UpdatingLocations = AddConnection(RunService.RenderStepped:Connect(function()
-            for i, v in next, Locating do
-                if (GetCharacter(v) and GetCharacter(v):FindFirstChild("Head")) then
-                    local Tuple, Viewable = Camera:WorldToViewportPoint(GetCharacter(v).Head.Position);
-                    if (Viewable) then
-                        i.Visible = true
-                        i.Position = Utils.Vector3toVector2(GetCharacter(v).Head.Position) + Vector2.new(0, -100, 0);           
-                        i.Text = ("%s\n[%s] [%s/%s]"):format(v.Name, math.floor(GetMagnitude(v)), math.floor(GetHumanoid(v).Health), math.floor(GetHumanoid(v).MaxHealth));    
-                        continue
-                    end
-                end
-                i.Visible = false
-                if (v == nil) then
-                    i:Remove();
-                    Locating[v] = nil
-                end
-            end
-        end))
-    end
-end
 
 Utils.CheckTag = function(Plr)
     if (not Plr or not Plr:IsA("Player")) then
@@ -1637,81 +1530,6 @@ Utils.TextFont = function(Text, RGB)
     return table.concat(table.map(New, function(i, letter)
         return ('<font color="rgb(%s)">%s</font>'):format(RGB, letter)
     end)) .. " "
-end
-
-local Tracing = {}
-Utils.Trace = function(Player, Color)
-    if (not Drawing) then
-        return
-    end
-    local Head = GetCharacter(Player) and GetCharacter(Player):FindFirstChild("Head");
-    if (not Head) then
-        return
-    end
-    local Camera = Workspace.Camera
-
-    local Tracer = Drawing.new("Line");
-    Drawings[#Drawings + 1] = Tracer
-
-    local Tuple = Camera:WorldToViewportPoint(Head.Position);
-    Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
-    Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y);
-    Tracer.Color = Color or Color3.fromRGB(255, 255, 255);
-    Tracer.Thickness = .1
-    Tracer.Transparency = 1
-    Tracer.Visible = true
-    Tracing[Player] = Tracer
-    return function()
-        Tracer:Remove();
-        Tracing[Player] = nil
-    end
-end
-
-local UpdatingTracers = false
-Utils.UpdateTracers = function()
-    if (not Updating) then
-        UpdatingTracers = AddConnection(RunService.RenderStepped:Connect(function()
-            for i, Tracer in next, Tracing do
-                if (i == nil) then
-                    Tracer:Remove();
-                    Tracing[Tracer] = nil
-                end
-                local Head = GetCharacter(i) and GetCharacter(i):FindFirstChild("Head");
-                if (not Head) then
-                    Tracer.Visible = false
-                    continue
-                end
-                local Tuple, Viewable = Workspace.Camera:WorldToViewportPoint(Head.Position);
-                if (Viewable) then
-                    Tracer.Visible = true
-                    Tracer.To = Vector2.new(Tuple.X, Tuple.Y);
-                else
-                    Tracer.Visible = false
-                end
-            end
-        end))
-    end
-end
-
-Utils.DestroyTracers = function()
-    for i, Tracer in next, Tracers do
-        Tracer:Remove();
-    end
-    if (UpdatingTracers) then
-        UpdatingTracers:Disconnect();
-    end
-end
-
-Utils.DestroyDrawings = function()
-    for i, Drawing in next, Drawings do
-        Drawing:Remove();
-    end
-    if (UpdatingTracers) then
-        UpdatingTracers:Disconnect();
-    end
-    if (UpdatingLocations) then
-        UpdatingLocations:Disconnect();
-    end
 end
 --END IMPORT [utils]
 
@@ -3412,125 +3230,11 @@ AddCommand("notruesightguis", {"untruesightguis", "notsg"}, "removes truesight o
     return "truesight for guis are now off"
 end)
 
-AddCommand("locate", {}, "locates a player", {"1"}, function(Caller, Args, Tbl)
-    local Player = GetPlayer(Args[1]);
-    for i, v in next, Player do
-        Tbl[v.Name] = Utils.Locate(v);
-    end
-    if (not UpdatingLocations) then
-        Utils.UpdateLocations();
-    end
-    return "locating player"
-end)
-
-AddCommand("unlocate", {"nolocate"}, "disables location for a player", {"1"}, function(Caller, Args)
-    local Locating = LoadCommand("locate").CmdExtra
-    local Target = GetPlayer(Args[1]);
-    for i, v in next, Locating do
-        for i2, v2 in next, Target do
-            if (i == v2.Name) then
-                v();
-                Utils.Notify(Caller, "Command", v2.Name .. " is no longer being located");
-                break
-            else
-                Utils.Notify(Caller, "Command", v2.Name .. " isn't being located");
-            end
-        end
-    end
-end)
-
-AddCommand("cameralock", {"calock"}, "locks your camera on the the players head", {"1"}, function(Caller, Args, Tbl)
-    local Target = GetPlayer(Args[1])[1];
-    SpoofProperty(Camera, "CoordinateFrame", CFrame.new(Camera.CoordinateFrame.p, GetCharacter().Head.CFrame.p));
-    AddConnection(RunService.Heartbeat:Connect(function()
-        if (GetCharacter(Target) and GetRoot(Target)) then
-            Camera.CoordinateFrame = CFrame.new(Camera.CoordinateFrame.p, GetCharacter(Target).Head.CFrame.p);
-        end
-    end), Tbl);
-    return "now locking camera to " .. Target.Name
-end)
-
-AddCommand("uncameralock", {"nocalock"}, "unlocks your camera", {}, function(Caller, Args)
-    local Looping = LoadCommand("cameralock").CmdExtra;
-    if (not next(Looping)) then
-        return "you aren't cameralocked"
-    end
-    DisableAllCmdConnections("cameralock");
-    return "cameralock disabled"
-end)
-
-AddCommand("esp", {}, "turns on player esp", {}, function(Caller, Args, Tbl)
-    Tbl.Billboards = {}
-    table.forEach(GetPlayer("others"), function(i,v)
-        Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
-        AddConnection(v.CharacterAdded:Connect(function()
-            v.Character:WaitForChild("HumanoidRootPart");
-            v.Character:WaitForChild("Head");
-            Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(v);
-        end), Tbl);
-    end);
-
-    AddConnection(Players.PlayerAdded:Connect(function(Player)
-        Player.CharacterAdded:Wait();
-        Player.Character:WaitForChild("HumanoidRootPart");
-        Player.Character:WaitForChild("Head");
-        Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
-        AddConnection(Player.CharacterAdded:Connect(function()
-            Player.Character:WaitForChild("HumanoidRootPart");
-            Player.Character:WaitForChild("Head");
-            Tbl.Billboards[#Tbl.Billboards + 1] = Utils.Locate(Player);
-        end), Tbl);
-    end), Tbl);
-
-    if (not UpdatingLocations) then
-        Utils.UpdateLocations();
-    end
-
+AddCommand("esp", {"aimbot", "cameralock", "locate", "silentaim", "aimlock", "tracers", "trace"}, "loads fates esp", {}, function(Caller, Args, Tbl)
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
     return "esp enabled"
 end)
 
-AddCommand("noesp", {"unesp"}, "turns off esp", {}, function(Caller, Args)
-    local Esp = LoadCommand("esp").CmdExtra
-    for i, v in next, Esp.Billboards do
-        v();
-    end
-    Esp.Billboards = nil
-    DisableAllCmdConnections("esp")
-    return "esp disabled"
-end)
-
-AddCommand("trace", {}, "traces a player", {
-    function()
-        return Drawing ~= nil
-    end,
-    "1"
-}, function(Caller, Args, Tbl)
-    local Target = GetPlayer(Args[1]);
-    for i, v in next, Target do
-        Tbl[v.Name] = Utils.Trace(v)
-    end
-
-    if (not UpdatingTracers) then
-        Utils.UpdateTracers();
-    end
-
-    return "tracing player"
-end)
-
-AddCommand("untrace", {"notrace"}, "removes the trace from a player", {"1"}, function(Caller, Args)
-    local Target = GetPlayer(Args[1]);
-    local Tracing = LoadCommand("trace").CmdExtra
-    if (not next(Tracing)) then
-        return "you aren't tracing anyone"
-    end
-    for i, v in next, Target do
-        if (Tracing[v.Name]) then
-            Tracing[v.Name]()
-            Tracing[v.Name] = nil
-        end
-    end
-    return "tracing disabled"
-end)
 
 AddCommand("crosshair", {}, "enables a crosshair", {function()
     return Drawing ~= nil
@@ -4718,72 +4422,6 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
         Frame2.Chatbar.Text = Target.Name
     end
     return "copied " + Target.Name + "'s username"
-end)
-
-local SnapLines = nil
-
-AddCommand("snaplines", {}, "enables/disables snaplines", {}, function()
-    if (SnapLines ~= nil) then
-        SnapLines:Remove();
-        SnapLines = nil
-        return "snaplines disabled"
-    end
-    SnapLines = Drawing.new("Line");
-    SnapLines.From = Vector2.new(Mouse.X, Mouse.Y + 46);  
-    SnapLines.Color = Color3.fromRGB(255, 255, 255);
-    SnapLines.Thickness = .1
-    SnapLines.Transparency = 1
-    SnapLines.Visible = true
-
-    return "snaplines enabled"
-end)
-
-AddCommand("silentaim", {}, "silent aims a player (op aimbot)", {}, function(Caller, Args)
-    if (Drawing) then
-        local Fov = tonumber(Args[1]) or 150
-        local Circle = Drawing.new("Circle");
-        Circle.Color = Color3.new();
-        Circle.Thickness = 1
-        Circle.Transparency = 1
-        Circle.Filled = false
-        Circle.Radius = Fov
-        Circle.Position = Vector2.new(Mouse.X, Mouse.Y + 36);
-        Circle.Visible = true
-
-        Drawings[#Drawings + 1] = Circle
-        AddConnection(RunService.RenderStepped:Connect(function()   
-            local MouseVector = Vector2.new(Mouse.X, Mouse.Y + 36);
-            Circle.Position = MouseVector
-            local Target = nil
-            local Distance = math.huge
-            if (SnapLines) then
-                SnapLines.Visible = false
-            end
-            
-            for i, v in next, Players:GetPlayers() do
-                if (v == LocalPlayer) then 
-                    continue 
-                end
-                local Char = GetCharacter(v);
-                if (Char and Char:FindFirstChild("HumanoidRootPart") and Char:FindFirstChild(AimBone)) then
-                    local Root = GetRoot(v);
-                    local Tuple, Viewable = Camera:WorldToViewportPoint(Char[AimBone].Position);
-                    local Magnitude = (MouseVector - Vector2.new(Tuple.X, Tuple.Y)).Magnitude
-                    if (Viewable and Distance > Magnitude and Magnitude <= Fov) then
-                        Target = v
-                        Distance = Magnitude
-                        if (SnapLines) then
-                            SnapLines.Visible = true
-                            SnapLines.From = MouseVector
-                            SnapLines.To = Vector2.new(Tuple.X, Tuple.Y);
-                        end
-                    end
-                end
-            end
-            SilentAimingPlayer = Target
-        end))
-        return "silent aim enabled"
-    end
 end)
 
 AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Args)
