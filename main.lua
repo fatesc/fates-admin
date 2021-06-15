@@ -402,11 +402,6 @@ mt.__index = newcclosure(function(Instance_, Index)
         if (table.find(AllowedIndexes, SanitisedIndex)) then
             return __Index(Instance_, Index);
         end
-        if (Instance_:IsA("Humanoid") and game.PlaceId == 6650331930) then
-            for i, v in next, getconnections(Instance_:GetPropertyChangedSignal("WalkSpeed")) do
-                v:Disable();
-            end
-        end
         return __Index(SpoofedInstance, Index);
     end
 
