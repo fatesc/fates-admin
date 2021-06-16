@@ -275,11 +275,9 @@ mt.__namecall = newcclosure(function(self, ...)
     if (checkcaller()) then
         return __Namecall(self, ...);
     end
-    
+
     local Args = {...}
-
-    local Method = getnamecallmethod():gsub("%z.*", "");
-
+    local Method = getnamecallmethod();
 
     local Protected = ProtectedInstances[self]
 
@@ -298,30 +296,6 @@ mt.__namecall = newcclosure(function(self, ...)
     if (Method == "GetFocusedTextBox") then
         if (table.find(ProtectedInstances, __Namecall(self, ...))) then
             return nil
-        end
-    end
-
-    if (not ISPF and self == Workspace and Method == "FindPartOnRay" and SilentAimingPlayer) then
-        local Char = GetCharacter(SilentAimingPlayer);
-        local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then  
-            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
-            if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
-            end
-        end
-    end
-
-    if (not ISPF and self == Workspace and Method == "FindPartOnRayWithIgnoreList" and SilentAimingPlayer and getcallingscript().Name ~= "CameraModule") then
-        local Char = GetCharacter(SilentAimingPlayer);
-        local Chance = math.random(1, 100) < SilentAimHitChance
-        
-        if (Char and Char[AimBone]) then
-            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
-            print(Viewable);
-            if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
-            end
         end
     end
 
@@ -353,11 +327,6 @@ mt.__index = newcclosure(function(Instance_, Index)
         if (table.find(AllowedIndexes, SanitisedIndex)) then
             return __Index(Instance_, Index);
         end
-        if (Instance_:IsA("Humanoid") and game.PlaceId == 6650331930) then
-            for i, v in next, getconnections(Instance_:GetPropertyChangedSignal("WalkSpeed")) do
-                v:Disable();
-            end
-        end
         return __Index(SpoofedInstance, Index);
     end
 
@@ -376,36 +345,6 @@ mt.__index = newcclosure(function(Instance_, Index)
             end);
         end
     end
-
-    if (Instance_ == Mouse and SilentAimingPlayer) then
-        local Char = GetCharacter(SilentAimingPlayer);
-        local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then
-            local ViewportPoint = Camera:WorldToViewportPoint(Char[AimBone].Position);
-            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
-            if (SanitisedIndex:lower() == "target") then
-                if (Viewable or Wallbang) then
-                    return Char[AimBone]
-                end
-            elseif (SanitisedIndex:lower() == "hit" and (Viewable or Wallbang)) then
-                if (Viewable or Wallbang) then
-                    return Char[AimBone].CFrame * CFrame.new(math.random(1, 10) / 10, math.random(1, 10) / 10, math.random(1, 10) / 10);
-                end
-            elseif (SanitisedIndex:lower() == "x" and (Viewable or Wallbang)) then
-                return ViewportPoint.X + (math.random(1, 10) / 10);
-            elseif (SanitisedIndex == "y" and (Viewable or Wallbang)) then
-                return ViewportPoint.Y + (math.random(1, 10) / 10);
-            end
-        end
-    end
-
-    -- if (ISPF and GunTbl.currentgun and tostring(Instance_) == "SightMark" and Index == "CFrame" and SilentAimingPlayer) then
-    --     local Char = GetCharacter(SilentAimingPlayer);
-    --     local Chance = math.random(1, 100) < SilentAimHitChance
-    --     if (Char and Char[AimBone] and Chance) then
-    --         return CFrame.new(Instance_.Position, Char[AimBone].Position);
-    --     end
-    -- end
 
     return __Index(Instance_, Index);
 end)
@@ -528,57 +467,6 @@ OldGetMemoryUsageMbForTag = hookfunction(Stats.GetMemoryUsageMbForTag, newcclosu
     end
     return OldGetMemoryUsageMbForTag(self, ...);
 end))
-
-local OldFindPartOnRay
-OldFindPartOnRay = hookfunction(Workspace.FindPartOnRay, newcclosure(function(...)
-    if (not ISPF and SilentAimingPlayer) then
-        local Char = GetCharacter(SilentAimingPlayer);
-        local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then
-            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
-            if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
-            end
-        end
-    end
-    return OldFindPartOnRay(...);
-end))
-local OldFindPartOnRayWithIgnoreList
-OldFindPartOnRayWithIgnoreList = hookfunction(Workspace.FindPartOnRayWithIgnoreList, newcclosure(function(...)
-    if (not ISPF and SilentAimingPlayer and getcallingscript().Name ~= "CameraModule") then
-        local Char = GetCharacter(SilentAimingPlayer);
-        local Chance = math.random(1, 100) < SilentAimHitChance
-        if (Char and Char[AimBone] and Chance) then
-            local Viewable = not next(Camera.GetPartsObscuringTarget(Camera, {Camera.CFrame.Position, Char[AimBone].Position}, {LocalPlayer.Character, Char}));
-            if (Viewable or Wallbang) then
-                return Char[AimBone], Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10), Vector3.new(0, 1, 0), Char[AimBone].Material
-            end
-        end
-    end
-    return OldFindPartOnRayWithIgnoreList(...);
-end))
-if (ISPF and Network and Network.send) then
-    local OldSend = Network.send
-    Network.send = function(...)
-        local Args = {...}
-        local Type = Args[2]
-        if (Type == "newbullets") then
-            local Char
-            if (SilentAimingPlayer) then
-                Char = GetCharacter(SilentAimingPlayer);
-            end
-            if (Char and Char[AimBone]) then
-                local AimPos = Char[AimBone].Position + (Vector3.new(math.random(1, 10), math.random(1, 10), math.random(1, 10)) / 10);
-                Args[3].bullets[1][1] = Trajectory(Client.basecframe * Vector3.new(0, 0, 1), Vector3.new(0, -Workspace.Gravity, 0), AimPos, GunTbl.currentgun.data.bulletspeed);
-      
-                OldSend(Args[1], "newbullets", Args[3], Args[4]);
-                OldSend(Args[1], "bullethit", SilentAimingPlayer, AimPos, GetCharacter(SilentAimingPlayer).Head, Args[3].bullets[1][2]);
-                return
-            end
-        end
-        return OldSend(...)
-    end
-end
 
 local ProtectInstance = function(Instance_, disallow)
     if (not ProtectedInstances[Instance_]) then

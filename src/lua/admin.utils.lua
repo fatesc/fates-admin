@@ -472,9 +472,6 @@ Utils.Vector3toVector2 = function(Vector)
     return Vector2.new(Tuple.X, Tuple.Y);
 end
 
-local Locating = {}
-local Drawings = {}
-
 Utils.CheckTag = function(Plr)
     if (not Plr or not Plr:IsA("Player")) then
         return nil
