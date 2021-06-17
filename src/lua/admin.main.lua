@@ -490,12 +490,12 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                 if (not Tool) then
                     continue
                 end
-                if (not Tool:FindFirstChild("Handle")) then
-                    continue
-                end
                 ProtectInstance(Tool);
                 SpoofProperty(Tool.Handle, "Size");
                 Tool.Parent = GetCharacter();
+                if (not Tool:FindFirstChild("Handle")) then
+                    continue
+                end
                 Tool.Handle.Size = Vector3.new(4, 4, 4);
                 for i2, v2 in next, Tool:GetDescendants() do
                     if (v2:IsA("Sound")) then
@@ -2466,21 +2466,8 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
         while (next(LoadCommand("fly2").CmdExtra) and wait()) do
             Speed = LoadCommand("fly2").CmdExtra[1]
             local CoordinateFrame = Camera.CoordinateFrame
-            if (Keys["W"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
-                BodyPos.Position = GetRoot().Position
-            end
-            if (Keys["A"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
-                BodyPos.Position = GetRoot().Position
-            end
-            if (Keys["S"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
-                BodyPos.Position = GetRoot().Position
-            end
-            if (Keys["D"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
-                BodyPos.Position = GetRoot().Position
+            if (Keys["W"] or Keys["A"] or Keys["S"] or Keys["D"]) then
+                GetRoot().CFrame = GetRoot().CFrame + GetHumanoid().MoveDirection * Speed
             end
             BodyGyro.CFrame = CoordinateFrame
             BodyPos.Position = GetRoot().CFrame.Position
@@ -2935,18 +2922,6 @@ AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
             if (Keys["W"] or Keys["A"] or Keys["S"] or Keys["D"]) then
                 GetRoot().CFrame = GetRoot().CFrame + GetHumanoid().MoveDirection * Speed
             end
-            -- if (Keys["W"]) then
-            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
-            -- end
-            -- if (Keys["A"]) then
-            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
-            -- end
-            -- if (Keys["S"]) then
-            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
-            -- end
-            -- if (Keys["D"]) then
-            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
-            -- end
         end
     end)();
     return "blink speed enabled"
