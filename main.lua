@@ -4317,6 +4317,16 @@ AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Ar
     return LocalPlayer.Team == Team and "changed team to " .. Team.Name or "could'nt change team to " .. Team.Name
 end)
 
+local Activated = false
+AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, Args)
+    if (not Activated) then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/main/src/lua/freecam.lua"))();
+        Activated = true
+        return "freecam enabled"
+    end
+    return "freecam is already enabled (shift + p to toggle)";
+end)
+
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
