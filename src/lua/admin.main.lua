@@ -475,36 +475,40 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     DisableAnimate();
     coroutine.wrap(function()
         for i, v in next, Target do
-                if (GetCharacter(v)) then
-                    if (isSat(v)) then
-                        Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
-                        do break end
-                    end
-
-                    if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
-                        do break end
-                    end
-
-                    local TargetRoot = GetRoot(v);
-                    local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
-                    if (not Tool) then
-                        do break end
-                    end
-                    SpoofInstance(Tool);
-                    Tool.Parent = GetCharacter();
-                    Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    for i2, v2 in next, Tool:GetDescendants() do
-                        if (v2:IsA("Sound")) then
-                            v2:Destroy();
-                        end
-                    end
-                    CFrameTool(Tool, GetRoot(v).CFrame * CFrame.new(0, 6, 0));
-                    firetouchinterest(TargetRoot, Tool.Handle, 0);
-                    wait();
-                    firetouchinterest(TargetRoot, Tool.Handle, 1);
-                else
-                    Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
+            if (GetCharacter(v)) then
+                if (isSat(v)) then
+                    Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
+                    continue
                 end
+
+                if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
+                    continue
+                end
+
+                local TargetRoot = GetRoot(v);
+                local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
+                if (not Tool) then
+                    continue
+                end
+                if (not Tool:FindFirstChild("Handle")) then
+                    continue
+                end
+                ProtectInstance(Tool);
+                SpoofProperty(Tool.Handle, "Size");
+                Tool.Parent = GetCharacter();
+                Tool.Handle.Size = Vector3.new(4, 4, 4);
+                for i2, v2 in next, Tool:GetDescendants() do
+                    if (v2:IsA("Sound")) then
+                        v2:Destroy();
+                    end
+                end
+                CFrameTool(Tool, GetRoot(v).CFrame * CFrame.new(0, 3, 0));
+                firetouchinterest(TargetRoot, Tool.Handle, 0);
+                wait();
+                firetouchinterest(TargetRoot, Tool.Handle, 1);
+            else
+                Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
+            end
         end
     end)()
     Humanoid:ChangeState(15);
@@ -538,37 +542,38 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
 
     coroutine.wrap(function()
         for i, v in next, Target do
-            repeat
-                if (GetCharacter(v)) then
-                    if (isSat(v)) then
-                        Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
-                        do break end
-                    end
-
-                    if (TempRespawnTimes[v.Name] and isR6(v)) then
-                        if (#Target == 1) then
-                            Destroy = true
-                        else
-                            do break end
-                        end
-                    end
-
-                    local TargetRoot = GetRoot(v);
-                    local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
-                    if (not Tool) then
-                        do break end
-                    end
-                    SpoofInstance(Tool);
-                    Tool.Parent = GetCharacter();
-                    Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    CFrameTool(Tool, GetRoot(v).CFrame * CFrame.new(0, 6, 0));
-                    firetouchinterest(TargetRoot, Tool.Handle, 0);
-                    wait();
-                    firetouchinterest(TargetRoot, Tool.Handle, 1);
-                else
-                    Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
+            if (GetCharacter(v)) then
+                if (isSat(v)) then
+                    Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
+                    continue
                 end
-            until true
+
+                if (TempRespawnTimes[v.Name] and isR6(v)) then
+                    if (#Target == 1) then
+                        Destroy = true
+                    else
+                        continue
+                    end
+                end
+
+                local TargetRoot = GetRoot(v);
+                local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
+                if (not Tool) then
+                    continue
+                end
+                if (not Tool:FindFirstChild("Handle")) then
+                    continue
+                end
+                SpoofInstance(Tool);
+                Tool.Parent = GetCharacter();
+                Tool.Handle.Size = Vector3.new(4, 4, 4);
+                CFrameTool(Tool, GetRoot(v).CFrame * CFrame.new(0, 6, 0));
+                firetouchinterest(TargetRoot, Tool.Handle, 0);
+                wait();
+                firetouchinterest(TargetRoot, Tool.Handle, 1);
+            else
+                Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
+            end
         end
     end)()
     Humanoid2:ChangeState(15);
@@ -648,42 +653,40 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
             end
         end
         for i, v in next, Target do
-            repeat
-                if (GetCharacter(v)) then
-                    if (isSat(v)) then
-                        Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
-                        do break end
-                    end
-
-                    if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
-                        do break end
-                    end
-
-                    local TargetRoot = GetRoot(v);
-                    local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
-                    if (not Tool) then
-                        do break end
-                    end
-                    SpoofInstance(Tool);
-                    Tool.Parent = GetCharacter();
-                    Tool.Handle.Size = Vector3.new(4, 4, 4);
-                    for i2, v2 in next, Tool:GetDescendants() do
-                        if (v2:IsA("Sound")) then
-                            v2:Destroy();
-                        end
-                    end
-                    for i2 = 1, 3 do
-                        if (TargetRoot) then
-                            firetouchinterest(TargetRoot, Tool.Handle, 0);
-                            wait();
-                            firetouchinterest(TargetRoot, Tool.Handle, 1);
-                            CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
-                        end
-                    end
-                else
-                    Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not bring.");
+            if (GetCharacter(v)) then
+                if (isSat(v)) then
+                    Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
+                    continue
                 end
-            until true
+
+                if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
+                    continue
+                end
+
+                local TargetRoot = GetRoot(v);
+                local Tool = LocalPlayer.Backpack:FindFirstChildWhichIsA("Tool") or GetCharacter():FindFirstChildWhichIsA("Tool");
+                if (not Tool) then
+                    continue
+                end
+                SpoofInstance(Tool);
+                Tool.Parent = GetCharacter();
+                Tool.Handle.Size = Vector3.new(4, 4, 4);
+                for i2, v2 in next, Tool:GetDescendants() do
+                    if (v2:IsA("Sound")) then
+                        v2:Destroy();
+                    end
+                end
+                for i2 = 1, 3 do
+                    if (TargetRoot) then
+                        firetouchinterest(TargetRoot, Tool.Handle, 0);
+                        wait();
+                        firetouchinterest(TargetRoot, Tool.Handle, 1);
+                        CFrameTool(Tool, OldPos * CFrame.new(-5, 0, 0));
+                    end
+                end
+            else
+                Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not bring.");
+            end
         end
         wait(.2);
         LocalPlayer.Character:Destroy();
