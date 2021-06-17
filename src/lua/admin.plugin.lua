@@ -61,6 +61,8 @@ if IsSupportedExploit then
     end
 end
 
+utils.LoadPlugin = LoadPlugin
+
 for i, Plugin in pairs(Plugins) do
     if not Plugin[2] then
         Utils.Notify(LocalPlayer, nil, Plugin[1].." failed to load due to error...");
