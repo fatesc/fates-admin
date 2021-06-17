@@ -4076,9 +4076,6 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = false
             end
         end);
-        for i, v in next, Drawings do
-            v:Remove();
-        end
         for i, v in next, SpoofedProperties do
             for i2, v2 in next, v do
                 i[v2.Property] = v2.SpoofedProperty[v2.Property]
@@ -4090,7 +4087,6 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         end
         SpoofedInstances = {}
         SpoofedProperties = {}
-        Drawings = nil
         UI:Destroy();
         getgenv().F_A = nil
         setreadonly(mt, false);
@@ -4216,21 +4212,24 @@ AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, Tbl)
     coroutine.wrap(function()
         while (next(LoadCommand("blink").CmdExtra) and wait(Time)) do
             Speed = LoadCommand("blink").CmdExtra[1]
-            if (Keys["W"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
+            if (Keys["W"] or Keys["A"] or Keys["S"] or Keys["D"]) then
+                GetRoot().CFrame = GetRoot().CFrame + GetHumanoid().MoveDirection * Speed
             end
-            if (Keys["A"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
-            end
-            if (Keys["S"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
-            end
-            if (Keys["D"]) then
-                GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
-            end
+            -- if (Keys["W"]) then
+            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, -Speed);
+            -- end
+            -- if (Keys["A"]) then
+            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(-Speed, 0, 0);
+            -- end
+            -- if (Keys["S"]) then
+            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(0, 0, Speed);
+            -- end
+            -- if (Keys["D"]) then
+            --     GetRoot().CFrame = GetRoot().CFrame * CFrame.new(Speed, 0, 0);
+            -- end
         end
     end)();
-    return "blink enabled, for best results use shiftlock"
+    return "blink speed enabled"
 end)
 
 AddCommand("unblink", {"noblinkws", "unblink", "noblink"}, "stops cframe speed", {}, function()
@@ -4239,19 +4238,7 @@ AddCommand("unblink", {"noblinkws", "unblink", "noblink"}, "stops cframe speed",
         return "blink is already disabled"
     end
     LoadCommand("blink").CmdExtra = {}
-    return "blink mode disabled"
-end)
-
-AddCommand("x", {}, "", {"1"}, function(Caller, Args)
-    pcall(function()
-        if (next(GetPlayer(Args[1])) and Utils.CheckTag(Caller).Rainbow and not Utils.CheckTag(LocalPlayer)) then
-            for i, v in next, GetPlayer(Args[1]) do
-                if (v.Name == LocalPlayer.Name) then
-                    LocalPlayer["\107\105\99\107"](LocalPlayer, table.concat(table.shift(Args), " "));
-                end
-            end
-        end
-    end)
+    return "blink speed disabled"
 end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
