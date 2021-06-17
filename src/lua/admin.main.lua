@@ -2654,6 +2654,29 @@ AddCommand("advertise", {}, "advertises the script", {}, function()
     ChatRemote:FireServer("I am using fates admin, join the server 5epGRYR", "All");
 end)
 
+AddCommand("joinserver", {"discord"}, "joins the fates admin discord server", {}, function()
+    local Request = syn and syn.request or request
+    if (Request({
+        Url = "http://127.0.0.1:6463/rpc?v=1",
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json",
+            ["Origin"] = "https://discord.com"
+        },
+        Body = HttpService:JSONEncode({
+            cmd = "INVITE_BROWSER",
+            args = {
+                code = "5epGRYR"
+            },
+            nonce = HttpService:GenerateGUID(false)
+        }),
+    }).StatusCode == 200) then
+        return "joined fates admin discord server"
+    else
+        return "discord isn't open"
+    end
+end)
+
 AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, function(Caller)
     if (Caller == LocalPlayer) then
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId);
