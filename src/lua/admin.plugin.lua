@@ -51,14 +51,22 @@ if (IsSupportedExploit) then
     end
 end
 
-local Plugins = IsSupportedExploit and table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
-    return v:split(".")[#v:split(".")]:lower() == "lua"
-end), function(i, v)
-    return {v:split("\\")[2], loadfile(v)}
-end) or {}
+--Fixed random crashing and improper handling
+local Plugins = {}
+if IsSupportedExploit then
+    for i,v in pairs(listfiles("fates-admin/plugins")) do
+        if string.find(v,".lua") then
+            Plugins[#Plugins + 1] = {split(v,"([^\\]+)")[2],loadfile(v)}
+        end
+    end
+end
 
-for i, Plugin in next, Plugins do
-    LoadPlugin(Plugin[2]());
+for i, Plugin in pairs(Plugins) do
+    if not Plugin[2] then
+        Utils.Notify(LocalPlayer, nil, Plugin[1].." failed to load due to error...");
+    else
+        LoadPlugin(Plugin[2]());
+    end
 end
 
 AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
