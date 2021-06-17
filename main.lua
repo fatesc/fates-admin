@@ -403,8 +403,11 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
-        local Connections = getconnections(Instance_:GetPropertyChangedSignal(Index));
-        if (next(Connections)) then
+        if (SpoofedInstance or SpoofedPropertiesForInstance) then
+            local Connections = getconnections(Instance_:GetPropertyChangedSignal(SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
+            if (not next(Connections)) then
+                return __NewIndex(Instance_, Index, Value);
+            end
             for i, v in next, Connections do
                 v:Disable();
             end
