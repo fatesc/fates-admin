@@ -19,28 +19,28 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
 end
 
-RunService = game:GetService("RunService");
-Players = game:GetService("Players");
-UserInputService = game:GetService("UserInputService");
-local Workspace = game:GetService("Workspace");
-local ReplicatedStorage = game:GetService("ReplicatedStorage");
-local StarterPlayer = game:GetService("StarterPlayer");
-local StarterPack = game:GetService("StarterPack");
-local StarterGui = game:GetService("StarterGui");
-local TeleportService = game:GetService("TeleportService");
-local CoreGui = game:GetService("CoreGui");
-local TweenService = game:GetService("TweenService");
-local HttpService = game:GetService("HttpService");
-local TextService = game:GetService("TextService");
+RunService               = game:GetService("RunService");
+Players                  = game:GetService("Players");
+UserInputService         = game:GetService("UserInputService");
+local Workspace          = game:GetService("Workspace");
+local ReplicatedStorage  = game:GetService("ReplicatedStorage");
+local StarterPlayer      = game:GetService("StarterPlayer");
+local StarterPack        = game:GetService("StarterPack");
+local StarterGui         = game:GetService("StarterGui");
+local TeleportService    = game:GetService("TeleportService");
+local CoreGui            = game:GetService("CoreGui");
+local TweenService       = game:GetService("TweenService");
+local HttpService        = game:GetService("HttpService");
+local TextService        = game:GetService("TextService");
 local MarketplaceService = game:GetService("MarketplaceService")
-local Chat = game:GetService("Chat");
-local SoundService = game:GetService("SoundService");
-local Lighting = game:GetService("Lighting");
+local Chat               = game:GetService("Chat");
+local SoundService       = game:GetService("SoundService");
+local Lighting           = game:GetService("Lighting");
 
-local Camera = Workspace.CurrentCamera
+local Camera             = Workspace.CurrentCamera
 
-LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer and LocalPlayer:GetMouse();
+LocalPlayer              = Players.LocalPlayer
+local Mouse              = LocalPlayer and LocalPlayer:GetMouse();
 
 local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
