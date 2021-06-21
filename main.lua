@@ -4418,6 +4418,30 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
     return "freecam is already enabled (shift + p to toggle)";
 end)
 
+AddCommand("plastic", {"fpsboost"}, "changes everything to a plastic material", {}, function(Caller, Args, Tbl)
+    local time = tick();
+    local Plasticc = 0
+    for i, v in next, GetDescendants(Workspace) do
+        if (IsA(v, "Part") and v.Material ~= Enum.Material.Plastic) then
+            Tbl[v] = v.Material
+            v.Material = Enum.Material.Plastic
+            Plasticc = Plasticc + 1
+        end
+    end
+    return format("%d items made plastic in %.3f (s)", Plasticc, (tick()) - time);    
+end)
+
+AddCommand("unplastic", {"unfpsboost"}, "changes everything back from a plastic material", {}, function(Caller, Args, Tbl)
+    local Plastics = LoadCommand("plastic").CmdExtra
+    local time = tick();
+    local Amount = 0
+    for i, v in next, Plastics do
+        i.Material = v
+        Amount = Amount + 1
+    end
+    return format("removed %d plastic in %.3f (s)", Amount, (tick()) - time);
+end)
+
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
