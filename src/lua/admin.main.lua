@@ -2418,20 +2418,20 @@ AddCommand("fly", {}, "fly your character", {}, function(Caller, Args)
     LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 2
     local Speed = LoadCommand("fly").CmdExtra[1]
     local Root = GetRoot()
-	local BodyGyro = InstanceNew("BodyGyro");
+    local BodyGyro = InstanceNew("BodyGyro");
     local BodyVelocity = InstanceNew("BodyVelocity");
     SpoofInstance(Root, isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
-	ProtectInstance(BodyGyro);
+    ProtectInstance(BodyGyro);
     ProtectInstance(BodyVelocity);
     BodyGyro.Parent = Root
     BodyVelocity.Parent = Root
     BodyGyro.P = 9e9
-	BodyGyro.MaxTorque = Vector3New(1, 1, 1) * 9e9
-	BodyGyro.CFrame = Root.CFrame
-	BodyVelocity.MaxForce = Vector3New(1, 1, 1) * 9e9
-	BodyVelocity.Velocity = Vector3New(0, 0.1, 0);
+    BodyGyro.MaxTorque = Vector3New(1, 1, 1) * 9e9
+    BodyGyro.CFrame = Root.CFrame
+    BodyVelocity.MaxForce = Vector3New(1, 1, 1) * 9e9
+    BodyVelocity.Velocity = Vector3New(0, 0.1, 0);
 
-	local Table1 = { ['W'] = 0; ['A'] = 0; ['S'] = 0; ['D'] = 0 }
+    local Table1 = { ['W'] = 0; ['A'] = 0; ['S'] = 0; ['D'] = 0 }
 
     coroutine.wrap(function()
         while (next(LoadCommand("fly").CmdExtra) and wait()) do
@@ -2988,13 +2988,13 @@ AddCommand("unblink", {"noblinkws", "unblink", "noblink"}, "stops cframe speed",
 end)
 
 AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, function(Caller, Args, Tbl)
-	local Target = GetPlayer(Args[1])[1];
+    local Target = GetPlayer(Args[1])[1];
     if (Target == LocalPlayer) then
         return "You cannot orbit yourself."
     end
-	local Radius = tonumber(Args[3]) or 7
-	local Speed = tonumber(Args[2]) or 1
-	local random = random(tick() / 2, tick());
+    local Radius = tonumber(Args[3]) or 7
+    local Speed = tonumber(Args[2]) or 1
+    local random = random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(CConnect(Heartbeat, function()
         Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() + random * Speed) * Radius, 0, cos(tick() + random * Speed) * Radius), TRoot.Position);
