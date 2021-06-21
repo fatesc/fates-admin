@@ -1,12 +1,10 @@
--- todo: rewrite all of misrepresentings code.
-
 local Utils = {}
 
 Utils.Tween = function(Object, Style, Direction, Time, Goal)
     local TInfo = TweenInfo.new(Time, Enum.EasingStyle[Style], Enum.EasingDirection[Direction])
-    local Tween = TweenService:Create(Object, TInfo, Goal)
+    local Tween = Services.TweenService.Create(Services.TweenService, Object, TInfo, Goal)
 
-    Tween:Play()
+    Tween.Play(Tween)
 
     return Tween
 end
@@ -28,19 +26,19 @@ Utils.Click = function(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
         [Goal] = Object[Goal]
     }
 
-    Connections["ObjectMouseEnter" .. #Connections] = Object.MouseEnter:Connect(function()
+    Connections["ObjectMouseEnter" .. #Connections] = CConnect(Object.MouseEnter, function()
         Utils.Tween(Object, "Sine", "Out", .5, Hover)
     end)
 
-    Connections["ObjectMouseLeave" .. #Connections] = Object.MouseLeave:Connect(function()
+    Connections["ObjectMouseLeave" .. #Connections] = CConnect(Object.MouseLeave, function()
         Utils.Tween(Object, "Sine", "Out", .5, Origin)
     end)
 
-    Connections["ObjectMouseButton1Down" .. #Connections] = Object.MouseButton1Down:Connect(function()
+    Connections["ObjectMouseButton1Down" .. #Connections] = CConnect(Object.MouseButton1Down, function()
         Utils.Tween(Object, "Sine", "Out", .3, Press)
     end)
 
-    Connections["ObjectMouseButton1Up" .. #Connections] = Object.MouseButton1Up:Connect(function()
+    Connections["ObjectMouseButton1Up" .. #Connections] = CConnect(Object.MouseButton1Up, function()
         Utils.Tween(Object, "Sine", "Out", .4, Hover)
     end)
 end
@@ -55,10 +53,10 @@ Utils.Blink = function(Object, Goal, Color1, Color2) -- Utils.Click(Object, "Bac
     }
 
     local Tween = Utils.Tween(Object, "Sine", "Out", .5, Blink)
-    Tween.Completed:Wait()
+    CWait(Tween.Completed);
 
     local Tween = Utils.Tween(Object, "Sine", "Out", .5, Normal)
-    Tween.Completed:Wait()
+    CWait(Tween.Completed);
 end
 
 Utils.Hover = function(Object, Goal)
@@ -70,11 +68,11 @@ Utils.Hover = function(Object, Goal)
         [Goal] = Object[Goal]
     }
 
-    Connections["ObjectMouseEnter" .. #Connections] = Object.MouseEnter:Connect(function()
+    Connections["ObjectMouseEnter" .. #Connections] = CConnect(Object.MouseEnter, function()
         Utils.Tween(Object, "Sine", "Out", .5, Hover)
     end)
 
-    Connections["ObjectMouseLeave" .. #Connections] = Object.MouseLeave:Connect(function()
+    Connections["ObjectMouseLeave" .. #Connections] = CConnect(Object.MouseLeave, function()
         Utils.Tween(Object, "Sine", "Out", .5, Origin)
     end)
 end
@@ -93,16 +91,17 @@ Utils.Draggable = function(Ui, DragUi)
         Utils.Tween(Ui, "Linear", "Out", .25, {
             Position = Position
         })
-        TweenService:Create(Ui, TweenInfo.new(0.25), {Position = Position}):Play();
+        local Tween = Services.TweenService.Create(Services.TweenService, Ui, TweenInfo.new(0.25), {Position = Position});
+        Tween.Play(Tween);
     end
 
-    Connections["UIInputBegan" .. #Connections] = Ui.InputBegan:Connect(function(Input)
-        if ((Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and UserInputService:GetFocusedTextBox() == nil) then
+    Connections["UIInputBegan" .. #Connections] = CConnect(Ui.InputBegan, function(Input)
+        if ((Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and Services.UserInputService.GetFocusedTextBox(Services.UserInputService) == nil) then
             DragToggle = true
             DragStart = Input.Position
             StartPos = Ui.Position
 
-            Connections["InputChanged" .. #Connections] = Input.Changed:Connect(function()
+            Connections["InputChanged" .. #Connections] = CConnect(Input.Changed, function()
                 if (Input.UserInputState == Enum.UserInputState.End) then
                     DragToggle = false
                 end
@@ -110,13 +109,13 @@ Utils.Draggable = function(Ui, DragUi)
         end
     end)
 
-    Connections["UiInputChanged" .. #Connections] = Ui.InputChanged:Connect(function(Input)
+    Connections["UiInputChanged" .. #Connections] = CConnect(Ui.InputChanged, function(Input)
         if (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
             DragInput = Input
         end
     end)
 
-    Connections["UserInputServiceInputChanged" .. #Connections] = UserInputService.InputChanged:Connect(function(Input)
+    Connections["Services.UserInputServiceInputChanged" .. #Connections] = CConnect(Services.UserInputService.InputChanged, function(Input)
         if (Input == DragInput and DragToggle) then
             UpdateInput(Input)
         end
@@ -130,9 +129,9 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
 
     -- create the 'input' scrolling frame, aka the scrolling frame which receives user input
     -- if smoothing is enabled, enable scrolling
-    local input = content:Clone()
+    local input = Clone(content)
 
-    input:ClearAllChildren()
+    input.ClearAllChildren(input);
     input.BackgroundTransparency = 1
     input.ScrollBarImageTransparency = 1
     input.ZIndex = content.ZIndex + 1
@@ -142,7 +141,7 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
 
     -- keep input frame in sync with content frame
     local function syncProperty(prop)
-        Connections["content" .. #Connections] = content:GetPropertyChangedSignal(prop):Connect(function()
+        Connections["content" .. #Connections] = CConnect(GetPropertyChangedSignal(content, prop), function()
             if prop == "ZIndex" then
                 -- keep the input frame on top!
                 input[prop] = content[prop] + 1
@@ -167,7 +166,7 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
     syncProperty "Visible"
 
     -- create a render stepped connection to interpolate the content frame position to the input frame position
-    local smoothConnection = RunService.RenderStepped:Connect(function()
+    local smoothConnection = CConnect(RenderStepped, function()
         local a = content.CanvasPosition
         local b = input.CanvasPosition
         local c = SmoothingFactor
@@ -179,17 +178,17 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
     Connections["smoothConnection" .. #Connections] = smoothConnection
 
     -- destroy everything when the frame is destroyed
-    Connections["contentAncestryChanged" .. #Connections] = content.AncestryChanged:Connect(function()
+    Connections["contentAncestryChanged" .. #Connections] = CConnect(content.AncestryChanged, function()
         if content.Parent == nil then
-            input:Destroy()
-            smoothConnection:Disconnect()
+            Destroy(input);
+            Disconnect(smoothConnection);
         end
     end)
 end
 
 Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transparency is max object transparency, swutched args bc easier command
-    local Descendants = Object:GetDescendants()
-    local OldDescentants = BeforeObject:GetDescendants()
+    local Descendants = GetDescendants(Object);
+    local OldDescentants = GetDescendants(BeforeObject);
     local Tween -- to use to wait
 
     Tween = Utils.Tween(Object, "Sine", "Out", Time, {
@@ -197,11 +196,11 @@ Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transp
     })
 
     for i, v in next, Descendants do
-        local IsText = v:IsA("TextBox") or v:IsA("TextLabel") or v:IsA("TextButton")
-        local IsImage = v:IsA("ImageLabel") or v:IsA("ImageButton")
-        local IsScrollingFrame = v:IsA("ScrollingFrame")
+        local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
+        local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
+        local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not v:IsA("UIListLayout")) then
+        if (not IsA(v, "UIListLayout")) then
             if (IsText) then
                 Utils.Tween(v, "Sine", "Out", Time, {
                     TextTransparency = OldDescentants[i].TextTransparency,
@@ -232,12 +231,12 @@ end
 Utils.SetAllTrans = function(Object)
     Object.BackgroundTransparency = 1
 
-    for _, v in ipairs(Object:GetDescendants()) do
-        local IsText = v:IsA("TextBox") or v:IsA("TextLabel") or v:IsA("TextButton")
-        local IsImage = v:IsA("ImageLabel") or v:IsA("ImageButton")
-        local IsScrollingFrame = v:IsA("ScrollingFrame")
+    for _, v in ipairs(GetDescendants(Object)) do
+        local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
+        local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
+        local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not v:IsA("UIListLayout")) then
+        if (not IsA(v, "UIListLayout")) then
             v.BackgroundTransparency = 1
 
             if (IsText) then
@@ -258,12 +257,12 @@ Utils.TweenAllTrans = function(Object, Time)
         BackgroundTransparency = 1
     })
 
-    for _, v in ipairs(Object:GetDescendants()) do
-        local IsText = v:IsA("TextBox") or v:IsA("TextLabel") or v:IsA("TextButton")
-        local IsImage = v:IsA("ImageLabel") or v:IsA("ImageButton")
-        local IsScrollingFrame = v:IsA("ScrollingFrame")
+    for _, v in ipairs(GetDescendants(Object)) do
+        local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
+        local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
+        local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not v:IsA("UIListLayout")) then
+        if (not IsA(v, "UIListLayout")) then
             if (IsText) then
                 Utils.Tween(v, "Sine", "Out", Time, {
                     TextTransparency = 1,
@@ -295,14 +294,14 @@ Utils.Notify = function(Caller, Title, Message, Time)
         local Notification = UI.Notification
         local NotificationBar = UI.NotificationBar
 
-        local Clone = Notification:Clone()
+        local Clone = Clone(Notification)
 
         local function TweenDestroy()
             if (Utils and Clone) then -- fix error when the script is killed and there is still notifications out
                 local Tween = Utils.TweenAllTrans(Clone, .25)
 
-                Tween.Completed:Wait()
-                Clone:Destroy();
+                CWait(Tween.Completed)
+                Destroy(Clone);
             end
         end
 
@@ -312,7 +311,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         Utils.Click(Clone.Close, "TextColor3")
         Clone.Visible = true -- tween
 
-        if (Message:len() >= 35) then
+        if (len(Message) >= 35) then
             Clone.AutomaticSize = Enum.AutomaticSize.Y
             Clone.Message.AutomaticSize = Enum.AutomaticSize.Y
             Clone.Message.RichText = true
@@ -326,7 +325,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         coroutine.wrap(function()
             local Tween = Utils.TweenAllTransToObject(Clone, .5, Notification)
 
-            Tween.Completed:Wait();
+            CWait(Tween.Completed);
             wait(Time or 5);
 
             if (Clone) then
@@ -334,14 +333,14 @@ Utils.Notify = function(Caller, Title, Message, Time)
             end
         end)()
 
-        Connections["CloneClose" .. #Connections] = Clone.Close.MouseButton1Click:Connect(function()
+        Connections["CloneClose" .. #Connections] = CConnect(Clone.Close.MouseButton1Click, function()
             TweenDestroy()
         end)
 
         return Clone
     else
         local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
-        ChatRemote:FireServer(("/w %s [FA] %s: %s"):format(Caller.Name, Title, Message), "All");
+        ChatRemote.FireServer(ChatRemote, format("/w %s [FA] %s: %s", Caller.Name, Title, Message), "All");
     end
 end
 
@@ -358,19 +357,19 @@ Utils.StringFind = function(Table, String)
 end
 
 Utils.GetPlayerArgs = function(Arg)
-    Arg = Arg:lower();
+    Arg = lower(Arg);
     local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
     if (Utils.StringFind(SpecialCases, Arg)) then
         return Utils.StringFind(SpecialCases, Arg);
     end
 
-    local CurrentPlayers = Players:GetPlayers();
+    local CurrentPlayers = GetPlayers(Players);
     for i, v in next, CurrentPlayers do
-        if (v.Name ~= v.DisplayName and Utils.MatchSearch(Arg, v.DisplayName:lower())) then
-            return v.DisplayName:lower();
+        if (v.Name ~= v.DisplayName and Utils.MatchSearch(Arg, lower(v.DisplayName))) then
+            return lower(v.DisplayName);
         end
-        if (Utils.MatchSearch(Arg, v.Name:lower())) then
-            return v.Name:lower();
+        if (Utils.MatchSearch(Arg, lower(v.Name))) then
+            return lower(v.Name);
         end
     end
 end
@@ -378,11 +377,11 @@ end
 Utils.ToolTip = function(Object, Message)
     local Clone
 
-    Object.MouseEnter:Connect(function()
+    CConnect(Object.MouseEnter, function()
         if (Object.BackgroundTransparency < 1 and not Clone) then
-            local TextSize = TextService:GetTextSize(Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24 and true or false
+            local TextSize = Services.TextService.GetTextSize(Services.TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, huge)).Y > 24 and true or false
 
-            Clone = UI.ToolTip:Clone()
+            Clone = Clone(UI.ToolTip)
             Clone.Text = Message
             Clone.TextScaled = TextSize
             Clone.Visible = true
@@ -390,15 +389,15 @@ Utils.ToolTip = function(Object, Message)
         end
     end)
 
-    Object.MouseLeave:Connect(function()
+    CConnect(Object.MouseLeave, function()
         if (Clone) then
-            Clone:Destroy()
+            Destroy(Clone);
             Clone = nil
         end
     end)
 
     if (LocalPlayer) then
-        LocalPlayer:GetMouse().Move:Connect(function()
+        CConnect(Mouse.Move, function()
             if (Clone) then
                 Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
             end
@@ -406,8 +405,7 @@ Utils.ToolTip = function(Object, Message)
     else
         delay(3, function()
             LocalPlayer = Players.LocalPlayer
-            Mouse = LocalPlayer:GetMouse()
-            Mouse.Move:Connect(function()
+            CConnect(Mouse.Move, function()
                 if (Clone) then
                     Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
                 end
@@ -417,9 +415,9 @@ Utils.ToolTip = function(Object, Message)
 end
 
 Utils.ClearAllObjects = function(Object)
-    for _, v in ipairs(Object:GetChildren()) do
-        if (not v:IsA("UIListLayout")) then
-            v:Destroy()
+    for _, v in ipairs(GetChildren(Object)) do
+        if (not IsA(v, "UIListLayout")) then
+            Destroy(v);
         end
     end
 end
@@ -432,17 +430,17 @@ Utils.Rainbow = function(TextObject)
 
     TextObject.RichText = true
 
-    for Character in string.gmatch(Text, ".") do
-        if string.match(Character, "%s") then
-            table.insert(Strings, Character)
+    for Character in gmatch(Text, ".") do
+        if match(Character, "%s") then
+            insert(Strings, Character)
         else
             TotalCharacters = TotalCharacters + 1
-            table.insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
+            insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
         end
     end
 
     pcall(function() -- no idea why this shit is erroring
-        local Connection = AddConnection(RunService.Heartbeat:Connect(function()
+        local Connection = AddConnection(CConnect(Heartbeat, function()
             local String = ""
             local Counter = TotalCharacters
     
@@ -451,9 +449,9 @@ Utils.Rainbow = function(TextObject)
     
                 if (type(CharacterTable) == "table") then
                     Counter = Counter - 1
-                    local Color = Color3.fromHSV(-math.atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+                    local Color = Color3.fromHSV(-atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
     
-                    CharacterTable = string.format(CharacterTable[1], math.floor(Color.R * 255), math.floor(Color.G * 255), math.floor(Color.B * 255))
+                    CharacterTable = format(CharacterTable[1], floor(Color.R * 255), floor(Color.G * 255), floor(Color.B * 255))
                 end
     
                 String = String .. CharacterTable
@@ -462,23 +460,23 @@ Utils.Rainbow = function(TextObject)
             TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
         end));
         delay(150, function()
-            Connection:Disconnect();
+            Disconnect(Connection);
         end)
     end)
 end
 
 Utils.Vector3toVector2 = function(Vector)
-    local Tuple = Camera:WorldToViewportPoint(Vector)
+    local Tuple = WorldToViewportPoint(Camera, Vector);
     return Vector2.new(Tuple.X, Tuple.Y);
 end
 
 Utils.CheckTag = function(Plr)
-    if (not Plr or not Plr:IsA("Player")) then
+    if (not Plr or not IsA(Plr, "Player")) then
         return nil
     end
     local UserId = tostring(Plr.UserId);
-    local Tag = PlayerTags[UserId:gsub(".", function(x)
-        return x:byte();
+    local Tag = PlayerTags[gsub(UserId, ".", function(x)
+        return byte(x);
     end)]
     return Tag or nil
 end
@@ -491,24 +489,24 @@ Utils.AddTag = function(Tag)
     if (not PlrCharacter) then
         return
     end
-    local Billboard = Instance.new("BillboardGui");
+    local Billboard = InstanceNew("BillboardGui");
     Billboard.Parent = UI
-    Billboard.Name = HttpService:GenerateGUID();
+    Billboard.Name = GenerateGUID(Services.HttpService);
     Billboard.AlwaysOnTop = true
-    Billboard.Adornee = PlrCharacter:FindFirstChild("Head") or nil
-    Billboard.Enabled = PlrCharacter:FindFirstChild("Head") and true or false
+    Billboard.Adornee = FindFirstChild(PlrCharacter, "Head") or nil
+    Billboard.Enabled = FindFirstChild(PlrCharacter, "Head") and true or false
     Billboard.Size = UDim2.new(0, 200, 0, 50)
-    Billboard.StudsOffset = Vector3.new(0, 4, 0);
+    Billboard.StudsOffset = Vector3New(0, 4, 0);
 
-    local TextLabel = Instance.new("TextLabel", Billboard);
-    TextLabel.Name = HttpService:GenerateGUID();
+    local TextLabel = InstanceNew("TextLabel", Billboard);
+    TextLabel.Name = GenerateGUID(Services.HttpService);
     TextLabel.TextStrokeTransparency = 0.6
     TextLabel.BackgroundTransparency = 1
     TextLabel.TextColor3 = Color3.new(0, 255, 0);
     TextLabel.Size = UDim2.new(0, 200, 0, 50);
     TextLabel.TextScaled = false
     TextLabel.TextSize = 15
-    TextLabel.Text = ("%s (%s)"):format(Tag.Name, Tag.Tag);
+    TextLabel.Text = format("%s (%s)", Tag.Name, Tag.Tag);
 
     if (Tag.Rainbow) then
         Utils.Rainbow(TextLabel)
@@ -518,27 +516,27 @@ Utils.AddTag = function(Tag)
         TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
     end
 
-    local Added = Tag.Player.CharacterAdded:Connect(function()
-        Billboard.Adornee = Tag.Player.Character:WaitForChild("Head");
+    local Added = CConnect(Tag.Player.CharacterAdded, function()
+        Billboard.Adornee = WaitForChild(Tag.Player.Character, "Head");
     end)
 
     AddConnection(Added)
 
-    AddConnection(Players.PlayerRemoving:Connect(function(plr)
+    AddConnection(CConnect(Players.PlayerRemoving, function(plr)
         if (plr == Tag.Player) then
-            Added:Disconnect();
-            Billboard:Destroy();
+            Disconnect(Added);
+            Destroy(Billboard);
         end
     end))
 end
 
 Utils.TextFont = function(Text, RGB)
-    RGB = table.concat(RGB, ",")
+    RGB = concat(RGB, ",")
     local New = {}
-    Text:gsub(".", function(x)
+    gsub(Text, ".", function(x)
         New[#New + 1] = x
     end)
-    return table.concat(table.map(New, function(i, letter)
-        return ('<font color="rgb(%s)">%s</font>'):format(RGB, letter)
+    return concat(map(New, function(i, letter)
+        return format('<font color="rgb(%s)">%s</font>', RGB, letter)
     end)) .. " "
 end

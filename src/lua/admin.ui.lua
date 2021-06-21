@@ -1,48 +1,48 @@
 Guis = {}
 ParentGui = function(Gui, Parent)
-    Gui.Name = HttpService:GenerateGUID(false):gsub('-', ''):sub(1, math.random(25, 30))
+    Gui.Name = sub(gsub(GenerateGUID(Services.HttpService, false), '-', ''), 1, random(25, 30))
     ProtectInstance(Gui);
-    Gui.Parent = Parent or CoreGui
+    Gui.Parent = Parent or Services.CoreGui
     Guis[#Guis + 1] = Gui
     return Gui
 end
-UI = game:GetObjects("rbxassetid://6167929302")[1]:Clone()
+UI = Clone(game.GetObjects(game, "rbxassetid://6167929302")[1]);
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
 local ChatLogs = UI.ChatLogs
-local GlobalChatLogs = UI.ChatLogs:Clone()
-local HttpLogs = UI.ChatLogs:Clone();
+local GlobalChatLogs = Clone(UI.ChatLogs);
+local HttpLogs = Clone(UI.ChatLogs);
 local Notification = UI.Notification
 local Command = UI.Command
 local ChatLogMessage = UI.Message
-local GlobalChatLogMessage = UI.Message:Clone()
+local GlobalChatLogMessage = Clone(UI.Message);
 local NotificationBar = UI.NotificationBar
-local Stats = UI.Notification:Clone();
-local StatsBar = UI.NotificationBar:Clone();
+local Stats = Clone(UI.Notification);
+local StatsBar = Clone(UI.NotificationBar);
 
-local RobloxChat = PlayerGui and PlayerGui:FindFirstChild("Chat")
+local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
 if (RobloxChat) then
-    local RobloxChatFrame = RobloxChat:WaitForChild("Frame", .1)
+    local RobloxChatFrame = WaitForChild(RobloxChat, "Frame", .1);
     if RobloxChatFrame then
-        RobloxChatChannelParentFrame = RobloxChatFrame:WaitForChild("ChatChannelParentFrame", .1)
-        RobloxChatBarFrame = RobloxChatFrame:WaitForChild("ChatBarParentFrame", .1)
+        RobloxChatChannelParentFrame = WaitForChild(RobloxChatFrame, "ChatChannelParentFrame", .1);
+        RobloxChatBarFrame = WaitForChild(RobloxChatFrame, "ChatBarParentFrame", .1);
         if RobloxChatChannelParentFrame then
-            RobloxFrameMessageLogDisplay = RobloxChatChannelParentFrame:WaitForChild("Frame_MessageLogDisplay", .1)
+            RobloxFrameMessageLogDisplay = WaitForChild(RobloxChatChannelParentFrame, "Frame_MessageLogDisplay", .1);
             if RobloxFrameMessageLogDisplay then
-                RobloxScroller = RobloxFrameMessageLogDisplay:WaitForChild("Scroller", .1)
+                RobloxScroller = WaitForChild(RobloxFrameMessageLogDisplay, "Scroller", .1);
             end
         end
     end
 end
 
 local CommandBarOpen = false
-local CommandBarTransparencyClone = CommandBar:Clone()
-local ChatLogsTransparencyClone = ChatLogs:Clone()
-local GlobalChatLogsTransparencyClone = GlobalChatLogs:Clone()
-local HttpLogsTransparencyClone = HttpLogs:Clone()
+local CommandBarTransparencyClone = Clone(CommandBar);
+local ChatLogsTransparencyClone = Clone(ChatLogs);
+local GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
+local HttpLogsTransparencyClone = Clone(HttpLogs);
 local CommandsTransparencyClone
 local PredictionText = ""
 
@@ -59,16 +59,16 @@ HttpLogs.Search.PlaceholderText = "Search"
 
 local Frame2
 if (RobloxChatBarFrame) then
-    local Frame1 = RobloxChatBarFrame:WaitForChild('Frame', .1)
+    local Frame1 = WaitForChild(RobloxChatBarFrame, 'Frame', .1);
     if Frame1 then
-        local BoxFrame = Frame1:WaitForChild('BoxFrame', .1)
+        local BoxFrame = WaitForChild(Frame1, 'BoxFrame', .1);
         if BoxFrame then
-            Frame2 = BoxFrame:WaitForChild('Frame', .1)
+            Frame2 = WaitForChild(BoxFrame, 'Frame', .1);
             if Frame2 then
-                local TextLabel = Frame2:WaitForChild('TextLabel', .1)
-                ChatBar = Frame2:WaitForChild('ChatBar', .1)
+                local TextLabel = WaitForChild(Frame2, 'TextLabel', .1);
+                ChatBar = WaitForChild(Frame2, 'ChatBar', .1);
                 if TextLabel and ChatBar then
-                    PredictionClone = Instance.new('TextLabel');
+                    PredictionClone = InstanceNew('TextLabel');
                     PredictionClone.Font = TextLabel.Font
                     PredictionClone.LineHeight = TextLabel.LineHeight
                     PredictionClone.MaxVisibleGraphemes = TextLabel.MaxVisibleGraphemes

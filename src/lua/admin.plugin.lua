@@ -7,40 +7,40 @@ local LoadPlugin = function(Plugin)
         return 
     end
     if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
-        return Utils.Notify(LocalPlayer, "Plugin not loaded.", ("Plugin %s was not loaded as it is on the disabled list."):format(Plugin.Name));
+        return Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
     end
-    if (#table.keys(Plugin) < 3) then
+    if (#keys(Plugin) < 3) then
         return IsDebug and Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.") or nil
     end
     if (IsDebug) then
-        Utils.Notify(LocalPlayer, "Plugin loading", ("Plugin %s is being loaded."):format(Plugin.Name));
+        Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
     end
 
     local Ran, Return = pcall(Plugin.Init);
     if (not Ran and Return and IsDebug) then
-        return Utils.Notify(LocalPlayer, "Plugin Fail", ("there is an error in plugin Init %s: %s"):format(Plugin.Name, Return));
+        return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
     end
     
     for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
-        if (#table.keys(command) < 3) then
-            Utils.Notify(LocalPlayer, "Plugin Command Fail", ("Command %s is missing information"):format(command.Name));
+        if (#keys(command) < 3) then
+            Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
             continue
         end
         AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
 
-        if (Commands.Frame.List:FindFirstChild(command.Name)) then
-            Commands.Frame.List:FindFirstChild(command.Name):Destroy();
+        if (FindFirstChild(Commands.Frame.List, command.Name)) then
+            Destroy(FindFirstChild(Commands.Frame.List, command.Name));
         end
-        local Clone = Command:Clone();
+        local Clone = Clone(Command);
         Utils.Hover(Clone, "BackgroundColor3");
         Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
         Clone.CommandText.RichText = true
-        Clone.CommandText.Text = ("%s %s %s"):format(command.Name, next(command.Aliases or {}) and ("(%s)"):format(table.concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
+        Clone.CommandText.Text = format("%s %s %s", command.Name, next(command.Aliases or {}) and format("(%s)", concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
         Clone.Name = command.Name
         Clone.Visible = true
         Clone.Parent = Commands.Frame.List
         if (IsDebug) then
-            Utils.Notify(LocalPlayer, "Plugin Command Loaded", ("Command %s loaded successfully"):format(command.Name));
+            Utils.Notify(LocalPlayer, "Plugin Command Loaded", format("Command %s loaded successfully", command.Name));
         end
     end
 end
@@ -51,10 +51,10 @@ if (IsSupportedExploit) then
     end
 end
 
-local Plugins = IsSupportedExploit and table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
-    return v:split(".")[#v:split(".")]:lower() == "lua"
+local Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
+    return lower(split(v, ".")[#split(v, ".")]) == "lua"
 end), function(i, v)
-    return {v:split("\\")[2], loadfile(v)}
+    return {split(v, "\\")[2], loadfile(v)}
 end) or {}
 
 for i, Plugin in next, Plugins do
@@ -68,10 +68,10 @@ AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugin
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
     
-    Plugins = table.map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
-        return v:split(".")[#v:split(".")]:lower() == "lua"
+    Plugins = map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+        return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
-        return {v:split("\\")[2], loadfile(v)}
+        return {split(v, "\\")[2], loadfile(v)}
     end)
     
     for i, Plugin in next, Plugins do
