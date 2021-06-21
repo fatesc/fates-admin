@@ -455,18 +455,22 @@ end
 
 -- local UnProtectInstance = function(Instance_)
 --     for i, v in next, ProtectedInstances do
---         if (ProtectedInstances[i] == Instance_) then
+--         if (v == Instance_) then
 --             ProtectedInstances[i] = nil
+--             if (syn and syn.unprotect_gui) then
+--                 pcall(function()
+--                     syn.unprotect_gui(Instance_);
+--                 end)
+--             end
 --         end
 --     end
 -- end
 
--- local UnSpoofInstance = function(Instance_)
---     if (SpoofedInstances[Instance_]) then
---         Destroy(SpoofedInstances[Instance_]);
---         SpoofedInstances[Instance_] = nil
---     end
--- end
+local UnSpoofInstance = function(Instance_)
+    if (SpoofedInstances[Instance_]) then
+        SpoofedInstances[Instance_] = nil
+    end
+end
 -- local UnSpoofProperty = function(Instance_, Property)
 --     local SpoofedProperty = SpoofedProperties[Instance_]
 --     if (SpoofedProperty and SpoofedProperty.Property == Property) then

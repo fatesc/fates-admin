@@ -57,7 +57,8 @@ HttpLogs.Name = "HttpLogs"
 HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
 
-local Frame2
+local Frame2;
+local PredictionClone;
 if (RobloxChatBarFrame) then
     local Frame1 = WaitForChild(RobloxChatBarFrame, 'Frame', .1);
     if Frame1 then

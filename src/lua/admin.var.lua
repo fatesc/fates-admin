@@ -72,7 +72,7 @@ local lower, trim, Sfind, split, sub, format, len, match, gmatch, gsub, byte =
     string.byte
 
 local math = math
-local random, floor, round, abs, atan, cos, sin, rad, huge = 
+local random, floor, round, abs, atan, cos, sin, rad = 
     math.random,
     math.floor,
     math.round,
@@ -80,7 +80,6 @@ local random, floor, round, abs, atan, cos, sin, rad, huge =
     math.atan,
     math.cos,
     math.sin,
-    math.huge,
     math.rad
 
 local tostring, tonumber = tostring, tonumber

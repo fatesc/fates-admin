@@ -379,7 +379,7 @@ Utils.ToolTip = function(Object, Message)
 
     CConnect(Object.MouseEnter, function()
         if (Object.BackgroundTransparency < 1 and not Clone) then
-            local TextSize = Services.TextService.GetTextSize(Services.TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, huge)).Y > 24 and true or false
+            local TextSize = Services.TextService.GetTextSize(Services.TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24 and true or false
 
             Clone = Clone(UI.ToolTip)
             Clone.Text = Message

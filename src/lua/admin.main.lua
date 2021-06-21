@@ -45,7 +45,7 @@ end
 PluginLibrary.GetHumanoid = GetHumanoid
 
 local GetMagnitude = function(Plr)
-    return Plr and GetRoot(Plr) and (GetRoot(Plr).Position - GetRoot().Position).magnitude or huge
+    return Plr and GetRoot(Plr) and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
 end
 PluginLibrary.GetMagnitude = GetMagnitude
 
@@ -123,7 +123,8 @@ local ChatLogsEnabled = true
 local GlobalChatLogsEnabled = false
 local HttpLogsEnabled = true
 
-local GetPlayer = function(str, noerror)
+local GetPlayer;
+GetPlayer = function(str, noerror)
     local CurrentPlayers = filter(GetPlayers(Players), function(i, v)
         return not Tfind(Exceptions, v);
     end)
@@ -915,7 +916,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         if (Protected) then
             local OldFallen = Services.Workspace.FallenPartsDestroyHeight
             delay(Services.Players.RespawnTime - .3, function()
-                Services.Workspace.FallenPartsDestroyHeight = -huge
+                Services.Workspace.FallenPartsDestroyHeight = -math.huge
                 OldPos = GetRoot().CFrame
                 SpoofProperty(GetRoot(), "Anchored");
                 GetRoot().CFrame = CFrameNew(0, 1e9, 0);
@@ -1398,8 +1399,8 @@ AddCommand("fling2", {}, "another variant of fling", {}, function(Caller, Args)
     local OldVelocity = Root.Velocity
     local BodyVelocity = InstanceNew("BodyAngularVelocity");
     ProtectInstance(BodyVelocity);
-    BodyVelocity.MaxTorque = Vector3New(1, 1, 1) * huge
-    BodyVelocity.P = huge
+    BodyVelocity.MaxTorque = Vector3New(1, 1, 1) * math.huge
+    BodyVelocity.P = math.huge
     BodyVelocity.AngularVelocity = Vector3New(0, 9e5, 0);
     BodyVelocity.Parent = Root
 
@@ -1463,10 +1464,25 @@ AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Call
         end
     end
     AddConnection(CConnect(LocalPlayer.Character.ChildAdded, function(x)
-        if not (find(Tools, x)) then
-            Destroy(x);
+        if not (Tfind(Tools, x)) then
+            x.Parent = LocalPlayer.Backpack
         end
     end))
+end)
+
+AddCommand("attach", {}, "attaches you to another player", {3,1}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local Humanoid = ReplaceHumanoid();
+    local Char = GetCharacter();
+    for i, v in next, Target do
+        local Tool = FindFirstChildWhichIsA(Char, "Tool") or FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
+        Tool.Parent = Char
+        local TargetRoot = GetRoot(v);
+        if (TargetRoot and Tool) then
+            firetouchinterest(TargetRoot, Tool.Handle, 0);
+            firetouchinterest(TargetRoot, Tool.Handle, 1);
+        end
+    end
 end)
 
 AddCommand("skill", {"swordkill"}, "swordkills the user auto", {1, {"player", "manual"}}, function(Caller, Args)
@@ -1680,7 +1696,7 @@ end)
 
 
 AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args)
-    SoundService.RespectFilteringEnabled = false
+    Services.SoundService.RespectFilteringEnabled = false
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         for i2, v2 in next, GetDescendants(v.Character) do
@@ -1689,45 +1705,46 @@ AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args
             end
         end
     end
-    SoundService.RespectFilteringEnabled = true
+    Services.SoundService.RespectFilteringEnabled = true
 end)
 
-AddCommand("loopmuteboombox", {}, "loop mutes a users boombox", {}, function(Caller, Args, Tbl)
+AddCommand("loopmuteboombox", {"loopmute"}, "loop mutes a users boombox", {}, function(Caller, Args, Tbl)
     local Target = GetPlayer(Args[1]);
     local filterBoomboxes = function(i,v)
         return FindFirstChild(v, "Handle") and FindFirstChildWhichIsA(v.Handle, "Sound");
     end
-    SpoofProperty(SoundService, "RespectFilteringEnabled");
-    SoundService.RespectFilteringEnabled = false
-    for i, v in next, Target do
-        local Tools = tbl_concat(filter(GetDescendants(v.Character), filterBoomboxes), filter(GetChildren(LocalPlayer.Backpack), filterBoomboxes));
-        for i2, v2 in next, Tools do
-            Tbl[v.Name] = true
-            v2.Handle.Sound.Playing = false
-            coroutine.wrap(function()
-                while (LoadCommand("loopmuteboombox").CmdExtra[v.Name]) do
-                    v2.Handle.Sound.Playing = false
-                    CWait(RunService.Heartbeat);
-                    if (not FindFirstChild(Players, v.Name) or not v2) then
-                        Tbl[v.Name] = nil
-                        break
+    Services.SoundService.RespectFilteringEnabled = false
+    local Con = AddConnection(CConnect(Heartbeat, function()
+        for i, v in next, Target do
+            for i2, v2 in next, GetDescendants(v.Backpack) do
+                if (IsA(v2, "Sound")) then
+                    v2.Playing = false
+                end
+            end
+            local Char = GetCharacter(v)
+            if (Char) then
+                for i, v2 in next, GetDescendants(Char) do
+                    if (IsA(v2, "Sound")) then
+                        v2.Playing = false
                     end
                 end
-                SoundService.RespectFilteringEnabled = true
-            end)()
+            end
         end
-    end
+    end));
+    Tbl[Target] = Con
 end)
 
 AddCommand("unloopmuteboombox", {}, "unloopmutes a persons boombox", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1])
-    local Looped = LoadCommand("loopmuteboombox").CmdExtra
-    for i, v in next, Target do
-        if (Looped[v.Name]) then
-            Looped[v.Name] = nil
+    local Muting = LoadCommand("loopmuteboombox").CmdExtra
+    for i, v in next, Muting do
+        for i2, v2 in next, Target do
+            if (v2 == i) then
+                v:Disconnect();
+                Muting[i] = nil
+            end
         end
     end
-    LoadCommand("loopmuteboombox").CmdExtra = Looped
 end)
 
 AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, Args, Tbl)
@@ -1740,8 +1757,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
     if (not next(Boombox)) then
         return "you need a boombox to forceplay"
     end
-    SpoofProperty(SoundService, "RespectFilteringEnabled");
-    SoundService.RespectFilteringEnabled = false
+    Services.SoundService.RespectFilteringEnabled = false
     Boombox = Boombox[1]
     Boombox.Parent = GetCharacter();
     local Sound = Boombox.Handle.Sound
@@ -1755,7 +1771,7 @@ AddCommand("forceplay", {}, "forcesplays an audio", {1,3,"1"}, function(Caller, 
             Boombox.Handle.Sound.Playing = true
             CWait(RunService.Heartbeat);
         end
-        SoundService.RespectFilteringEnabled = true
+        Services.SoundService.RespectFilteringEnabled = true
     end)()
     return "now forceplaying ".. Id
 end)
@@ -2216,7 +2232,7 @@ AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Ca
     local Spin = InstanceNew("BodyAngularVelocity");
     ProtectInstance(Spin);
     Spin.Parent = GetRoot();
-    Spin.MaxTorque = Vector3New(0, huge, 0);
+    Spin.MaxTorque = Vector3New(0, math.huge, 0);
     Spin.AngularVelocity = Vector3New(0, Speed, 0);
     Tbl[#Tbl + 1] = Spin
     return "started spinning"
@@ -2342,7 +2358,7 @@ AddCommand("fullbright", {"fb"}, "turns on fullbright", {}, function(Caller, Arg
             SpoofInstance(v);
             v.Enabled = true
             v.Shadows = false
-            v.Range = huge
+            v.Range = math.huge
         end
     end
     SpoofProperty(Lighting, "GlobalShadows");
@@ -2398,7 +2414,44 @@ AddCommand("enableanims", {"anims"}, "enables character animations", {3}, functi
     return "animations enabled"
 end)
 
-AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
+AddCommand("fly", {}, "fly your character", {}, function(Caller, Args)
+    LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 2
+    local Speed = LoadCommand("fly").CmdExtra[1]
+    local Root = GetRoot()
+	local BodyGyro = InstanceNew("BodyGyro");
+    local BodyVelocity = InstanceNew("BodyVelocity");
+    SpoofInstance(Root, isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
+	ProtectInstance(BodyGyro);
+    ProtectInstance(BodyVelocity);
+    BodyGyro.Parent = Root
+    BodyVelocity.Parent = Root
+    BodyGyro.P = 9e9
+	BodyGyro.MaxTorque = Vector3New(1, 1, 1) * 9e9
+	BodyGyro.CFrame = Root.CFrame
+	BodyVelocity.MaxForce = Vector3New(1, 1, 1) * 9e9
+	BodyVelocity.Velocity = Vector3New(0, 0.1, 0);
+
+	local Table1 = { ['W'] = 0; ['A'] = 0; ['S'] = 0; ['D'] = 0 }
+
+    coroutine.wrap(function()
+        while (next(LoadCommand("fly").CmdExtra) and wait()) do
+            Speed = LoadCommand("fly").CmdExtra[1]
+            
+            Table1["W"] = Keys["W"] and Speed or 0
+            Table1["A"] = Keys["A"] and -Speed or 0
+            Table1["S"] = Keys["S"] and -Speed or 0
+            Table1["D"] = Keys["D"] and Speed or 0
+            if ((Table1["W"] + Table1["S"]) ~= 0 or (Table1["A"] + Table1["D"]) ~= 0) then
+                BodyVelocity.Velocity = ((Camera.CoordinateFrame.lookVector * (Table1["W"] + Table1["S"])) + ((Camera.CoordinateFrame * CFrameNew(Table1["A"] + Table1["D"], (Table1["W"] + Table1["S"]) * 0.2, 0).p) - Camera.CoordinateFrame.p)) * 50
+            else
+                BodyVelocity.Velocity = Vector3New(0, 0.1, 0);
+            end
+            BodyGyro.CFrame = Camera.CoordinateFrame
+        end
+    end)();
+end)
+
+AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 3
     local Speed = LoadCommand("fly").CmdExtra[1]
     for i, v in next, GetChildren(GetRoot()) do
@@ -2416,7 +2469,7 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     BodyGyro.Parent = GetRoot();    
     BodyGyro.maxTorque = Vector3New(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
-    BodyPos.maxForce = Vector3New(1, 1, 1) * huge
+    BodyPos.maxForce = Vector3New(1, 1, 1) * math.huge
     GetHumanoid().PlatformStand = true
     coroutine.wrap(function()
         BodyPos.Position = GetRoot().Position
@@ -2449,43 +2502,6 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
     end)();
 end)
 
-AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, Tbl)
-    LoadCommand("fly2").CmdExtra[1] = tonumber(Args[1]) or 5
-    local Speed = LoadCommand("fly").CmdExtra[1]
-    for i, v in next, GetChildren(GetRoot()) do
-        if (IsA(v, "BodyPosition") or IsA(v, "BodyGyro")) then
-            Destroy(v);
-        end
-    end
-    local BodyPos = InstanceNew("BodyPosition");
-    local BodyGyro = InstanceNew("BodyGyro");
-    ProtectInstance(BodyPos);
-    ProtectInstance(BodyGyro);
-    SpoofProperty(GetHumanoid(), "FloorMaterial");
-    SpoofProperty(GetHumanoid(), "PlatformStand");
-    BodyPos.Parent = GetRoot();
-    BodyGyro.Parent = GetRoot();
-    BodyGyro.maxTorque = Vector3New(1, 1, 1) * 9e9
-    BodyGyro.CFrame = GetRoot().CFrame
-    BodyGyro.D = 0
-    BodyPos.maxForce = Vector3New(1, 1, 1) * 9e9
-    BodyPos.D = 400
-    coroutine.wrap(function()
-        BodyPos.Position = GetRoot().Position
-        while (next(LoadCommand("fly2").CmdExtra) and wait()) do
-            Speed = LoadCommand("fly2").CmdExtra[1]
-            local CoordinateFrame = Camera.CoordinateFrame
-            if (Keys["W"] or Keys["A"] or Keys["S"] or Keys["D"]) then
-                GetRoot().CFrame = GetRoot().CFrame + GetHumanoid().MoveDirection * Speed
-            end
-            BodyGyro.CFrame = CoordinateFrame
-            BodyPos.Position = GetRoot().CFrame.Position
-        end
-    end)();
-
-    return "now flying"
-end)
-
 AddCommand("flyspeed", {"fs"}, "changes the fly speed", {3, "1"}, function(Caller, Args)
     local Speed = tonumber(Args[1]);
     LoadCommand("fly").CmdExtra[1] = Speed or LoadCommand("fly2").CmdExtra[1]
@@ -2496,10 +2512,11 @@ AddCommand("unfly", {}, "unflies your character", {3}, function()
     LoadCommand("fly").CmdExtra = {}
     LoadCommand("fly2").CmdExtra = {}
     for i, v in next, GetChildren(GetRoot()) do
-        if (IsA(v, "BodyPosition") or IsA(v, "BodyGyro")) then
+        if (IsA(v, "BodyPosition") or IsA(v, "BodyGyro") or IsA(v, "BodyVelocity")) then
             Destroy(v);
         end
     end
+    UnSpoofInstance(GetRoot());
     GetHumanoid().PlatformStand = false
     return "stopped flying"
 end)
@@ -2754,7 +2771,7 @@ end)
 AddCommand("blacklist", {"bl"}, "blacklists a whitelisted user", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
-        if (find(AdminUsers, v)) then
+        if (Tfind(AdminUsers, v)) then
             remove(AdminUsers, indexOf(AdminUsers, v));
         end
     end
@@ -3026,7 +3043,7 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
         wait();
         Frame2.Chatbar.Text = Target.Name
     end
-    return "copied " + Target.Name + "'s username"
+    return "copied " .. Target.Name .. "'s username"
 end)
 
 AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Args)
@@ -3111,7 +3128,7 @@ local PlrChat = function(i, plr)
 
         message = trim(raw);
 
-        if (find(AdminUsers, plr) or plr == LocalPlayer) then
+        if (Tfind(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = split(message, " ");
             local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
             local Args = shift(CommandArgs);
