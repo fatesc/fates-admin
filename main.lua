@@ -4583,10 +4583,9 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 CommandBar.Input.Text = ""
             end)()
 
-            if (next(Connections)) then
-                for i, v in next, Connections do
-                    v.Enable(v);
-                end
+            
+            for i, v in next, Connections do
+                v.Enable(v);
             end
         else
             if (not Draggable) then
@@ -4668,10 +4667,10 @@ AddConnection(CConnect(GlobalChatLogs.Close.MouseButton1Click, function()
     GlobalChatLogs.Visible = false
 end), Connections.UI, true);
 AddConnection(CConnect(HttpLogs.Close.MouseButton1Click, function()
-    local Tween = Utils.TweenAllTrans(GlobalChatLogs, .25)
+    local Tween = Utils.TweenAllTrans(HttpLogs, .25)
 
     CWait(Tween.Completed);
-    GlobalChatLogs.Visible = false
+    HttpLogs.Visible = false
 end), Connections.UI, true);
 
 ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
