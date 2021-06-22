@@ -1054,7 +1054,7 @@ AddCommand("grabtools", {"gt"}, "grabs tools in the workspace", {3}, function(Ca
 end)
 
 AddCommand("autograbtools", {"agt", "loopgrabtools", "lgt"}, "once a tool is added to workspace it will be grabbed", {3}, function(Caller, Args, Tbl)
-    AddConnection(CConnect(ChildAdded, function(Child)
+    AddConnection(CConnect(Services.Workspace.ChildAdded, function(Child)
         if (IsA(Child, "Tool") and FindFirstChild(Child, "Handle")) then
             firetouchinterest(Child.Handle, GetRoot(), 0);
             wait();
