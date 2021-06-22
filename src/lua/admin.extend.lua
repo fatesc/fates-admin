@@ -137,8 +137,11 @@ local hookfunction = hookfunction or function(func, newfunc)
     return newfunc
 end
 
-local getconnections = getconnections or function()
-    return {}
+local getconnections = function(...)
+    if (not getconnections or identifyexecutor and identifyexecutor() == "Krnl") then
+        return {}
+    end
+    return getconnections(...);
 end
 
 local getrawmetatable = getrawmetatable or function()
