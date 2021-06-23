@@ -3097,6 +3097,19 @@ AddCommand("unplastic", {"unfpsboost"}, "changes everything back from a plastic 
     return format("removed %d plastic in %.3f (s)", Amount, (tick()) - time);
 end)
 
+AddCommand("antiafk", {"antiidle"}, "prevents kicks from when you're afk", {}, function(Caller, Args, Tbl)
+    local IsEnabled = Tbl[1]
+    for i, v in next, getconnections(LocalPlayer.Idled) do
+        if (IsEnabled) then
+            v:Enable();
+            Tbl[1] = nil
+        else
+            v:Disable();
+            Tbl[1] = true
+        end
+    end
+    return "antiafk " .. (IsEnabled and " disabled" or "enabled");
+end)
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then

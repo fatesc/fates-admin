@@ -1,5 +1,5 @@
 --[[
-	fates admin - 22/6/2021
+	fates admin - 23/6/2021
 ]]
 
 local game = game
@@ -1271,7 +1271,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
 end
 
 Utils.MatchSearch = function(String1, String2) -- Utils.MatchSearch("pog", "poggers") - true; Utils.MatchSearch("poz", "poggers") - false
-    return String1 == string.sub(String2, 1, #String1)
+    return String1 == sub(String2, 1, #String1);
 end
 
 Utils.StringFind = function(Table, String)
@@ -1740,7 +1740,7 @@ AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugin
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
     
-    Plugins = map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+    Plugins = map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
         return {split(v, "\\")[2], loadfile(v)}
@@ -4445,6 +4445,19 @@ AddCommand("unplastic", {"unfpsboost"}, "changes everything back from a plastic 
     return format("removed %d plastic in %.3f (s)", Amount, (tick()) - time);
 end)
 
+AddCommand("antiafk", {"antiidle"}, "prevents kicks from when you're afk", {}, function(Caller, Args, Tbl)
+    local IsEnabled = Tbl[1]
+    for i, v in next, getconnections(LocalPlayer.Idled) do
+        if (IsEnabled) then
+            v:Enable();
+            Tbl[1] = nil
+        else
+            v:Disable();
+            Tbl[1] = true
+        end
+    end
+    return "antiafk " .. (IsEnabled and " disabled" or "enabled");
+end)
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then

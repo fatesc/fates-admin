@@ -345,7 +345,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
 end
 
 Utils.MatchSearch = function(String1, String2) -- Utils.MatchSearch("pog", "poggers") - true; Utils.MatchSearch("poz", "poggers") - false
-    return String1 == string.sub(String2, 1, #String1)
+    return String1 == sub(String2, 1, #String1);
 end
 
 Utils.StringFind = function(Table, String)

@@ -68,7 +68,7 @@ AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugin
     PluginConf = GetPluginConfig();
     IsDebug = PluginConf.PluginDebug
     
-    Plugins = map(table.filter(listfiles("fates-admin/plugins"), function(i, v)
+    Plugins = map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
         return {split(v, "\\")[2], loadfile(v)}
