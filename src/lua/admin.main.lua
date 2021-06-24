@@ -528,7 +528,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     end
 
     DisableAnimate();
-
+    local Destroy_;
     coroutine.wrap(function()
         for i = 1, #Target do
             local v = Target[i]
@@ -539,7 +539,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                 end
                 if (TempRespawnTimes[v.Name] and isR6(v)) then
                     if (#Target == 1) then
-                        Destroy = true
+                        Destroy_ = true
                     else
                         continue
                     end
@@ -571,10 +571,9 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
         end
     end)()
     ChangeState(Humanoid2, 15);
-    if (Destroy) then
+    if (Destroy_) then
         wait(.2);
         ReplaceCharacter();
-        Destroy = nil
     end
     CWait(LocalPlayer.CharacterAdded);
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
@@ -725,7 +724,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
             Humanoid2 = ReplaceHumanoid();
         end
     end
-
+    local Destroy_;
     coroutine.wrap(function()
         for i, v in next, Target do
             repeat
@@ -737,7 +736,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
 
                     if (TempRespawnTimes[v.Name] and isR6(v)) then
                         if (#Target == 1) then
-                            Destroy = true
+                            Destroy_ = true
                         else
                             do break end
                         end
@@ -767,16 +766,15 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
             until true
         end
     end)()
-    if (Destroy) then
+    if (Destroy_) then
         wait(.2);
         Destroy(LocalPlayer.Character);
-        Destroy = nil
     end
     CWait(LocalPlayer.CharacterAdded);
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
 end)
 
-AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
+AddCommand("void", {"punish"}, "voids a player", {"1",1,3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local TempRespawnTimes = {}
     for i, v in next, Target do
@@ -796,6 +794,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
             Humanoid2 = ReplaceHumanoid();
         end
     end
+    local Destroy_;
     coroutine.wrap(function()
         for i, v in next, Target do
             repeat
@@ -807,7 +806,7 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
 
                     if (TempRespawnTimes[v.Name] and isR6(v)) then
                         if (#Target == 1) then
-                            Destroy = true
+                            Destroy_ = true
                         else
                             do break end
                         end
@@ -837,10 +836,9 @@ AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
             until true
         end
     end)();
-    if (Destroy) then
+    if (Destroy_) then
         wait(.2);
         Destroy(LocalPlayer.Character);
-        Destroy = nil
     end
     CWait(LocalPlayer.CharacterAdded);
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
@@ -2414,8 +2412,8 @@ AddCommand("enableanims", {"anims"}, "enables character animations", {3}, functi
     return "animations enabled"
 end)
 
-AddCommand("fly", {}, "fly your character", {}, function(Caller, Args)
-    LoadCommand("fly").CmdExtra[1] = tonumber(Args[1]) or 2
+AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, Tbl)
+    Tbl[1] = tonumber(Args[1]) or 2
     local Speed = LoadCommand("fly").CmdExtra[1]
     local Root = GetRoot()
     local BodyGyro = InstanceNew("BodyGyro");
@@ -2430,6 +2428,12 @@ AddCommand("fly", {}, "fly your character", {}, function(Caller, Args)
     BodyGyro.CFrame = Root.CFrame
     BodyVelocity.MaxForce = Vector3New(1, 1, 1) * 9e9
     BodyVelocity.Velocity = Vector3New(0, 0.1, 0);
+    local Humanoid = GetHumanoid();
+    ChangeState(Humanoid, 8);
+    AddConnection(CConnect(Humanoid.StateChanged, function()
+        ChangeState(Humanoid, 8);
+        Humanoid.PlatformStand = false
+    end), Tbl)
 
     local Table1 = { ['W'] = 0; ['A'] = 0; ['S'] = 0; ['D'] = 0 }
 
@@ -2509,6 +2513,7 @@ AddCommand("flyspeed", {"fs"}, "changes the fly speed", {3, "1"}, function(Calle
 end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
+    DisableAllCmdConnections("fly");
     LoadCommand("fly").CmdExtra = {}
     LoadCommand("fly2").CmdExtra = {}
     for i, v in next, GetChildren(GetRoot()) do
