@@ -375,39 +375,39 @@ Utils.GetPlayerArgs = function(Arg)
 end
 
 Utils.ToolTip = function(Object, Message)
-    local Clone
+    local CloneToolTip
 
     CConnect(Object.MouseEnter, function()
-        if (Object.BackgroundTransparency < 1 and not Clone) then
+        if (Object.BackgroundTransparency < 1 and not CloneToolTip) then
             local TextSize = Services.TextService.GetTextSize(Services.TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24 and true or false
 
-            Clone = Clone(UI.ToolTip)
-            Clone.Text = Message
-            Clone.TextScaled = TextSize
-            Clone.Visible = true
-            Clone.Parent = UI
+            CloneToolTip = Clone(UI.ToolTip)
+            CloneToolTip.Text = Message
+            CloneToolTip.TextScaled = TextSize
+            CloneToolTip.Visible = true
+            CloneToolTip.Parent = UI
         end
     end)
 
     CConnect(Object.MouseLeave, function()
-        if (Clone) then
-            Destroy(Clone);
-            Clone = nil
+        if (CloneToolTip) then
+            Destroy(CloneToolTip);
+            CloneToolTip = nil
         end
     end)
 
     if (LocalPlayer) then
         CConnect(Mouse.Move, function()
-            if (Clone) then
-                Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
+            if (CloneToolTip) then
+                CloneToolTip.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
             end
         end)
     else
         delay(3, function()
             LocalPlayer = Players.LocalPlayer
             CConnect(Mouse.Move, function()
-                if (Clone) then
-                    Clone.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
+                if (CloneToolTip) then
+                    CloneToolTip.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
                 end
             end)
         end)
