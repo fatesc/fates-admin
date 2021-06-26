@@ -3106,14 +3106,45 @@ AddCommand("antiafk", {"antiidle"}, "prevents kicks from when you're afk", {}, f
     local IsEnabled = Tbl[1]
     for i, v in next, getconnections(LocalPlayer.Idled) do
         if (IsEnabled) then
-            v:Enable();
+            v.Enable(v);
             Tbl[1] = nil
         else
-            v:Disable();
+            v.Disable(v);
             Tbl[1] = true
         end
     end
     return "antiafk " .. (IsEnabled and " disabled" or "enabled");
+end)
+
+AddCommand("clicktp", {}, "tps you to where your mouse is when you click", {}, function(Caller, Args, Tbl)
+    local HasTool_ = Tbl[1] ~= nil
+    if (HasTool_) then
+        Destroy(Tbl[1]);
+        Destroy(Tbl[2]);
+    end
+    local Tool = InstanceNew("Tool");
+    Tool.RequiresHandle = false
+    Tool.Name = "Click TP"
+    ProtectInstance(Tool);
+    Tool.Parent = GetCharacter();
+    AddConnection(CConnect(Tool.Activated, function()
+        local Hit = Mouse.Hit
+        GetRoot().CFrame = Hit * CFrame.new(0, 3, 0);
+    end))
+
+    local Tool2 = InstanceNew("Tool");
+    Tool2.RequiresHandle = false
+    Tool2.Name = "Click TweenTP"
+    ProtectInstance(Tool2);
+    Tool2.Parent = LocalPlayer.Backpack
+    AddConnection(CConnect(Tool2.Activated, function()
+        local Hit = Mouse.Hit
+        Utils.Tween(GetRoot(), "Sine", "Out", .5, {CFrame = Hit * CFrame.new(0, 3, 0)});
+    end))
+
+    Tbl[1] = Tool
+    Tbl[2] = Tool2
+    return "click to teleport"
 end)
 
 local PlrChat = function(i, plr)
