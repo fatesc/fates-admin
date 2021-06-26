@@ -339,7 +339,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
 
         return Clone
     else
-        local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+        local ChatRemote = Services.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote.FireServer(ChatRemote, format("/w %s [FA] %s: %s", Caller.Name, Title, Message), "All");
     end
 end

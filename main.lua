@@ -73,13 +73,14 @@ local JSONEncode, JSONDecode, GenerateGUID =
 local Camera = Services.Workspace.CurrentCamera
 
 local table = table
-local Tfind, sort, concat, pack, unpack, insert = 
+local Tfind, sort, concat, pack, unpack, insert, remove = 
     table.find, 
     table.sort,
     table.concat,
     table.pack,
     table.unpack,
-    table.insert
+    table.insert,
+    table.remove
 
 local string = string
 local lower, trim, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
@@ -1265,7 +1266,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
 
         return Clone
     else
-        local ChatRemote = ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+        local ChatRemote = Services.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
         ChatRemote.FireServer(ChatRemote, format("/w %s [FA] %s: %s", Caller.Name, Title, Message), "All");
     end
 end
@@ -4493,6 +4494,53 @@ AddCommand("clicktp", {}, "tps you to where your mouse is when you click", {}, f
     Tbl[1] = Tool
     Tbl[2] = Tool2
     return "click to teleport"
+end)
+
+AddCommand("annoy", {}, "annoys a player", {3, "1"}, function(Caller, Args, Tbl)
+    local Target = GetPlayer(Args[1]);
+    if (#Target > 1) then
+        Utils.Notify(Caller, "Notification", "You can only annoy one player");
+    end
+    Target = Target[1]
+    local TargetRoot = GetRoot(Target);
+    local Root = GetRoot();
+    local Humanoid = GetHumanoid();
+    local Char = GetCharacter();
+    local Tool;
+    AddConnection(CConnect(Heartbeat, function()
+        if (Root and TargetRoot) then
+            Root.CFrame = TargetRoot.CFrame
+            if (Tool) then
+                TargetRoot.CFrame = Tool.Handle.CFrame
+            end
+        else
+            TargetRoot = GetRoot(Target);
+            Root = GetRoot();
+        end
+    end))
+    UnequipTools(Humanoid);
+    local Tool = FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
+    if (Tool) then
+        for i, v in next, GetChildren(LocalPlayer.Backpack) do
+            if (IsA(v, "Tool")) then
+                v.Parent = Char
+                Tool = v
+            end
+        end
+        ReplaceHumanoid();
+        AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
+            local Char = GetCharacter();
+            WaitForChild(Char, "Humanoid");
+            Tool.Parent = GetCharacter();
+            ReplaceHumanoid();
+            for i, v in next, GetChildren(LocalPlayer.Backpack) do
+                if (IsA(v, "Tool")) then
+                    v.Parent = Char
+                    Tool = v
+                end
+            end
+        end))
+    end
 end)
 
 local PlrChat = function(i, plr)

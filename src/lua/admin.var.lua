@@ -49,13 +49,14 @@ local JSONEncode, JSONDecode, GenerateGUID =
 local Camera = Services.Workspace.CurrentCamera
 
 local table = table
-local Tfind, sort, concat, pack, unpack, insert = 
+local Tfind, sort, concat, pack, unpack, insert, remove = 
     table.find, 
     table.sort,
     table.concat,
     table.pack,
     table.unpack,
-    table.insert
+    table.insert,
+    table.remove
 
 local string = string
 local lower, trim, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 

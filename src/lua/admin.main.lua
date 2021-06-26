@@ -3147,6 +3147,53 @@ AddCommand("clicktp", {}, "tps you to where your mouse is when you click", {}, f
     return "click to teleport"
 end)
 
+AddCommand("annoy", {}, "annoys a player", {3, "1"}, function(Caller, Args, Tbl)
+    local Target = GetPlayer(Args[1]);
+    if (#Target > 1) then
+        Utils.Notify(Caller, "Notification", "You can only annoy one player");
+    end
+    Target = Target[1]
+    local TargetRoot = GetRoot(Target);
+    local Root = GetRoot();
+    local Humanoid = GetHumanoid();
+    local Char = GetCharacter();
+    local Tool;
+    AddConnection(CConnect(Heartbeat, function()
+        if (Root and TargetRoot) then
+            Root.CFrame = TargetRoot.CFrame
+            if (Tool) then
+                TargetRoot.CFrame = Tool.Handle.CFrame
+            end
+        else
+            TargetRoot = GetRoot(Target);
+            Root = GetRoot();
+        end
+    end))
+    UnequipTools(Humanoid);
+    local Tool = FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
+    if (Tool) then
+        for i, v in next, GetChildren(LocalPlayer.Backpack) do
+            if (IsA(v, "Tool")) then
+                v.Parent = Char
+                Tool = v
+            end
+        end
+        ReplaceHumanoid();
+        AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
+            local Char = GetCharacter();
+            WaitForChild(Char, "Humanoid");
+            Tool.Parent = GetCharacter();
+            ReplaceHumanoid();
+            for i, v in next, GetChildren(LocalPlayer.Backpack) do
+                if (IsA(v, "Tool")) then
+                    v.Parent = Char
+                    Tool = v
+                end
+            end
+        end))
+    end
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
