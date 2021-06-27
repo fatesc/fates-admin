@@ -307,10 +307,36 @@ local AddCommand = function(name, aliases, description, options, func)
     return Success
 end
 
-local LoadCommand = function(name)
-    local Command = rawget(CommandsTable, name);
+local LoadCommand = function(Name)
+    local Command = rawget(CommandsTable, Name);
     if (Command) then
         return Command
+    end
+end
+
+local ExecuteCommand = function(Name, Args, Caller)
+    local Command = LoadCommand(Name);
+    if (Command) then
+        if (Command.ArgsNeeded > #Args) then
+            return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
+        end
+        local Success, Ret = pcall(function()
+            local Executed = Command.Function()
+            if (Executed) then
+                Utils.Notify(Caller, "Command", Executed(LocalPlayer, Args, Command.CmdExtra));
+            end
+            if (#LastCommand == 3) then
+                LastCommand = shift(LastCommand);
+            end
+            LastCommand[#LastCommand + 1] = {Command, LocalPlayer, Args, Command.CmdExtra}
+        end);
+        if (not Success and Debug) then
+            warn(Ret);
+            Utils.Notify(Caller, "Error", Ret);
+        end
+    else
+        warn("couldn't find the command ".. Name);
+        Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
     end
 end
 
@@ -900,12 +926,26 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         return "amount must be a number"
     end
 
+    Tbl[1] = true
+    local AmountDuped = 0
+    local Timer = Players.RespawnTime * Amount
+    local Notification = Utils.Notify(Caller, "Duping Tools", format("%d/%d tools duped. %d seconds left", AmountDuped, Amount, Timer), Timer);
+    coroutine.wrap(function()
+        for i = 1, (Players.RespawnTime * Amount) do
+            if (not LoadCommand("dupetools").CmdExtra[1]) then
+                do break end;
+            end
+            wait(1);
+            Timer = Timer - 1
+            Notification.Message.Text = format("%d/%d tools duped. %d seconds left", AmountDuped, Amount, Timer)
+        end
+    end)()
+
     UnequipTools(GetHumanoid());
     local ToolAmount = #filter(GetChildren(LocalPlayer.Backpack), function(i, v)
         return IsA(v, "Tool");
     end)
     local Duped = {}
-    Tbl[1] = true
     for i = 1, Amount do
         if (not LoadCommand("dupetools").CmdExtra[1]) then
             do break end;
@@ -915,7 +955,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         local OldPos
         if (Protected) then
             local OldFallen = Services.Workspace.FallenPartsDestroyHeight
-            delay(Services.Players.RespawnTime - .3, function()
+            delay(Players.RespawnTime - .3, function()
                 Services.Workspace.FallenPartsDestroyHeight = -math.huge
                 OldPos = GetRoot().CFrame
                 SpoofProperty(GetRoot(), "Anchored");
@@ -950,6 +990,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         until GetRoot().CFrame == OldPos
         wait(.4);
         UnequipTools(GetHumanoid());
+        AmountDuped = AmountDuped + 1
     end
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);
 end)
@@ -1956,13 +1997,17 @@ AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, functio
     return "client sided antiteleport " .. (AntiTeleport and "enabled" or "disabled")
 end)
 
-AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)
-    local RejoinConnection = CConnect(FindFirstChildWhichIsA(FindFirstChild(CoreGui, "RobloxPromptGui"), "Frame").DescendantAdded, function(Prompt)
+AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)    
+    local RejoinConnection = CConnect(FindFirstChildWhichIsA(FindFirstChild(Services.CoreGui, "RobloxPromptGui"), "Frame").DescendantAdded, function(Prompt)
         if (Prompt.Name == "ErrorTitle") then
             CWait(GetPropertyChangedSignal(Prompt, "Text"));
             if (Prompt.Text == "Disconnected") then
                 syn.queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()")
-                TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId);
+                if (#GetPlayers(Players) == 1) then
+                    Services.TeleportService.Teleport(Services.TeleportService, game.PlaceId);
+                else
+                    Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId)
+                end
             end
         end
     end)
@@ -2064,6 +2109,8 @@ AddCommand("chatlogs", {"clogs"}, "enables chatlogs", {}, function()
 end)
 
 AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, function()
+    do return "Command Disabled" end
+    
     local MessageClone = Clone(GlobalChatLogs.Frame.List);
 
     Utils.ClearAllObjects(GlobalChatLogs.Frame.List);
@@ -2713,7 +2760,11 @@ end)
 
 AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, function(Caller)
     if (Caller == LocalPlayer) then
-        Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId);
+        if (#GetPlayers(Players) == 1) then
+            Services.TeleportService.Teleport(Services.TeleportService, game.PlaceId);
+        else
+            Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId)
+        end
         return "Rejoining..."
     end
 end)
@@ -3237,30 +3288,10 @@ local PlrChat = function(i, plr)
 
         if (Tfind(AdminUsers, plr) or plr == LocalPlayer) then
             local CommandArgs = split(message, " ");
-            local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
+            local Command = CommandArgs[1]
             local Args = shift(CommandArgs);
 
-            if (LoadedCommand) then
-                if (LoadedCommand.ArgsNeeded > #Args) then
-                    return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", LoadedCommand.ArgsNeeded))
-                end
-
-                local Success, Err = pcall(function()
-                    local Executed = LoadedCommand.Function()(plr, Args, LoadedCommand.CmdExtra);
-                    if (Executed) then
-                        Utils.Notify(plr, "Command", Executed);
-                    end
-                    if (#LastCommand == 3) then
-                        LastCommand = shift(LastCommand);
-                    end
-                    LastCommand[#LastCommand + 1] = {Command, plr, Args, LoadedCommand.CmdExtra}
-                end);
-                if (not Success and Debug) then
-                    warn(Err);
-                end
-            else
-                Utils.Notify(plr, "Error", format("couldn't find the command %s", Command));
-            end
+            ExecuteCommand(Command, Args, plr);
         end
     end)
 end
@@ -3287,31 +3318,12 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
         })
     end
 
-    local Command, LoadedCommand = CommandArgs[1], LoadCommand(CommandArgs[1]);
+    local Command = CommandArgs[1]
     local Args = shift(CommandArgs);
 
-    if (LoadedCommand and Command ~= "") then
-        if (LoadedCommand.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", LoadedCommand.ArgsNeeded))
-        end
-
-        local Success, Err = pcall(function()
-            local Executed = LoadedCommand.Function()(LocalPlayer, Args, LoadedCommand.CmdExtra);
-            if (Executed) then
-                Utils.Notify(plr, "Command", Executed);
-            end
-            if (#LastCommand == 3) then
-                LastCommand = shift(LastCommand);
-            end
-            LastCommand[#LastCommand + 1] = {Command, LocalPlayer, Args, LoadedCommand.CmdExtra}
-        end);
-        if (not Success and Debug) then
-            warn(Err);
-        end
-    else
-        Utils.Notify(plr, "Error", format("couldn't find the command %s", Command));
+    if (Command ~= "") then
+        ExecuteCommand(Command, Args, LocalPlayer);
     end
-
 end), Connections.UI, true);
 
 local CurrentPlayers = GetPlayers(Players);

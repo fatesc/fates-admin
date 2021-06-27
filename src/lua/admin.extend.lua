@@ -203,11 +203,6 @@ local AllowedNewIndexes = {
 local AntiKick = false
 local AntiTeleport = false
 
-local OldMemoryTags = {}
-for i, v in next, Enum.DeveloperMemoryTag.GetEnumItems(Enum.DeveloperMemoryTag) do
-    OldMemoryTags[v] = Services.Stats.GetMemoryUsageMbForTag(Services.Stats, v);
-end
-
 local mt = getrawmetatable(game);
 local OldMetaMethods = {}
 setreadonly(mt, false);
@@ -409,17 +404,6 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
         return
     end
     return Hooks.OldTeleport(self, ...);
-end))
-
-Hooks.OldGetMemoryUsageMbForTag = nil
-Hooks.OldGetMemoryUsageMbForTag = hookfunction(Services.Stats.GetMemoryUsageMbForTag, newcclosure(function(self, ...)
-    if (game.PlaceId == 6650331930) then
-        local Args = {...}
-        if (Args[1] == Enum.DeveloperMemoryTag.Gui) then
-            return Hooks.OldGetMemoryUsageMbForTag(Args[1]) - 1
-        end
-    end
-    return Hooks.OldGetMemoryUsageMbForTag(self, ...);
 end))
 
 local ProtectInstance = function(Instance_, disallow)

@@ -1,4 +1,15 @@
 local Services = {}
+setmetatable(Services, {
+    __index = function(Table, Property)
+        local Service = GetService(game, Property);
+        if (Service) then
+            Service[Property] = Service
+            return Service
+        end
+        return nil
+    end
+});
+
 Services.Workspace = GetService(game, "Workspace");
 local GetChildren, GetDescendants = game.GetChildren, game.GetDescendants
 local IsA = game.IsA
