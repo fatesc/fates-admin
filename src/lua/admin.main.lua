@@ -321,14 +321,16 @@ local ExecuteCommand = function(Name, Args, Caller)
             return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
         end
         local Success, Ret = pcall(function()
-            local Executed = Command.Function()
-            if (Executed) then
-                Utils.Notify(Caller, "Command", Executed(LocalPlayer, Args, Command.CmdExtra));
-            end
-            if (#LastCommand == 3) then
-                LastCommand = shift(LastCommand);
-            end
-            LastCommand[#LastCommand + 1] = {Command, LocalPlayer, Args, Command.CmdExtra}
+            local Success, Ret = pcall(function()
+                local Executed = Command.Function()(Caller, Args, Command.CmdExtra);
+                if (Executed) then
+                    Utils.Notify(Caller, "Command", Executed);
+                end
+                if (#LastCommand == 3) then
+                    LastCommand = shift(LastCommand);
+                end
+                LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
+            end);
         end);
         if (not Success and Debug) then
             warn(Ret);
