@@ -4506,6 +4506,15 @@ AddCommand("help", {"info"}, "gives you the description of the command", {"1"}, 
     end
 end)
 
+AddCommand("friend", {"fr"}, "sends a friend request to the player", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local RequestFriendship = LocalPlayer.RequestFriendship
+    for i, v in next, Target do
+        RequestFriendship(LocalPlayer, v);
+    end
+    return #Target == 1 and "sent a friend request to " .. Target[1].Name or format("sent a friend request to %d players", #Target);
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}

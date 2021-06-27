@@ -3157,6 +3157,30 @@ AddCommand("help", {"info"}, "gives you the description of the command", {"1"}, 
     end
 end)
 
+AddCommand("friend", {"fr"}, "sends a friend request to the player", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local RequestFriendship = LocalPlayer.RequestFriendship
+    for i, v in next, Target do
+        RequestFriendship(LocalPlayer, v);
+    end
+    return #Target == 1 and "sent a friend request to " .. Target[1].Name or format("sent a friend request to %d players", #Target);
+end)
+
+AddCommand("unfriend", {"unfr"}, "unfriends a player that you're friends with", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local RevokeFriendship = LocalPlayer.RevokeFriendship
+    for i, v in next, Target do
+        RevokeFriendship(LocalPlayer, v);
+    end
+    return #Target == 1 and "unfriended " .. Target[1].Name or format("unfriended %d players", #Target);
+end)
+
+AddCommand("setzoomdistance", {"szd"}, "sets your cameras zoom distance so you can zoom out", {}, function(Caller, Args)
+    local ZoomDistance = tonumber(Args[1]) or 1000
+    LocalPlayer.CameraMaxZoomDistance = ZoomDistance
+    return "set zoom distance to " .. ZoomDistance
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
