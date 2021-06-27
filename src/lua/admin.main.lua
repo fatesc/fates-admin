@@ -1119,7 +1119,7 @@ end)
 
 AddCommand("chatmute", {"cmute"}, "mutes a player in your chat", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
-    local MuteRequest = ReplicatedStorage.DefaultChatSystemChatEvents.MutePlayerRequest
+    local MuteRequest = Services.ReplicatedStorage.DefaultChatSystemChatEvents.MutePlayerRequest
     for i, v in next, Target do
         MuteRequest.InvokeServer(MuteRequest, v.Name);
         Utils.Notify(Caller, "Command", format("%s is now muted on your chat", v.Name));
@@ -1128,7 +1128,7 @@ end)
 
 AddCommand("unchatmute", {"uncmute"}, "unmutes a player in your chat", {"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
-    local MuteRequest = ReplicatedStorage.DefaultChatSystemChatEvents.UnMutePlayerRequest
+    local MuteRequest = Services.ReplicatedStorage.DefaultChatSystemChatEvents.UnMutePlayerRequest
     for i, v in next, Target do
         MuteRequest.InvokeServer(MuteRequest, v.Name);
         Utils.Notify(Caller, "Command", format("%s is now unmuted on your chat", v.Name));
