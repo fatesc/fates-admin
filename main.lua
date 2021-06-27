@@ -1,5 +1,5 @@
 --[[
-	fates admin - 26/6/2021
+	fates admin - 27/6/2021
 ]]
 
 local game = game
@@ -1801,6 +1801,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
             Humanoid = ReplaceHumanoid();
         end
     end
+    UnequipTools(Humanoid);
     DisableAnimate();
     coroutine.wrap(function()
         for i, v in next, Target do
@@ -1819,7 +1820,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                     continue
                 end
 
-                local Tool = FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool") or FindFirstChildWhichIsA(GetCharacter(), "Tool");
+                local Tool = FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
                 if (not Tool) then
                     continue
                 end
@@ -1876,6 +1877,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
         end
     end
 
+    UnequipTools(Humanoid);
     DisableAnimate();
     local Destroy_;
     coroutine.wrap(function()
@@ -1897,7 +1899,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                 if (not TargetRoot) then
                     continue
                 end
-                local Tool = FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool") or FindFirstChildWhichIsA(GetCharacter(), "Tool");
+                local Tool = FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
                 if (not Tool) then
                     continue
                 end
