@@ -321,14 +321,17 @@ local ExecuteCommand = function(Name, Args, Caller)
             return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
         end
         local Success, Ret = pcall(function()
-            local Executed = Command.Function()(Caller, Args, Command.CmdExtra);
-            if (Executed) then
-                Utils.Notify(Caller, "Command", Executed);
+            local Func = Command.Function();
+            if (Func) then
+                local Executed = Func(Caller, Args, Command.CmdExtra);
+                if (Executed) then
+                    Utils.Notify(Caller, "Command", Executed);
+                end
+                if (#LastCommand == 3) then
+                    LastCommand = shift(LastCommand);
+                end
+                LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
             end
-            if (#LastCommand == 3) then
-                LastCommand = shift(LastCommand);
-            end
-            LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
         end);
         if (not Success and Debug) then
             warn(Ret);
@@ -1900,7 +1903,7 @@ AddCommand("notruesightguis", {"untruesightguis", "notsg"}, "removes truesight o
     return "truesight for guis are now off"
 end)
 
-AddCommand("esp", {"aimbot", "cameralock", "locate", "silentaim", "aimlock", "tracers", "trace"}, "loads fates esp", {}, function(Caller, Args, Tbl)
+AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "loads fates esp", {}, function(Caller, Args, Tbl)
     loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
     return "esp enabled"
 end)

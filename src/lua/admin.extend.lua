@@ -156,34 +156,6 @@ local checkcaller = checkcaller or function()
     return false
 end
 
-local getgc = getgc or function()
-    return {}
-end
-
-if (game.PlaceId == 292439477) then
-    local GetBodyParts;
-    for i, v in next, getgc(true) do
-        if (type(v) == "table") then
-            if (rawget(v, "getbodyparts")) then
-                GetBodyParts = rawget(v, "getbodyparts");
-                break;
-            end
-        end
-    end
-    GetCharacter = function(Plr)
-        if (Plr == LocalPlayer or not Plr) then
-            return LocalPlayer.Character
-        end
-        local Char = GetBodyParts(Plr);
-        if (type(Char) == "table") then
-            if (rawget(Char, "rootpart")) then
-                Plr.Character = rawget(Char, "rootpart").Parent
-            end
-        end
-        return Plr and Plr.Character or nil
-    end
-end
-
 local ProtectedInstances = {}
 local SpoofedInstances = {}
 local SpoofedProperties = {}
