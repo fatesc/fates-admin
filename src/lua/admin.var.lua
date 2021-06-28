@@ -3,7 +3,7 @@ setmetatable(Services, {
     __index = function(Table, Property)
         local Service = GetService(game, Property);
         if (Service) then
-            Service[Property] = Service
+            Services[Property] = Service
             return Service
         end
         return nil

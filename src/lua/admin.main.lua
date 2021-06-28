@@ -321,16 +321,14 @@ local ExecuteCommand = function(Name, Args, Caller)
             return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
         end
         local Success, Ret = pcall(function()
-            local Success, Ret = pcall(function()
-                local Executed = Command.Function()(Caller, Args, Command.CmdExtra);
-                if (Executed) then
-                    Utils.Notify(Caller, "Command", Executed);
-                end
-                if (#LastCommand == 3) then
-                    LastCommand = shift(LastCommand);
-                end
-                LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
-            end);
+            local Executed = Command.Function()(Caller, Args, Command.CmdExtra);
+            if (Executed) then
+                Utils.Notify(Caller, "Command", Executed);
+            end
+            if (#LastCommand == 3) then
+                LastCommand = shift(LastCommand);
+            end
+            LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
         end);
         if (not Success and Debug) then
             warn(Ret);
@@ -2000,21 +1998,18 @@ AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, functio
 end)
 
 AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, Tbl)    
-    local RejoinConnection = CConnect(FindFirstChildWhichIsA(FindFirstChild(Services.CoreGui, "RobloxPromptGui"), "Frame").DescendantAdded, function(Prompt)
-        if (Prompt.Name == "ErrorTitle") then
-            CWait(GetPropertyChangedSignal(Prompt, "Text"));
-            if (Prompt.Text == "Disconnected") then
-                syn.queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()")
-                if (#GetPlayers(Players) == 1) then
-                    Services.TeleportService.Teleport(Services.TeleportService, game.PlaceId);
-                else
-                    Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId)
-                end
+    local GuiService = Services.GuiService
+    coroutine.wrap(function()
+        CWait(GuiService.ErrorMessageChanged);
+        CWait(GuiService.ErrorMessageChanged);
+        if (GuiService.GetErrorCode(GuiService) == Enum.ConnectionError.DisconnectLuaKick) then
+            if (#GetPlayers(Players) == 1) then
+                Services.TeleportService.Teleport(Services.TeleportService, game.PlaceId);
+            else
+                Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId);
             end
         end
-    end)
-    AddConnection(RejoinConnection);
-    Tbl[#Tbl + 1] = RejoinConnection
+    end)()
     return "auto rejoin enabled (rejoins when you get kicked from the game)"
 end)
 
@@ -3232,6 +3227,37 @@ AddCommand("setzoomdistance", {"szd"}, "sets your cameras zoom distance so you c
     local ZoomDistance = tonumber(Args[1]) or 1000
     LocalPlayer.CameraMaxZoomDistance = ZoomDistance
     return "set zoom distance to " .. ZoomDistance
+end)
+
+AddCommand("equiptools", {}, "equips all of your tools", {1}, function()
+    UnequipTools(GetHumanoid());
+    local Char = GetCharacter();
+    local Tools = filter(GetChildren(LocalPlayer.Backpack), function(i, Child)
+        return IsA(Child, "Tool");
+    end);
+    for i, v in next, Tools do
+        v.Parent = Char
+    end
+    return format("equipped %d tools", #Tools);
+end)
+
+AddCommand("activatetools", {}, "equips and activates all of your tools", {1}, function()
+    local VirtualInputManager = Services.VirtualInputManager
+    local SendMouseButtonEvent = VirtualInputManager.SendMouseButtonEvent
+    UnequipTools(GetHumanoid());
+    local Char = GetCharacter();
+    local Tools = filter(GetChildren(LocalPlayer.Backpack), function(i, Child)
+        return IsA(Child, "Tool");
+    end);
+    for i, v in next, Tools do
+        v.Parent = Char
+    end
+    wait();
+    for i, v in next, Tools do
+        v.Activate(v);
+    end
+    SendMouseButtonEvent(VirtualInputManager, 0, 0, 0, true, nil, #Tools);
+    -- return format("equipped and activated %d tools", #Tools);
 end)
 
 local PlrChat = function(i, plr)
