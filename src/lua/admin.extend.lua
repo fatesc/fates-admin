@@ -181,14 +181,17 @@ setreadonly(mt, false);
 for i, v in next, mt do
     OldMetaMethods[i] = v
 end
+local MetaMethodHooks = {}
 
-mt.__namecall = newcclosure(function(self, ...)
+MetaMethodHooks.Namecall = function(...)
     local __Namecall = OldMetaMethods.__namecall;
+    local Args = {...}
+    local self = Args[1]
 
     if (checkcaller()) then
-        return __Namecall(self, ...);
+        return __Namecall(...);
     end
-    local Args = {...}
+
     local Method = getnamecallmethod();
     local Protected = ProtectedInstances[self]
 
@@ -199,36 +202,38 @@ mt.__namecall = newcclosure(function(self, ...)
     end
 
     if (Method == "GetChildren" or Method == "GetDescendants") then
-        return filter(__Namecall(self, ...), function(i, v)
+        return filter(__Namecall(...), function(i, v)
             return not Tfind(ProtectedInstances, v);
         end)
     end
 
     if (Method == "GetFocusedTextBox") then
-        if (Tfind(ProtectedInstances, __Namecall(self, ...))) then
+        if (Tfind(ProtectedInstances, __Namecall(...))) then
             return nil
         end
     end
 
     if (AntiKick and lower(Method) == "kick") then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
         return
     end
 
     if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
         return
     end
 
-    return __Namecall(self, ...);
-end)
+    return __Namecall(...);
+end
 
-mt.__index = newcclosure(function(Instance_, Index)
+MetaMethodHooks.Index = function(...)
     local __Index = OldMetaMethods.__index;
 
     if (checkcaller()) then
-        return __Index(Instance_, Index);
+        return __Index(...);
     end
+    local Args = {...}
+    local Instance_, Index = Args[1], Args[2]
 
     local SanitisedIndex = type(Index) == 'string' and gsub(Index, "%z.*", "") or Index
 
@@ -259,12 +264,14 @@ mt.__index = newcclosure(function(Instance_, Index)
         end
     end
     
-    return __Index(Instance_, Index);
-end)
+    return __Index(...);
+end
 
-mt.__newindex = newcclosure(function(Instance_, Index, Value)
+MetaMethodHooks.NewIndex = function(...)
     local __NewIndex = OldMetaMethods.__newindex;
     local __Index = OldMetaMethods.__index;
+    local Args = {...}
+    local Instance_, Index, Value = Args[1], Args[2], Args[3]
 
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
@@ -286,14 +293,14 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
             end
             return Ret
         end
-        return __NewIndex(Instance_, Index, Value);
+        return __NewIndex(...);
     end
 
     local SanitisedIndex = type(Index) == 'string' and gsub(Index, "%z.*", "") or Index
 
     if (SpoofedInstance) then
         if (Tfind(AllowedNewIndexes, SanitisedIndex)) then
-            return __NewIndex(Instance_, Index, Value);
+            return __NewIndex(...);
         end
         return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
     end
@@ -306,15 +313,24 @@ mt.__newindex = newcclosure(function(Instance_, Index, Value)
         end
     end
 
-    return __NewIndex(Instance_, Index, Value);
-end)
+    return __NewIndex(...);
+end
 
+if (syn) then
+    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+else
+    mt.__index = newcclosure(MetaMethodHooks.Index, mt.__index);
+    mt.__namecall = newcclosure(MetaMethodHooks.Namecall, mt.__namecall);
+    mt.__newindex = newcclosure(MetaMethodHooks.NewIndex, mt.__newindex);
+end
 setreadonly(mt, true);
 
 local Hooks = {}
 
 Hooks.OldGetChildren = nil
-Hooks.OldGetChildren = hookfunction(game.GetChildren, function(...)
+Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
         if (Tfind(Children, ProtectedInstances)) then
@@ -324,7 +340,7 @@ Hooks.OldGetChildren = hookfunction(game.GetChildren, function(...)
         end
     end
     return Hooks.OldGetChildren(...);
-end)
+end, game.GetChildren));
 
 Hooks.OldGetDescendants = nil
 Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
@@ -337,7 +353,7 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
         end
     end
     return Hooks.OldGetDescendants(...);
-end))
+end, game.GetDescendants));
 
 Hooks.OldGetFocusedTextBox = nil
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
@@ -348,35 +364,33 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
         end
     end
     return Hooks.OldGetFocusedTextBox(...);
-end))
+end, Services.UserInputService.GetFocusedTextBox));
 
 Hooks.OldKick = nil
-Hooks.OldKick = hookfunction(InstanceNew("Player").Kick, newcclosure(function(self, ...)
+Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     if (AntiKick) then
-        local Args = {...}
-        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", ({...})[2]));
         return
     end
-
-    return Hooks.OldKick(self, ...);
-end))
+    return Hooks.OldKick(...);
+end, LocalPlayer.Kick))
 
 Hooks.OldTeleportToPlaceInstance = nil
-Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(self, ...)
+Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
     if (AntiTeleport) then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
-    return Hooks.OldTeleportToPlaceInstance(self, ...);
-end))
+    return Hooks.OldTeleportToPlaceInstance(...);
+end, Services.TeleportService.TeleportToPlaceInstance))
 Hooks.OldTeleport = nil
-Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(function(self, ...)
+Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(function(...)
     if (AntiTeleport) then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[1]));
+        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
-    return Hooks.OldTeleport(self, ...);
-end))
+    return Hooks.OldTeleport(...);
+end, Services.TeleportService.Teleport))
 
 local ProtectInstance = function(Instance_, disallow)
     if (not ProtectedInstances[Instance_]) then
