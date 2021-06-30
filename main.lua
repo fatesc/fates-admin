@@ -4593,6 +4593,42 @@ AddCommand("activatetools", {}, "equips and activates all of your tools", {1}, f
     -- return format("equipped and activated %d tools", #Tools);
 end)
 
+AddCommand('familyguy', {}, 'family guy', {}, function()
+    if syn and syn.protect_gui then --clockwork
+	        local UI = Instance.new'ScreenGui'
+		    syn.protect_gui(UI)
+		    UI.Parent = game:GetService'CoreGui':WaitForChild'RobloxGui'
+
+		    local VF = Instance.new'VideoFrame'
+		    if not isfile('FamilyGuy.mp4') then
+			writefile('FamilyGuy.mp4', syn.request({Url = 'https://cdn.discordapp.com/attachments/852008234814537748/858873215841861682/Family_Guy_Funny_Moments_for_30_minutes.webm'}).Body) 
+		    end
+
+		    local X = Instance.new'TextButton'
+		    X.Parent = VF
+		    X.Text = 'X'
+		    X.TextSize = 50
+		    X.TextColor3 = Color3.fromRGB(255, 0, 0)
+		    X.Size = UDim2.new(0, 50, 0, 50)
+		    X.MouseButton1Down:Connect(function()
+			VF:Destroy()    
+		    end)
+
+		    VF.Looped = true
+		    VF.Video = getsynasset('FamilyGuy.mp4')
+		    VF.AnchorPoint = Vector2.new(0.5, 0.5)
+		    VF.Position = UDim2.new(0.5, 0, 0.5, 0)
+		    VF.Size = UDim2.new(0.5, 0, 0.5, 0)
+		    VF.Volume = 5
+
+		    VF.Parent = UI
+
+		    VF:Play()
+
+    
+    end
+end)
+						
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
