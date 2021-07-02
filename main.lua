@@ -4602,7 +4602,31 @@ AddCommand("activatetools", {}, "equips and activates all of your tools", {1}, f
     SendMouseButtonEvent(VirtualInputManager, 0, 0, 0, true, nil, #Tools);
     -- return format("equipped and activated %d tools", #Tools);
 end)
-						
+
+AddCommand("hidename", {"hidetag"}, "hides your nametag (billboardgui)", {3}, function(Caller, Args, Tbl)
+    local Char = GetCharacter();
+    local Billboard = FindFirstChildWhichIsA(Char, "BillboardGui", true);
+    if (not Billboard) then
+        return "you don't have a player tag to use this command"
+    end
+    for i, v in next, GetDescendants(Char) do
+        if (IsA(v, "BillboardGui")) then
+            Tbl[v] = v.Parent
+            Destroy(v);
+        end
+    end
+    return "name hidden, use showname to show it again"
+end)
+
+AddCommand("showname", {"showtag"}, "shows your player tag", {3}, function()
+    local Char = GetCharacter();
+    local Billboards = LoadCommand("hidename").CmdExtra
+    if (not next(Billboards)) then
+        return "your name is already shown"
+    end
+    return "you have to reset to show your nametag"
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
