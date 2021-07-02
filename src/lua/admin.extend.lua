@@ -232,8 +232,7 @@ MetaMethodHooks.Index = function(...)
     if (checkcaller()) then
         return __Index(...);
     end
-    local Args = {...}
-    local Instance_, Index = Args[1], Args[2]
+    local Instance_, Index = ...
 
     local SanitisedIndex = type(Index) == 'string' and gsub(Index, "%z.*", "") or Index
 
@@ -270,8 +269,7 @@ end
 MetaMethodHooks.NewIndex = function(...)
     local __NewIndex = OldMetaMethods.__newindex;
     local __Index = OldMetaMethods.__index;
-    local Args = {...}
-    local Instance_, Index, Value = Args[1], Args[2], Args[3]
+    local Instance_, Index, Value = ...
 
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
@@ -279,16 +277,24 @@ MetaMethodHooks.NewIndex = function(...)
     if (checkcaller()) then
         if (SpoofedInstance or SpoofedPropertiesForInstance) then
             local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
-            if (not next(Connections)) then
+            local Connections2 = getconnections(Instance_.Changed);
+
+            if (not next(Connections) and not next(Connections2)) then
                 return __NewIndex(Instance_, Index, Value);
             end
             for i, v in next, Connections do
+                v.Disable(v);
+            end
+            for i, v in next, Connections2 do
                 v.Disable(v);
             end
             local Suc, Ret = pcall(function()
                 return __NewIndex(Instance_, Index, Value);
             end)
             for i, v in next, Connections do
+                v.Enable(v);
+            end
+            for i, v in next, Connections2 do
                 v.Enable(v);
             end
             return Ret

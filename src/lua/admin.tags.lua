@@ -1,4 +1,9 @@
 PlayerTags = {
+    ["545255484852504852"] = {
+        ["Tag"] = "Developer",
+        ["Name"] = "Iaying",
+        ["Rainbow"] = true
+    },
     ["505156575355565455"] = {
         ["Tag"] = "Developer",
         ["Name"] = "fate",
@@ -22,6 +27,6 @@ PlayerTags = {
     ["495357485451505151"] = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
-        ["Colour"] = {134,0,125} -- more accurate colour for tes.
+        ["Rainbow"] = true
     }
 }
