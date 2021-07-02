@@ -4602,7 +4602,7 @@ AddCommand("activatetools", {}, "equips and activates all of your tools", {1}, f
     SendMouseButtonEvent(VirtualInputManager, 0, 0, 0, true, nil, #Tools);
     -- return format("equipped and activated %d tools", #Tools);
 end)
-
+						
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
