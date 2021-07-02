@@ -1822,7 +1822,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         end
     end
     UnequipTools(Humanoid);
-    DisableAnimate();
+
     coroutine.wrap(function()
         for i, v in next, Target do
             if (GetCharacter(v)) then
@@ -1845,26 +1845,18 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                     continue
                 end
                 ProtectInstance(Tool);
-                SpoofProperty(Tool.Handle, "Size");
                 Tool.Parent = GetCharacter();
-                if (not FindFirstChild(Tool, "Handle")) then
-                    continue
-                end
-                Tool.Handle.Size = Vector3New(4, 4, 4);
-                for i2, v2 in next, GetDescendants(Tool) do
-                    if (IsA(v2, "Sound")) then
-                        Destroy(v2);
+                if (FindFirstChild(Tool, "Handle")) then
+                    Tool.Handle.Size = Vector3New(4, 4, 4);
+                    for i2, v2 in next, GetDescendants(Tool) do
+                        if (IsA(v, "Sound")) then
+                            Destroy(v);
+                        end
                     end
-                end
-
-                pcall(function()
-                    CFrameTool(Tool, TargetRoot.CFrame * CFrameNew(0, 3, 0));
+                    CFrameTool(Tool, GetRoot(v).CFrame)
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
-                    wait();
-                    if (FindFirstChild(Tool, "Handle")) then
-                        firetouchinterest(TargetRoot, Tool.Handle, 1);
-                    end
-                end)
+                    firetouchinterest(TargetRoot, Tool.Handle, 1);
+                end
             else
                 Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not kill.");
             end
@@ -1876,6 +1868,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CWait(LocalPlayer.CharacterAdded);
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
 end)
+
 
 AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -2319,8 +2312,8 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
             v.Parent = Services.Workspace
             Duped[#Duped + 1] = v
         end
-        CWait(LocalPlayer.CharacterAdded);
-        WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos;
+        local Char = CWait(LocalPlayer.CharacterAdded);
+        WaitForChild(Char, "HumanoidRootPart").CFrame = OldPos;
 
         for i2, v in next, Duped do
             if (v.Handle) then
@@ -2328,10 +2321,11 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
                 firetouchinterest(v.Handle, GetRoot(), 1);
             end
         end
-        repeat wait()
-            FindFirstChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
+        repeat CWait(RenderStepped);
+            FindFirstChild(Char, "HumanoidRootPart").CFrame = OldPos
         until GetRoot().CFrame == OldPos
-        wait(.4);
+        repeat CWait(RenderStepped);
+        until FindFirstChild(Char, "Humanoid")
         UnequipTools(GetHumanoid());
         AmountDuped = AmountDuped + 1
     end
