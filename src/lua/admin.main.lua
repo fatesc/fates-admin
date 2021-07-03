@@ -3490,3 +3490,4 @@ getgenv().F_A = {
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
+Utils.Notify(LocalPlayer, "Newest Update", "added rejoindupe command - fate");

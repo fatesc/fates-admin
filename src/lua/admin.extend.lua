@@ -234,8 +234,10 @@ MetaMethodHooks.Index = function(...)
     end
     local Instance_, Index = ...
 
-    local SanitisedIndex = type(Index) == 'string' and gsub(Index, "%z.*", "") or Index
-
+    local SanitisedIndex = Index
+    if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
+        SanitisedIndex = gsub(Index, "%z.*", "");
+    end
     local ProtectedInstance = ProtectedInstances[Instance_]
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
@@ -302,7 +304,10 @@ MetaMethodHooks.NewIndex = function(...)
         return __NewIndex(...);
     end
 
-    local SanitisedIndex = type(Index) == 'string' and gsub(Index, "%z.*", "") or Index
+    local SanitisedIndex = Index
+    if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
+        SanitisedIndex = gsub(Index, "%z.*", "");
+    end
 
     if (SpoofedInstance) then
         if (Tfind(AllowedNewIndexes, SanitisedIndex)) then
@@ -339,9 +344,9 @@ Hooks.OldGetChildren = nil
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
-        for i, v in next, ProtectedInstances do
-
-        end
+        return filter(Children, function(i, v)
+            return not Tfind(ProtectedInstances, v);
+        end)
     end
     return Hooks.OldGetChildren(...);
 end, game.GetChildren));
@@ -350,11 +355,9 @@ Hooks.OldGetDescendants = nil
 Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
-        if (Tfind(Descendants, ProtectedInstances)) then
-            return filter(Descendants, function(i, v)
-                return not Tfind(ProtectedInstances, v);
-            end)
-        end
+        return filter(Descendants, function(i, v)
+            return not Tfind(ProtectedInstances, v);
+        end)
     end
     return Hooks.OldGetDescendants(...);
 end, game.GetDescendants));
