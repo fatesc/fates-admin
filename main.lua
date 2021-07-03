@@ -391,7 +391,7 @@ MetaMethodHooks.Index = function(...)
 
     local SanitisedIndex = Index
     if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-        SanitisedIndex = gsub(Index, "%z.*", "");
+        SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
     end
     local ProtectedInstance = ProtectedInstances[Instance_]
     local SpoofedInstance = SpoofedInstances[Instance_]
@@ -461,7 +461,7 @@ MetaMethodHooks.NewIndex = function(...)
 
     local SanitisedIndex = Index
     if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-        SanitisedIndex = gsub(Index, "%z.*", "");
+        SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
     end
 
     if (SpoofedInstance) then
