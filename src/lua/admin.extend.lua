@@ -339,10 +339,8 @@ Hooks.OldGetChildren = nil
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
-        if (Tfind(Children, ProtectedInstances)) then
-            return filter(Children, function(i, v)
-                return not Tfind(ProtectedInstances, v);
-            end)
+        for i, v in next, ProtectedInstances do
+
         end
     end
     return Hooks.OldGetChildren(...);
@@ -399,7 +397,7 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
 end, Services.TeleportService.Teleport))
 
 local ProtectInstance = function(Instance_, disallow)
-    if (not ProtectedInstances[Instance_]) then
+    if (not Tfind(ProtectedInstances, Instance_)) then
         ProtectedInstances[#ProtectedInstances + 1] = Instance_
         if (syn and syn.protect_gui and not disallow) then
             syn.protect_gui(Instance_);

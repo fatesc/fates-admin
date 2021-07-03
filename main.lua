@@ -1,5 +1,5 @@
 --[[
-	fates admin - 2/7/2021
+	fates admin - 3/7/2021
 ]]
 
 local game = game
@@ -494,10 +494,8 @@ Hooks.OldGetChildren = nil
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
-        if (Tfind(Children, ProtectedInstances)) then
-            return filter(Children, function(i, v)
-                return not Tfind(ProtectedInstances, v);
-            end)
+        for i, v in next, ProtectedInstances do
+
         end
     end
     return Hooks.OldGetChildren(...);
@@ -554,7 +552,7 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
 end, Services.TeleportService.Teleport))
 
 local ProtectInstance = function(Instance_, disallow)
-    if (not ProtectedInstances[Instance_]) then
+    if (not Tfind(ProtectedInstances, Instance_)) then
         ProtectedInstances[#ProtectedInstances + 1] = Instance_
         if (syn and syn.protect_gui and not disallow) then
             syn.protect_gui(Instance_);
@@ -1602,6 +1600,7 @@ local ExecuteCommand = function(Name, Args, Caller)
         Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
     end
 end
+PluginLibrary.Execute = ExecuteCommand
 
 local ReplaceHumanoid = function(Hum)
     local Humanoid = Hum or GetHumanoid();
@@ -2330,6 +2329,75 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         AmountDuped = AmountDuped + 1
     end
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);
+end)
+
+AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
+    local Amount = tonumber(Args[1])
+    if (not Amount) then
+        return "amount must be a number"
+    end
+    if (not syn) then
+        return "exploit not supported"
+    end
+    local Root, Humanoid = GetRoot(), GetHumanoid();
+    local OldPos = Root.CFrame
+    Root.CFrame = CFrameNew(0, 2e5, 0);
+    UnequipTools(Humanoid);
+    
+    local Tools = filter(GetChildren(LocalPlayer.Backpack), function(i, v)
+        return IsA(v, "Tool");
+    end)
+
+    local Char, Workspace, ReplicatedStorage = GetCharacter(), Services.Workspace, Services.ReplicatedStorage
+    for i, v in next, Tools do
+        v.Parent = Char
+        v.Parent = Workspace
+    end
+    writefile("fates-admin/tooldupe.txt", tostring(Amount - 1));
+    writefile("fates-admin/tooldupe.lua", format([[
+        local OldPos = CFrame.new(%s);
+        local DupeAmount = tonumber(readfile("fates-admin/tooldupe.txt"));
+        local game = game
+        local GetService = game.GetService
+        local Players = GetService(game, "Players");
+        local Workspace = GetService(game, "Workspace");
+        local ReplicatedFirst = GetService(game, "ReplicatedFirst");
+        local TeleportService = GetService(game, "TeleportService");
+        ReplicatedFirst.SetDefaultLoadingGuiRemoved(ReplicatedFirst);
+        local WaitForChild, GetChildren, IsA = game.WaitForChild, game.GetChildren, game.IsA
+        local LocalPlayer = Players.LocalPlayer
+        if (not LocalPlayer) then
+            repeat wait(); LocalPlayer = Players.LocalPlayer until LocalPlayer
+        end
+        local Char = LocalPlayer.CharacterAdded.Wait(LocalPlayer.CharacterAdded);
+        local RootPart = WaitForChild(Char, "HumanoidRootPart");
+        if (DupeAmount <= 1) then
+            for i, v in next, GetChildren(Workspace) do
+                if (IsA(v, "Tool")) then
+                    firetouchinterest(v.Handle, RootPart, 0);
+                    firetouchinterest(v.Handle, RootPart, 1);
+                end
+            end
+            delfile("fates-admin/tooldupe.txt");
+            delfile("fates-admin/tooldupe.lua");
+            loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua"))();
+            RootPart.CFrame = OldPos
+            repeat wait() RootPart.CFrame = OldPos until RootPart.CFrame == OldPos
+            getgenv().F_A.PluginLibrary.Execute("dp", {"1"}, LocalPlayer);
+        else
+            RootPart.CFrame = CFrame.new(0, 2e5, 0);
+            wait(.3);
+            for i, v in next, GetChildren(LocalPlayer.Backpack) do
+                v.Parent = Char
+                v.Parent = Workspace
+            end
+            writefile("fates-admin/tooldupe.txt", tostring(DupeAmount - 1));
+            syn.queue_on_teleport(readfile("fates-admin/tooldupe.lua"));
+            TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, game.JobId);
+        end
+    ]], tostring(OldPos)));
+    syn.queue_on_teleport(readfile("fates-admin/tooldupe.lua"));
+    Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId);
 end)
 
 AddCommand("stopdupe", {}, "stops the dupe", {}, function()
