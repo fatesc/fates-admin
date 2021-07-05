@@ -14,3 +14,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/ma
 
 ## Plugins
 please view the [wiki](https://github.com/fatesc/fates-admin/wiki/Plugins) for more information
+
+Grincher has always been here
