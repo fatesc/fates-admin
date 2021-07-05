@@ -1,5 +1,5 @@
 --[[
-	fates admin - 3/7/2021
+	fates admin - 5/7/2021
 ]]
 
 local game = game
@@ -616,10 +616,14 @@ end
 --END IMPORT [extend]
 
 
-local PluginLibrary = {}
-
-
-PluginLibrary.GetCharacter = GetCharacter
+local PluginLibrary = {
+    Services = Services,
+    GetCharacter = GetCharacter,
+    ProtectInstance = ProtectInstance,
+    SpoofInstance = SpoofInstance,
+    SpoofProperty = SpoofProperty,
+    UnSpoofInstance = UnSpoofInstance
+}
 
 local GetRoot = function(Plr)
     return Plr and GetCharacter(Plr) and FindFirstChild(GetCharacter(Plr), "HumanoidRootPart") or GetCharacter() and FindFirstChild(GetCharacter(), "HumanoidRootPart");
@@ -3732,6 +3736,8 @@ end)
 
 AddCommand("tweento", {"tweengoto"}, "tweens yourself to the other person", {3, "1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
+    local TweenService = Services.TweenService
+    local Create = TweenService.Create
     for i, v in next, Target do
         local Tween = Create(TweenService, GetRoot(), TweenInfo.new(2), {CFrame = GetRoot(v).CFrame})
         Tween.Play(Tween);
