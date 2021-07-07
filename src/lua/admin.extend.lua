@@ -414,7 +414,7 @@ local SpoofInstance = function(Instance_, Instance2)
     end
 end
 
-local SpoofProperty = function(Instance_, Property)
+local SpoofProperty = function(Instance_, Property, NoClone)
     if (SpoofedProperties[Instance_]) then
         local Properties = map(SpoofedProperties[Instance_], function(i, v)
             return v.Property
@@ -427,7 +427,7 @@ local SpoofProperty = function(Instance_, Property)
         end
     else
         SpoofedProperties[Instance_] = {{
-            SpoofedProperty = Clone(Instance_),
+            SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
             Property = Property,
         }}
     end

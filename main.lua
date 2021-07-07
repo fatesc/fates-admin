@@ -1,5 +1,5 @@
 --[[
-	fates admin - 5/7/2021
+	fates admin - 7/7/2021
 ]]
 
 local game = game
@@ -569,7 +569,7 @@ local SpoofInstance = function(Instance_, Instance2)
     end
 end
 
-local SpoofProperty = function(Instance_, Property)
+local SpoofProperty = function(Instance_, Property, NoClone)
     if (SpoofedProperties[Instance_]) then
         local Properties = map(SpoofedProperties[Instance_], function(i, v)
             return v.Property
@@ -582,7 +582,7 @@ local SpoofProperty = function(Instance_, Property)
         end
     else
         SpoofedProperties[Instance_] = {{
-            SpoofedProperty = Clone(Instance_),
+            SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
             Property = Property,
         }}
     end
@@ -2804,9 +2804,10 @@ AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on"
 end)
 
 AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}}, function(Caller, Args)
+    local Lighting = Services.Lighting
     local Time = Args[1] and lower(Args[1]) or 14
     local Times = {["night"]=0,["day"]=14,["dawn"]=6}
-    SpoofProperty(Lighting, "ClockTime");
+    SpoofProperty(Lighting, "ClockTime", true);
     Lighting.ClockTime = Times[Time] or Time
 end)
 

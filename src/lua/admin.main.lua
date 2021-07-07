@@ -1463,9 +1463,10 @@ AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on"
 end)
 
 AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}}, function(Caller, Args)
+    local Lighting = Services.Lighting
     local Time = Args[1] and lower(Args[1]) or 14
     local Times = {["night"]=0,["day"]=14,["dawn"]=6}
-    SpoofProperty(Lighting, "ClockTime");
+    SpoofProperty(Lighting, "ClockTime", true);
     Lighting.ClockTime = Times[Time] or Time
 end)
 
