@@ -2965,7 +2965,6 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         for i, v in next, SpoofedProperties do
             for i2, v2 in next, v do
                 i[v2.Property] = v2.SpoofedProperty[v2.Property]
-                Destroy(v2.SpoofedProperty);
             end
         end
         for i, v in next, SpoofedInstances do
@@ -3497,4 +3496,6 @@ getgenv().F_A = {
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
-Utils.Notify(LocalPlayer, "Newest Update", "added rejoindupe command - fate");
+local LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
+wait(1);
+Utils.Notify(LocalPlayer, "Newest Update", format("%s - %s", LatestCommit.commit.message, LatestCommit.commit.author.name));
