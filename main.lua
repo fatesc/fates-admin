@@ -1,5 +1,5 @@
 --[[
-	fates admin - 7/7/2021
+	fates admin - 9/7/2021
 ]]
 
 local game = game
@@ -145,22 +145,6 @@ local MoveTo = __H.MoveTo
 
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
---END IMPORT [var]
-
-
-local GetCharacter = GetCharacter or function(Plr)
-    return Plr and Plr.Character or LocalPlayer.Character
-end
-
---IMPORT [extend]
-Debug = true
-if (getconnections) then
-    local ErrorConnections = getconnections(Services.ScriptContext.Error);
-    if (next(ErrorConnections)) then
-        getfenv().error = warn
-        getgenv().error = warn
-    end
-end
 
 local startsWith = function(str, searchString, rawPos)
     local pos = rawPos or 1
@@ -269,6 +253,23 @@ local keys = function(tbl)
         return new
     end
 end
+--END IMPORT [var]
+
+
+if (getconnections) then
+    local ErrorConnections = getconnections(Services.ScriptContext.Error);
+    if (next(ErrorConnections)) then
+        getfenv().error = warn
+        getgenv().error = warn
+    end
+end
+
+local GetCharacter = GetCharacter or function(Plr)
+    return Plr and Plr.Character or LocalPlayer.Character
+end
+
+--IMPORT [extend]
+local Debug = true
 
 local firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then
@@ -495,7 +496,6 @@ setreadonly(mt, true);
 
 local Hooks = {}
 
-Hooks.OldGetChildren = nil
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
@@ -504,9 +504,8 @@ Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
         end)
     end
     return Hooks.OldGetChildren(...);
-end, game.GetChildren));
+end));
 
-Hooks.OldGetDescendants = nil
 Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
@@ -515,9 +514,8 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
         end)
     end
     return Hooks.OldGetDescendants(...);
-end, game.GetDescendants));
+end));
 
-Hooks.OldGetFocusedTextBox = nil
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller()) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
@@ -528,7 +526,6 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
     return Hooks.OldGetFocusedTextBox(...);
 end, Services.UserInputService.GetFocusedTextBox));
 
-Hooks.OldKick = nil
 Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     if (AntiKick) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", ({...})[2]));
@@ -537,22 +534,21 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     return Hooks.OldKick(...);
 end, LocalPlayer.Kick))
 
-Hooks.OldTeleportToPlaceInstance = nil
 Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
     if (AntiTeleport) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
     return Hooks.OldTeleportToPlaceInstance(...);
-end, Services.TeleportService.TeleportToPlaceInstance))
-Hooks.OldTeleport = nil
+end))
+
 Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(function(...)
     if (AntiTeleport) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
     return Hooks.OldTeleport(...);
-end, Services.TeleportService.Teleport))
+end))
 
 local ProtectInstance = function(Instance_, disallow)
     if (not Tfind(ProtectedInstances, Instance_)) then
@@ -778,7 +774,6 @@ GetPlayer = function(str, noerror)
 end
 PluginLibrary.GetPlayer = GetPlayer
 local LastCommand = {}
-
 
 --IMPORT [ui]
 Guis = {}
@@ -1466,7 +1461,6 @@ end
 --END IMPORT [utils]
 
 
-
 -- commands table
 local CommandsTable = {}
 local RespawnTimes = {}
@@ -1790,7 +1784,7 @@ AddCommand("walkspeed", {"ws"}, "changes your walkspeed to the second argument",
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.WalkSpeed
     SpoofProperty(Humanoid, "WalkSpeed");
-    Humanoid.WalkSpeed = Args[1] or 16
+    Humanoid.WalkSpeed = tonumber(Args[1]) or 16
     return "your walkspeed is now " .. Humanoid.WalkSpeed
 end)
 
@@ -1798,7 +1792,7 @@ AddCommand("jumppower", {"jp"}, "changes your jumpower to the second argument", 
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.JumpPower
     SpoofProperty(Humanoid, "JumpPower");
-    Humanoid.JumpPower = Args[1] or 50
+    Humanoid.JumpPower = tonumber(Args[1]) or 50
     return "your jumppower is now " .. Humanoid.JumpPower
 end)
 
@@ -1806,7 +1800,7 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     local Humanoid = GetHumanoid();
     Tbl[1] = Humanoid.HipHeight
     SpoofProperty(Humanoid, "HipHeight");
-    Humanoid.HipHeight = Args[1] or 0
+    Humanoid.HipHeight = tonumber(Args[1]) or 0
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
@@ -1859,7 +1853,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                             Destroy(v);
                         end
                     end
-                    CFrameTool(Tool, GetRoot(v).CFrame)
+                    CFrameTool(Tool, TargetRoot.CFrame * CFrameNew(0, 3, 0));
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
                 end
@@ -1874,7 +1868,6 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CWait(LocalPlayer.CharacterAdded);
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
 end)
-
 
 AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -1897,7 +1890,6 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     end
 
     UnequipTools(Humanoid);
-    DisableAnimate();
     local Destroy_;
     coroutine.wrap(function()
         for i = 1, #Target do
@@ -1928,7 +1920,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                 SpoofInstance(Tool);
                 Tool.Parent = GetCharacter();
                 Tool.Handle.Size = Vector3New(4, 4, 4);
-                CFrameTool(Tool, GetRoot(v).CFrame * CFrameNew(0, 6, 0));
+                CFrameTool(Tool, TargetRoot.CFrame * CFrameNew(0, 3, 0));
                 firetouchinterest(TargetRoot, Tool.Handle, 0);
                 wait();
                 if (not FindFirstChild(Tool, "Handle")) then
@@ -2487,7 +2479,6 @@ AddCommand("givetools", {}, "gives tools to a player", {"1", 3, 1}, function(Cal
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
 end)
 
-
 AddCommand("grabtools", {"gt"}, "grabs tools in the workspace", {3}, function(Caller, Args)
     local Tools = filter(GetDescendants(Services.Workspace), function(i,v)
         return IsA(v, "Tool") and FindFirstChild(v, "Handle");
@@ -2658,7 +2649,6 @@ AddCommand("infinitejump", {"infjump"}, "infinite jump no cooldown", {3}, functi
     AddConnection(CConnect(Services.UserInputService.JumpRequest, function()
         local Humanoid = GetHumanoid();
         if (Humanoid) then
-            SpoofInstance(Humanoid);
             ChangeState(Humanoid, 3);
         end
     end), Tbl);
@@ -3148,7 +3138,6 @@ AddCommand("fireproximityprompts", {"fpp"}, "fires all the proximity prompts", {
     return format("fired %d amount of proximityprompts", amount);
 end)
 
-
 AddCommand("muteboombox", {}, "mutes a users boombox", {}, function(Caller, Args)
     Services.SoundService.RespectFilteringEnabled = false
     local Target = GetPlayer(Args[1]);
@@ -3317,7 +3306,6 @@ AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "
     loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
     return "esp enabled"
 end)
-
 
 AddCommand("crosshair", {}, "enables a crosshair", {function()
     return Drawing ~= nil
@@ -3808,7 +3796,6 @@ AddCommand("revertnolights", {"lights"}, "reverts nolights", {}, function()
     end
     return "fullbright disabled"
 end)
-
 
 AddCommand("fullbright", {"fb"}, "turns on fullbright", {}, function(Caller, Args, Tbl)
     for i, v in next, GetDescendants(game) do
@@ -4323,7 +4310,6 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         end
     end
 end)
-
 
 AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for when games detect by textbox", {}, function()
     if (not CLI) then

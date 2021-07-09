@@ -1,5 +1,5 @@
 # fates-admin
-a roblox admin script with fe features
+a roblox admin script with fe features undetected to the client
 
 ## Script
 ```lua

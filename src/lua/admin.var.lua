@@ -121,3 +121,111 @@ local MoveTo = __H.MoveTo
 
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
+
+local startsWith = function(str, searchString, rawPos)
+    local pos = rawPos or 1
+    return searchString == "" and true or sub(str, pos, pos) == searchString
+end
+
+local trim = function(str)
+    return gsub(str, "^%s*(.-)%s*$", "%1");
+end
+
+tbl_concat = function(...)
+    local new = {}
+    for i, v in next, {...} do
+        for i2, v2 in next, v do
+            -- insert(new, #new + 1, v2);
+            new[#new + 1] = v2
+        end
+    end
+    return new
+end
+
+local indexOf = function(tbl, val)
+    if (type(tbl) == 'table') then
+        for i, v in next, tbl do
+            if (v == val) then
+                return i
+            end
+        end
+    end
+end
+
+local forEach = function(tbl, ret)
+    for i, v in next, tbl do
+        ret(i, v);
+    end
+end
+
+local filter = function(tbl, ret)
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            if (ret(i, v)) then
+                new[#new + 1] = v
+            end
+        end
+        return new
+    end
+end
+
+local map = function(tbl, ret)
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            new[#new + 1] = ret(i, v);
+        end
+        return new
+    end
+end
+
+local deepsearch;
+deepsearch = function(tbl, ret)
+    if (type(tbl) == 'table') then
+        for i, v in next, tbl do
+            if (type(v) == 'table') then
+                deepsearch(v, ret);
+            end
+            ret(i, v);
+        end
+    end
+end
+
+local flat = function(tbl)
+    if (type(tbl) == 'table') then
+        local new = {}
+        deepsearch(tbl, function(i, v)
+            if (type(v) ~= 'table') then
+                new[#new + 1] = v
+            end
+        end)
+        return new
+    end
+end
+
+local flatMap = function(tbl, ret)
+    if (type(tbl) == 'table') then
+        local new = flat(map(tbl, ret));
+        return new
+    end
+end
+
+local shift = function(tbl)
+    if (type(tbl) == 'table') then
+        local firstVal = tbl[1]
+        tbl = pack(unpack(tbl, 2, #tbl));
+        tbl.n = nil
+        return tbl
+    end
+end
+
+local keys = function(tbl)
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            new[#new + 1] = i	
+        end
+        return new
+    end
+end

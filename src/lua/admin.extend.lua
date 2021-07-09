@@ -1,119 +1,4 @@
-Debug = true
-if (getconnections) then
-    local ErrorConnections = getconnections(Services.ScriptContext.Error);
-    if (next(ErrorConnections)) then
-        getfenv().error = warn
-        getgenv().error = warn
-    end
-end
-
-local startsWith = function(str, searchString, rawPos)
-    local pos = rawPos or 1
-    return searchString == "" and true or sub(str, pos, pos) == searchString
-end
-
-local trim = function(str)
-    return gsub(str, "^%s*(.-)%s*$", "%1");
-end
-
-tbl_concat = function(...)
-    local new = {}
-    for i, v in next, {...} do
-        for i2, v2 in next, v do
-            -- insert(new, #new + 1, v2);
-            new[#new + 1] = v2
-        end
-    end
-    return new
-end
-
-local indexOf = function(tbl, val)
-    if (type(tbl) == 'table') then
-        for i, v in next, tbl do
-            if (v == val) then
-                return i
-            end
-        end
-    end
-end
-
-local forEach = function(tbl, ret)
-    for i, v in next, tbl do
-        ret(i, v);
-    end
-end
-
-local filter = function(tbl, ret)
-    if (type(tbl) == 'table') then
-        local new = {}
-        for i, v in next, tbl do
-            if (ret(i, v)) then
-                new[#new + 1] = v
-            end
-        end
-        return new
-    end
-end
-
-local map = function(tbl, ret)
-    if (type(tbl) == 'table') then
-        local new = {}
-        for i, v in next, tbl do
-            new[#new + 1] = ret(i, v);
-        end
-        return new
-    end
-end
-
-local deepsearch;
-deepsearch = function(tbl, ret)
-    if (type(tbl) == 'table') then
-        for i, v in next, tbl do
-            if (type(v) == 'table') then
-                deepsearch(v, ret);
-            end
-            ret(i, v);
-        end
-    end
-end
-
-local flat = function(tbl)
-    if (type(tbl) == 'table') then
-        local new = {}
-        deepsearch(tbl, function(i, v)
-            if (type(v) ~= 'table') then
-                new[#new + 1] = v
-            end
-        end)
-        return new
-    end
-end
-
-local flatMap = function(tbl, ret)
-    if (type(tbl) == 'table') then
-        local new = flat(map(tbl, ret));
-        return new
-    end
-end
-
-local shift = function(tbl)
-    if (type(tbl) == 'table') then
-        local firstVal = tbl[1]
-        tbl = pack(unpack(tbl, 2, #tbl));
-        tbl.n = nil
-        return tbl
-    end
-end
-
-local keys = function(tbl)
-    if (type(tbl) == 'table') then
-        local new = {}
-        for i, v in next, tbl do
-            new[#new + 1] = i	
-        end
-        return new
-    end
-end
+local Debug = true
 
 local firetouchinterest = firetouchinterest or function(part1, part2, toggle)
     if (part1 and part2) then
@@ -340,7 +225,6 @@ setreadonly(mt, true);
 
 local Hooks = {}
 
-Hooks.OldGetChildren = nil
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
@@ -351,7 +235,6 @@ Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     return Hooks.OldGetChildren(...);
 end));
 
-Hooks.OldGetDescendants = nil
 Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
@@ -362,7 +245,6 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     return Hooks.OldGetDescendants(...);
 end));
 
-Hooks.OldGetFocusedTextBox = nil
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller()) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
@@ -373,7 +255,6 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
     return Hooks.OldGetFocusedTextBox(...);
 end, Services.UserInputService.GetFocusedTextBox));
 
-Hooks.OldKick = nil
 Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     if (AntiKick) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", ({...})[2]));
@@ -382,7 +263,6 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     return Hooks.OldKick(...);
 end, LocalPlayer.Kick))
 
-Hooks.OldTeleportToPlaceInstance = nil
 Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
     if (AntiTeleport) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
