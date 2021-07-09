@@ -349,7 +349,7 @@ Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
         end)
     end
     return Hooks.OldGetChildren(...);
-end, game.GetChildren));
+end));
 
 Hooks.OldGetDescendants = nil
 Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function(...)
@@ -360,7 +360,7 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
         end)
     end
     return Hooks.OldGetDescendants(...);
-end, game.GetDescendants));
+end));
 
 Hooks.OldGetFocusedTextBox = nil
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
@@ -389,15 +389,15 @@ Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.Telepor
         return
     end
     return Hooks.OldTeleportToPlaceInstance(...);
-end, Services.TeleportService.TeleportToPlaceInstance))
-Hooks.OldTeleport = nil
+end))
+
 Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(function(...)
     if (AntiTeleport) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
     return Hooks.OldTeleport(...);
-end, Services.TeleportService.Teleport))
+end))
 
 local ProtectInstance = function(Instance_, disallow)
     if (not Tfind(ProtectedInstances, Instance_)) then
