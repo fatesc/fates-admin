@@ -3360,6 +3360,24 @@ AddCommand("showname", {"showtag"}, "shows your player tag", {3}, function()
     return "you have to reset to show your nametag"
 end)
 
+AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, function()
+    local UserInputService = Services.UserInputService
+    local Humanoid = GetHumanoid();
+    local connections = tbl_concat(getconnections(UserInputService.JumpRequest), getconnections(GetPropertyChangedSignal(Humanoid, "FloorMaterial")), getconnections(Humanoid.Jumping));
+    for i, v in next, connections do
+        local env = getfenv(v.Func);
+        if (env.script ~= script or not env.syn) then -- not sure why syanpse creates humanoid action events on execution but if you disable it you'll crash
+            if (Hooks.NoJumpCooldown) then
+                v.Enable(v);
+            else
+                v.Disable(v);
+            end
+        end
+    end
+    Hooks.NoJumpCooldown = not Hooks.NoJumpCooldown
+    return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}

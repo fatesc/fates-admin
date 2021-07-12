@@ -57,8 +57,11 @@ local AllowedIndexes = {
 local AllowedNewIndexes = {
     "Jump"
 }
-local AntiKick = false
-local AntiTeleport = false
+local Hooks = {}
+
+Hooks.AntiKick = false
+Hooks.AntiTeleport = false
+Hooks.NoJumpCooldown = false
 
 local mt = getrawmetatable(game);
 local OldMetaMethods = {}
@@ -98,16 +101,26 @@ MetaMethodHooks.Namecall = function(...)
         end
     end
 
-    if (AntiKick and lower(Method) == "kick") then
+    if (Hooks.AntiKick and lower(Method) == "kick") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
         return
     end
 
-    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+    if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
         return
     end
 
+    if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
+        local State = __Namecall(...);
+        if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
+            return Enum.HumanoidStateType.RunningNoPhysics
+        end
+        if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
+            return false
+        end
+    end
+    
     return __Namecall(...);
 end
 
@@ -147,6 +160,12 @@ MetaMethodHooks.Index = function(...)
             return newcclosure(function()
                 return SanitisedIndex == "IsA" and false or nil
             end);
+        end
+    end
+
+    if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
+        if (IsA(Instance_, "Humanoid")) then
+            return false
         end
     end
     
@@ -223,8 +242,6 @@ else
 end
 setreadonly(mt, true);
 
-local Hooks = {}
-
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
@@ -256,7 +273,7 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
 end, Services.UserInputService.GetFocusedTextBox));
 
 Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
-    if (AntiKick) then
+    if (Hooks.AntiKick) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", ({...})[2]));
         return
     end
@@ -264,7 +281,7 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
 end, LocalPlayer.Kick))
 
 Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
-    if (AntiTeleport) then
+    if (Hooks.AntiTeleport) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
@@ -278,6 +295,21 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     end
     return Hooks.OldTeleport(...);
 end))
+
+Hooks.GetState = hookfunction(GetState, function(...)
+    local State = Hooks.GetState(...);
+    if (State == Enum.HumanoidStateType.Jumping) then
+        return Enum.HumanoidStateType.RunningNoPhysics
+    end
+    return State
+end)
+
+Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
+    if (({...})[1] == Enum.HumanoidStateType.Jumping) then
+        return false
+    end
+    return Hooks.GetStateEnabled(...);
+end)
 
 local ProtectInstance = function(Instance_, disallow)
     if (not Tfind(ProtectedInstances, Instance_)) then

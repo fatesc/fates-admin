@@ -70,9 +70,8 @@ local Tfind, sort, concat, pack, unpack, insert, remove =
     table.remove
 
 local string = string
-local lower, trim, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
+local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
     string.lower, 
-    string.trim, 
     string.find, 
     string.split, 
     string.sub,
@@ -131,12 +130,11 @@ local trim = function(str)
     return gsub(str, "^%s*(.-)%s*$", "%1");
 end
 
-tbl_concat = function(...)
+local tbl_concat = function(...)
     local new = {}
     for i, v in next, {...} do
         for i2, v2 in next, v do
-            -- insert(new, #new + 1, v2);
-            new[#new + 1] = v2
+            new[i] = v2
         end
     end
     return new

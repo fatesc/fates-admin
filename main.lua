@@ -94,9 +94,8 @@ local Tfind, sort, concat, pack, unpack, insert, remove =
     table.remove
 
 local string = string
-local lower, trim, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
+local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
     string.lower, 
-    string.trim, 
     string.find, 
     string.split, 
     string.sub,
@@ -155,12 +154,11 @@ local trim = function(str)
     return gsub(str, "^%s*(.-)%s*$", "%1");
 end
 
-tbl_concat = function(...)
+local tbl_concat = function(...)
     local new = {}
     for i, v in next, {...} do
         for i2, v2 in next, v do
-            -- insert(new, #new + 1, v2);
-            new[#new + 1] = v2
+            new[i] = v2
         end
     end
     return new
@@ -328,8 +326,11 @@ local AllowedIndexes = {
 local AllowedNewIndexes = {
     "Jump"
 }
-local AntiKick = false
-local AntiTeleport = false
+local Hooks = {}
+
+Hooks.AntiKick = false
+Hooks.AntiTeleport = false
+Hooks.NoJumpCooldown = false
 
 local mt = getrawmetatable(game);
 local OldMetaMethods = {}
@@ -369,16 +370,26 @@ MetaMethodHooks.Namecall = function(...)
         end
     end
 
-    if (AntiKick and lower(Method) == "kick") then
+    if (Hooks.AntiKick and lower(Method) == "kick") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
         return
     end
 
-    if (AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+    if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
         return
     end
 
+    if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
+        local State = __Namecall(...);
+        if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
+            return Enum.HumanoidStateType.RunningNoPhysics
+        end
+        if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
+            return false
+        end
+    end
+    
     return __Namecall(...);
 end
 
@@ -418,6 +429,12 @@ MetaMethodHooks.Index = function(...)
             return newcclosure(function()
                 return SanitisedIndex == "IsA" and false or nil
             end);
+        end
+    end
+
+    if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
+        if (IsA(Instance_, "Humanoid")) then
+            return false
         end
     end
     
@@ -494,8 +511,6 @@ else
 end
 setreadonly(mt, true);
 
-local Hooks = {}
-
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
         local Children = Hooks.OldGetChildren(...);
@@ -527,7 +542,7 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
 end, Services.UserInputService.GetFocusedTextBox));
 
 Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
-    if (AntiKick) then
+    if (Hooks.AntiKick) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", ({...})[2]));
         return
     end
@@ -535,7 +550,7 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
 end, LocalPlayer.Kick))
 
 Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
-    if (AntiTeleport) then
+    if (Hooks.AntiTeleport) then
         getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
         return
     end
@@ -549,6 +564,21 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     end
     return Hooks.OldTeleport(...);
 end))
+
+Hooks.GetState = hookfunction(GetState, function(...)
+    local State = Hooks.GetState(...);
+    if (State == Enum.HumanoidStateType.Jumping) then
+        return Enum.HumanoidStateType.RunningNoPhysics
+    end
+    return State
+end)
+
+Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
+    if (({...})[1] == Enum.HumanoidStateType.Jumping) then
+        return false
+    end
+    return Hooks.GetStateEnabled(...);
+end)
 
 local ProtectInstance = function(Instance_, disallow)
     if (not Tfind(ProtectedInstances, Instance_)) then
@@ -4687,6 +4717,24 @@ AddCommand("showname", {"showtag"}, "shows your player tag", {3}, function()
         return "your name is already shown"
     end
     return "you have to reset to show your nametag"
+end)
+
+AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, function()
+    local UserInputService = Services.UserInputService
+    local Humanoid = GetHumanoid();
+    local connections = tbl_concat(getconnections(UserInputService.JumpRequest), getconnections(GetPropertyChangedSignal(Humanoid, "FloorMaterial")), getconnections(Humanoid.Jumping));
+    for i, v in next, connections do
+        local env = getfenv(v.Func);
+        if (env.script ~= script or not env.syn) then -- not sure why syanpse creates humanoid action events on execution but if you disable it you'll crash
+            if (Hooks.NoJumpCooldown) then
+                v.Enable(v);
+            else
+                v.Disable(v);
+            end
+        end
+    end
+    Hooks.NoJumpCooldown = not Hooks.NoJumpCooldown
+    return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
 local PlrChat = function(i, plr)
