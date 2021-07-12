@@ -1,5 +1,5 @@
 --[[
-	fates admin - 9/7/2021
+	fates admin - 12/7/2021
 ]]
 
 local game = game
@@ -2735,11 +2735,13 @@ AddCommand("removespawn", {}, "removes your spawn location", {}, function(Caller
 end)
 
 AddCommand("ping", {}, "shows you your ping", {}, function()
+    local Stats = Services.Stats
     local DataPing = Stats.Network.ServerStatsItem["Data Ping"]
-    return split(DataPing.GetValueString(DataPing), " ")[1] .. "ms"
+    return split(DataPing.GetValueString(DataPing), " ")[1] .. " ms"
 end)
 
 AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
+    local Stats = Services.Stats
     return tostring(round(Stats.GetTotalMemoryUsageMb(Stats))) .. " mb";
 end)
 
@@ -2754,6 +2756,9 @@ AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
         Counter.Message.Text = bit32.bnot(bit32.bnot((1 / (tick() - a))));
         a = tick();
     end
+    delay(3, function()
+        Disconnect(Running);
+    end);
     Running = CConnect(Heartbeat, fpsget);
 end)
 
