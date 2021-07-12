@@ -993,8 +993,11 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         repeat CWait(RenderStepped);
             FindFirstChild(Char, "HumanoidRootPart").CFrame = OldPos
         until GetRoot().CFrame == OldPos
+        local Humanoid = nil
         repeat CWait(RenderStepped);
-        until FindFirstChild(Char, "Humanoid")
+            Humanoid = FindFirstChild(Char, "Humanoid")
+        until Humanoid
+        wait(.2);
         UnequipTools(GetHumanoid());
         AmountDuped = AmountDuped + 1
     end
