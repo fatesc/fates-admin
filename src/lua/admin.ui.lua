@@ -7,6 +7,7 @@ ParentGui = function(Gui, Parent)
     return Gui
 end
 UI = Clone(game.GetObjects(game, "rbxassetid://6167929302")[1]);
+UI.Enabled = true
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
