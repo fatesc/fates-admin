@@ -1735,6 +1735,7 @@ local DisableAllCmdConnections = function(Cmd)
     local Command = LoadCommand(Cmd)
     if (Command and Command.CmdExtra) then
         for i, v in next, flat(Command.CmdExtra) do
+            print(i)
             if (type(v) == 'userdata' and v.Disconnect) then
                 Disconnect(v);
             end
@@ -1882,7 +1883,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         local v = Target[i]
         TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
     end
-    for i = 1, Target do
+    for i = 1, #Target do
         local v = Target[i]
         if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             Destroy(LocalPlayer.Character);
