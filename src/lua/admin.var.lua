@@ -1,4 +1,24 @@
-local Services = {}
+local Services = {
+    Workspace = GetService(game, "Workspace");
+    UserInputService = GetService(game, "UserInputService");
+    ReplicatedStorage = GetService(game, "ReplicatedStorage");
+    StarterPlayer = GetService(game, "StarterPlayer");
+    StarterPack = GetService(game, "StarterPack");
+    StarterGui = GetService(game, "StarterGui");
+    TeleportService = GetService(game, "TeleportService");
+    CoreGui = GetService(game, "CoreGui");
+    TweenService = GetService(game, "TweenService");
+    HttpService = GetService(game, "HttpService");
+    TextService = GetService(game, "TextService");
+    MarketplaceService = GetService(game, "MarketplaceService");
+    Chat = GetService(game, "Chat");
+    Teams = GetService(game, "Teams");
+    SoundService = GetService(game, "SoundService");
+    Lighting = GetService(game, "Lighting");
+    ScriptContext = GetService(game, "ScriptContext");
+    Stats = GetService(game, "Stats");
+}
+
 setmetatable(Services, {
     __index = function(Table, Property)
         local Service = GetService(game, Property);
@@ -10,7 +30,6 @@ setmetatable(Services, {
     end
 });
 
-Services.Workspace = GetService(game, "Workspace");
 local GetChildren, GetDescendants = game.GetChildren, game.GetDescendants
 local IsA = game.IsA
 local FindFirstChild, FindFirstChildOfClass, FindFirstChildWhichIsA, WaitForChild = 
@@ -34,24 +53,6 @@ local Heartbeat, Stepped, RenderStepped =
 local Players = GetService(game, "Players");
 local GetPlayers = Players.GetPlayers
 
-Services.UserInputService = GetService(game, "UserInputService");
-Services.ReplicatedStorage = GetService(game, "ReplicatedStorage");
-Services.StarterPlayer = GetService(game, "StarterPlayer");
-Services.StarterPack = GetService(game, "StarterPack");
-Services.StarterGui = GetService(game, "StarterGui");
-Services.TeleportService = GetService(game, "TeleportService");
-Services.CoreGui = GetService(game, "CoreGui");
-Services.TweenService = GetService(game, "TweenService");
-Services.HttpService = GetService(game, "HttpService");
-Services.TextService = GetService(game, "TextService");
-Services.MarketplaceService = GetService(game, "MarketplaceService")
-Services.Chat = GetService(game, "Chat");
-Services.Teams = GetService(game, "Teams");
-Services.SoundService = GetService(game, "SoundService");
-Services.Lighting = GetService(game, "Lighting");
-Services.ScriptContext = GetService(game, "ScriptContext");
-Services.Stats = GetService(game, "Stats");
-
 local JSONEncode, JSONDecode, GenerateGUID = 
     Services.HttpService.JSONEncode, 
     Services.HttpService.JSONDecode,
@@ -59,15 +60,15 @@ local JSONEncode, JSONDecode, GenerateGUID =
 
 local Camera = Services.Workspace.CurrentCamera
 
+local next = next
+
 local table = table
-local Tfind, sort, concat, pack, unpack, insert, remove = 
+local Tfind, sort, concat, pack, unpack = 
     table.find, 
     table.sort,
     table.concat,
     table.pack,
-    table.unpack,
-    table.insert,
-    table.remove
+    table.unpack
 
 local string = string
 local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 

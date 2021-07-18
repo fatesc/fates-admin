@@ -1,5 +1,5 @@
 --[[
-	fates admin - 14/7/2021
+	fates admin - 18/7/2021
 ]]
 
 local game = game
@@ -22,7 +22,27 @@ if (getgenv().F_A and getgenv().F_A.Loaded) then
 end
 
 --IMPORT [var]
-local Services = {}
+local Services = {
+    Workspace = GetService(game, "Workspace");
+    UserInputService = GetService(game, "UserInputService");
+    ReplicatedStorage = GetService(game, "ReplicatedStorage");
+    StarterPlayer = GetService(game, "StarterPlayer");
+    StarterPack = GetService(game, "StarterPack");
+    StarterGui = GetService(game, "StarterGui");
+    TeleportService = GetService(game, "TeleportService");
+    CoreGui = GetService(game, "CoreGui");
+    TweenService = GetService(game, "TweenService");
+    HttpService = GetService(game, "HttpService");
+    TextService = GetService(game, "TextService");
+    MarketplaceService = GetService(game, "MarketplaceService");
+    Chat = GetService(game, "Chat");
+    Teams = GetService(game, "Teams");
+    SoundService = GetService(game, "SoundService");
+    Lighting = GetService(game, "Lighting");
+    ScriptContext = GetService(game, "ScriptContext");
+    Stats = GetService(game, "Stats");
+}
+
 setmetatable(Services, {
     __index = function(Table, Property)
         local Service = GetService(game, Property);
@@ -34,7 +54,6 @@ setmetatable(Services, {
     end
 });
 
-Services.Workspace = GetService(game, "Workspace");
 local GetChildren, GetDescendants = game.GetChildren, game.GetDescendants
 local IsA = game.IsA
 local FindFirstChild, FindFirstChildOfClass, FindFirstChildWhichIsA, WaitForChild = 
@@ -58,24 +77,6 @@ local Heartbeat, Stepped, RenderStepped =
 local Players = GetService(game, "Players");
 local GetPlayers = Players.GetPlayers
 
-Services.UserInputService = GetService(game, "UserInputService");
-Services.ReplicatedStorage = GetService(game, "ReplicatedStorage");
-Services.StarterPlayer = GetService(game, "StarterPlayer");
-Services.StarterPack = GetService(game, "StarterPack");
-Services.StarterGui = GetService(game, "StarterGui");
-Services.TeleportService = GetService(game, "TeleportService");
-Services.CoreGui = GetService(game, "CoreGui");
-Services.TweenService = GetService(game, "TweenService");
-Services.HttpService = GetService(game, "HttpService");
-Services.TextService = GetService(game, "TextService");
-Services.MarketplaceService = GetService(game, "MarketplaceService")
-Services.Chat = GetService(game, "Chat");
-Services.Teams = GetService(game, "Teams");
-Services.SoundService = GetService(game, "SoundService");
-Services.Lighting = GetService(game, "Lighting");
-Services.ScriptContext = GetService(game, "ScriptContext");
-Services.Stats = GetService(game, "Stats");
-
 local JSONEncode, JSONDecode, GenerateGUID = 
     Services.HttpService.JSONEncode, 
     Services.HttpService.JSONDecode,
@@ -83,15 +84,15 @@ local JSONEncode, JSONDecode, GenerateGUID =
 
 local Camera = Services.Workspace.CurrentCamera
 
+local next = next
+
 local table = table
-local Tfind, sort, concat, pack, unpack, insert, remove = 
+local Tfind, sort, concat, pack, unpack = 
     table.find, 
     table.sort,
     table.concat,
     table.pack,
-    table.unpack,
-    table.insert,
-    table.remove
+    table.unpack
 
 local string = string
 local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
@@ -292,7 +293,7 @@ local hookfunction = hookfunction or function(func, newfunc)
 end
 
 local getconnections = function(...)
-    if (not getconnections or identifyexecutor and identifyexecutor() == "Krnl") then
+    if (not getconnections) then
         return {}
     end
     return getconnections(...);
@@ -308,6 +309,28 @@ end
 
 local checkcaller = checkcaller or function()
     return false
+end
+
+local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
+    setreadonly(metatable, false);
+    local Old = metatable.metamethod
+    metatable.metamethod = newcclosure(func);
+    setreadonly(metatable, true);
+    return Old
+end
+
+local GetAllParents = function(Instance_)
+    if (typeof(Instance_) == "Instance") then
+        local Parents = {}
+        local Current = Instance_
+        repeat
+            local Parent = Current.Parent
+            Parents[#Parents + 1] = Parent
+            Current = Parent
+        until not Current
+        return Parents
+    end
+    return {}
 end
 
 local ProtectedInstances = {}
@@ -338,6 +361,7 @@ setreadonly(mt, false);
 for i, v in next, mt do
     OldMetaMethods[i] = v
 end
+setreadonly(mt, true);
 local MetaMethodHooks = {}
 
 MetaMethodHooks.Namecall = function(...)
@@ -350,7 +374,7 @@ MetaMethodHooks.Namecall = function(...)
     end
 
     local Method = getnamecallmethod();
-    local Protected = ProtectedInstances[self]
+    local Protected = Tfind(ProtectedInstances, self);
 
     if (Protected) then
         if (Tfind(Methods, Method)) then
@@ -405,7 +429,7 @@ MetaMethodHooks.Index = function(...)
     if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
         SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
     end
-    local ProtectedInstance = ProtectedInstances[Instance_]
+    local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
@@ -450,6 +474,30 @@ MetaMethodHooks.NewIndex = function(...)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
+        if (Index == "Parent") then
+            local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
+            if (ProtectedInstance) then
+                local Parents = GetAllParents(Value);
+                for i, v in next, getconnections(Parents[1].ChildAdded) do
+                    v.Disable(v);
+                end
+                local Ret;
+                for i = 1, #Parents do
+                    local Parent = Parents[i]
+                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        v.Disable(v);
+                    end
+                    Ret = __NewIndex(...);
+                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        v.Enable(v);
+                    end
+                end
+                for i, v in next, getconnections(Parents[1].ChildAdded) do
+                    v.Enable(v);
+                end
+                return Ret
+            end
+        end
         if (SpoofedInstance or SpoofedPropertiesForInstance) then
             local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
             local Connections2 = getconnections(Instance_.Changed);
@@ -463,9 +511,7 @@ MetaMethodHooks.NewIndex = function(...)
             for i, v in next, Connections2 do
                 v.Disable(v);
             end
-            local Suc, Ret = pcall(function()
-                return __NewIndex(Instance_, Index, Value);
-            end)
+            local Ret = __NewIndex(Instance_, Index, Value);
             for i, v in next, Connections do
                 v.Enable(v);
             end
@@ -500,16 +546,9 @@ MetaMethodHooks.NewIndex = function(...)
     return __NewIndex(...);
 end
 
-if (syn) then
-    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
-    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
-    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
-else
-    mt.__index = newcclosure(MetaMethodHooks.Index, mt.__index);
-    mt.__namecall = newcclosure(MetaMethodHooks.Namecall, mt.__namecall);
-    mt.__newindex = newcclosure(MetaMethodHooks.NewIndex, mt.__newindex);
-end
-setreadonly(mt, true);
+OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
@@ -597,14 +636,15 @@ end
 
 local SpoofProperty = function(Instance_, Property, NoClone)
     if (SpoofedProperties[Instance_]) then
-        local Properties = map(SpoofedProperties[Instance_], function(i, v)
+        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+        local Properties = map(SpoofedPropertiesForInstance, function(i, v)
             return v.Property
         end)
         if (not Tfind(Properties, Property)) then
-            insert(SpoofedProperties[Instance_], {
-                SpoofedProperty = SpoofedProperties[Instance_].SpoofedProperty,
+            SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
+                SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
                 Property = Property,
-            });
+            };
         end
     else
         SpoofedProperties[Instance_] = {{
@@ -713,20 +753,15 @@ local GetPluginConfig = function()
 end
 
 local SetConfig = function(conf)
-    if (isfolder("fates-admin") and isfile("fates-admin/config.json")) then
-        local NewConfig = GetConfig();
-        for i, v in next, conf do
-            NewConfig[i] = v
-        end
-        writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
-    else
+    if (not isfolder("fates-admin") and isfile("fates-admin/config.json")) then
         WriteConfig();
-        local NewConfig = GetConfig();
-        for i, v in next, conf do
-            NewConfig[i] = v
-        end
-        writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
     end
+    local NewConfig = GetConfig();
+    for i = 1, #conf do
+        local v = conf[i]
+        NewConfig[i] = v
+    end
+    writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
 end
 
 local Prefix = isfolder and GetConfig().Prefix or "!"
@@ -1381,10 +1416,10 @@ Utils.Rainbow = function(TextObject)
 
     for Character in gmatch(Text, ".") do
         if match(Character, "%s") then
-            insert(Strings, Character)
+            Strings[#Strings + 1] = Character
         else
             TotalCharacters = TotalCharacters + 1
-            insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
+            Strings[#Strings + 1] = {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'}
         end
     end
 
@@ -1500,9 +1535,12 @@ local HasTool = function(plr)
     plr = plr or LocalPlayer
     local CharChildren, BackpackChildren = GetChildren(GetCharacter(plr)), GetChildren(plr.Backpack);
     local ToolFound = false
-    for i, v in next, tbl_concat(CharChildren, BackpackChildren) do
+    local tbl = tbl_concat(CharChildren, BackpackChildren);
+    for i = 1, #tbl do
+        local v = tbl[i]
         if (IsA(v, "Tool")) then
             ToolFound = true
+            break;
         end
     end
     return ToolFound
@@ -1839,11 +1877,13 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     local Target = GetPlayer(Args[1]);
     local OldPos = GetRoot().CFrame
     local Humanoid = ReplaceHumanoid();
-    local TempRespawnTimes = {}
-    for i, v in next, Target do
+    local TempRespawnTimes = Target
+    for i = 1, #Target do
+        local v = Target[i]
         TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
     end
-    for i, v in next, Target do
+    for i = 1, Target do
+        local v = Target[i]
         if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             Destroy(LocalPlayer.Character);
             CWait(LocalPlayer.CharacterAdded);
@@ -1855,7 +1895,8 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     UnequipTools(Humanoid);
 
     coroutine.wrap(function()
-        for i, v in next, Target do
+        for i = 1, #Target do
+            local v = Target[i]
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     if (#Target == 1) then
@@ -3059,7 +3100,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
         PlayersTbl[#PlayersTbl + 1] = Plr
     end), Tbl);
     AddConnection(CConnect(Players.PlayerRemoving, function(Plr)
-        remove(PlayersTbl, indexOf(PlayersTbl, Plr))
+        PlayersTbl[indexOf(PlayersTbl, Plr)] = nil
     end), Tbl);
 
     return "sword aura enabled with distance " .. SwordDistance
@@ -4268,7 +4309,7 @@ AddCommand("blacklist", {"bl"}, "blacklists a whitelisted user", {"1"}, function
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         if (Tfind(AdminUsers, v)) then
-            remove(AdminUsers, indexOf(AdminUsers, v));
+            AdminUsers[indexOf(AdminUsers, v)] = nil
         end
     end
 end)

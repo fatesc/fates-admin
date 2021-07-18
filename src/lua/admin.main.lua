@@ -108,20 +108,15 @@ local GetPluginConfig = function()
 end
 
 local SetConfig = function(conf)
-    if (isfolder("fates-admin") and isfile("fates-admin/config.json")) then
-        local NewConfig = GetConfig();
-        for i, v in next, conf do
-            NewConfig[i] = v
-        end
-        writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
-    else
+    if (not isfolder("fates-admin") and isfile("fates-admin/config.json")) then
         WriteConfig();
-        local NewConfig = GetConfig();
-        for i, v in next, conf do
-            NewConfig[i] = v
-        end
-        writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
     end
+    local NewConfig = GetConfig();
+    for i = 1, #conf do
+        local v = conf[i]
+        NewConfig[i] = v
+    end
+    writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
 end
 
 local Prefix = isfolder and GetConfig().Prefix or "!"
@@ -220,9 +215,12 @@ local HasTool = function(plr)
     plr = plr or LocalPlayer
     local CharChildren, BackpackChildren = GetChildren(GetCharacter(plr)), GetChildren(plr.Backpack);
     local ToolFound = false
-    for i, v in next, tbl_concat(CharChildren, BackpackChildren) do
+    local tbl = tbl_concat(CharChildren, BackpackChildren);
+    for i = 1, #tbl do
+        local v = tbl[i]
         if (IsA(v, "Tool")) then
             ToolFound = true
+            break;
         end
     end
     return ToolFound
@@ -479,11 +477,13 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     local Target = GetPlayer(Args[1]);
     local OldPos = GetRoot().CFrame
     local Humanoid = ReplaceHumanoid();
-    local TempRespawnTimes = {}
-    for i, v in next, Target do
+    local TempRespawnTimes = Target
+    for i = 1, #Target do
+        local v = Target[i]
         TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
     end
-    for i, v in next, Target do
+    for i = 1, Target do
+        local v = Target[i]
         if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             Destroy(LocalPlayer.Character);
             CWait(LocalPlayer.CharacterAdded);
@@ -495,7 +495,8 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     UnequipTools(Humanoid);
 
     coroutine.wrap(function()
-        for i, v in next, Target do
+        for i = 1, #Target do
+            local v = Target[i]
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     if (#Target == 1) then
@@ -1699,7 +1700,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, Tbl
         PlayersTbl[#PlayersTbl + 1] = Plr
     end), Tbl);
     AddConnection(CConnect(Players.PlayerRemoving, function(Plr)
-        remove(PlayersTbl, indexOf(PlayersTbl, Plr))
+        PlayersTbl[indexOf(PlayersTbl, Plr)] = nil
     end), Tbl);
 
     return "sword aura enabled with distance " .. SwordDistance
@@ -2908,7 +2909,7 @@ AddCommand("blacklist", {"bl"}, "blacklists a whitelisted user", {"1"}, function
     local Target = GetPlayer(Args[1]);
     for i, v in next, Target do
         if (Tfind(AdminUsers, v)) then
-            remove(AdminUsers, indexOf(AdminUsers, v));
+            AdminUsers[indexOf(AdminUsers, v)] = nil
         end
     end
 end)

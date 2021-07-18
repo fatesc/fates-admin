@@ -432,10 +432,10 @@ Utils.Rainbow = function(TextObject)
 
     for Character in gmatch(Text, ".") do
         if match(Character, "%s") then
-            insert(Strings, Character)
+            Strings[#Strings + 1] = Character
         else
             TotalCharacters = TotalCharacters + 1
-            insert(Strings, {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'})
+            Strings[#Strings + 1] = {'<font color="rgb(%i, %i, %i)">' .. Character .. '</font>'}
         end
     end
 

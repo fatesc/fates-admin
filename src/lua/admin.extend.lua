@@ -23,7 +23,7 @@ local hookfunction = hookfunction or function(func, newfunc)
 end
 
 local getconnections = function(...)
-    if (not getconnections or identifyexecutor and identifyexecutor() == "Krnl") then
+    if (not getconnections) then
         return {}
     end
     return getconnections(...);
@@ -39,6 +39,28 @@ end
 
 local checkcaller = checkcaller or function()
     return false
+end
+
+local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
+    setreadonly(metatable, false);
+    local Old = metatable.metamethod
+    metatable.metamethod = newcclosure(func);
+    setreadonly(metatable, true);
+    return Old
+end
+
+local GetAllParents = function(Instance_)
+    if (typeof(Instance_) == "Instance") then
+        local Parents = {}
+        local Current = Instance_
+        repeat
+            local Parent = Current.Parent
+            Parents[#Parents + 1] = Parent
+            Current = Parent
+        until not Current
+        return Parents
+    end
+    return {}
 end
 
 local ProtectedInstances = {}
@@ -69,6 +91,7 @@ setreadonly(mt, false);
 for i, v in next, mt do
     OldMetaMethods[i] = v
 end
+setreadonly(mt, true);
 local MetaMethodHooks = {}
 
 MetaMethodHooks.Namecall = function(...)
@@ -81,7 +104,7 @@ MetaMethodHooks.Namecall = function(...)
     end
 
     local Method = getnamecallmethod();
-    local Protected = ProtectedInstances[self]
+    local Protected = Tfind(ProtectedInstances, self);
 
     if (Protected) then
         if (Tfind(Methods, Method)) then
@@ -136,7 +159,7 @@ MetaMethodHooks.Index = function(...)
     if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
         SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
     end
-    local ProtectedInstance = ProtectedInstances[Instance_]
+    local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
     local SpoofedInstance = SpoofedInstances[Instance_]
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
@@ -181,6 +204,30 @@ MetaMethodHooks.NewIndex = function(...)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
+        if (Index == "Parent") then
+            local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
+            if (ProtectedInstance) then
+                local Parents = GetAllParents(Value);
+                for i, v in next, getconnections(Parents[1].ChildAdded) do
+                    v.Disable(v);
+                end
+                local Ret;
+                for i = 1, #Parents do
+                    local Parent = Parents[i]
+                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        v.Disable(v);
+                    end
+                    Ret = __NewIndex(...);
+                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        v.Enable(v);
+                    end
+                end
+                for i, v in next, getconnections(Parents[1].ChildAdded) do
+                    v.Enable(v);
+                end
+                return Ret
+            end
+        end
         if (SpoofedInstance or SpoofedPropertiesForInstance) then
             local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
             local Connections2 = getconnections(Instance_.Changed);
@@ -194,9 +241,7 @@ MetaMethodHooks.NewIndex = function(...)
             for i, v in next, Connections2 do
                 v.Disable(v);
             end
-            local Suc, Ret = pcall(function()
-                return __NewIndex(Instance_, Index, Value);
-            end)
+            local Ret = __NewIndex(Instance_, Index, Value);
             for i, v in next, Connections do
                 v.Enable(v);
             end
@@ -231,16 +276,9 @@ MetaMethodHooks.NewIndex = function(...)
     return __NewIndex(...);
 end
 
-if (syn) then
-    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
-    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
-    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
-else
-    mt.__index = newcclosure(MetaMethodHooks.Index, mt.__index);
-    mt.__namecall = newcclosure(MetaMethodHooks.Namecall, mt.__namecall);
-    mt.__newindex = newcclosure(MetaMethodHooks.NewIndex, mt.__newindex);
-end
-setreadonly(mt, true);
+OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
@@ -328,14 +366,15 @@ end
 
 local SpoofProperty = function(Instance_, Property, NoClone)
     if (SpoofedProperties[Instance_]) then
-        local Properties = map(SpoofedProperties[Instance_], function(i, v)
+        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+        local Properties = map(SpoofedPropertiesForInstance, function(i, v)
             return v.Property
         end)
         if (not Tfind(Properties, Property)) then
-            insert(SpoofedProperties[Instance_], {
-                SpoofedProperty = SpoofedProperties[Instance_].SpoofedProperty,
+            SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
+                SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
                 Property = Property,
-            });
+            };
         end
     else
         SpoofedProperties[Instance_] = {{
