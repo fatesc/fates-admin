@@ -3371,10 +3371,12 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     local Humanoid = GetHumanoid();
     local connections = tbl_concat(getconnections(UserInputService.JumpRequest), getconnections(GetPropertyChangedSignal(Humanoid, "FloorMaterial")), getconnections(Humanoid.Jumping));
     for i, v in next, connections do
-        if (Hooks.NoJumpCooldown) then
-            v.Enable(v);
-        else
-            v.Disable(v);
+        if (v.Func and not is_synapse_function(v.Func)) then
+            if (Hooks.NoJumpCooldown) then
+                v.Enable(v);
+            else
+                v.Disable(v);
+            end
         end
     end
     Hooks.NoJumpCooldown = not Hooks.NoJumpCooldown

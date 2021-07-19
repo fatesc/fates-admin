@@ -297,8 +297,15 @@ local getconnections = function(...)
         return {}
     end
     local Connections = getconnections(...);
+    do return Connections end
     local ActualConnections = filter(Connections, function(i, Connection)
-        return Connection.Func ~= nil
+        if (Connection.Func) then
+            if (syn and not is_synapse_function(Connection.Func)) then
+                return true
+            end
+            return true
+        end
+        return false
     end);
     return ActualConnections
 end
@@ -452,12 +459,8 @@ MetaMethodHooks.Index = function(...)
         end
     end
 
-    if (ProtectedInstance) then
-        if (Tfind(Methods, SanitisedIndex)) then
-            return newcclosure(function()
-                return SanitisedIndex == "IsA" and false or nil
-            end);
-        end
+    if (Tfind(ProtectedInstances, __Index(...))) then
+        return nil
     end
 
     if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
@@ -478,7 +481,7 @@ MetaMethodHooks.NewIndex = function(...)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
-        if (Index == "Parent") then
+        if (Index == "Parent" and false) then -- disabled rn as of getconections broken
             local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
             if (ProtectedInstance) then
                 local Parents = GetAllParents(Value);
@@ -4777,10 +4780,12 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     local Humanoid = GetHumanoid();
     local connections = tbl_concat(getconnections(UserInputService.JumpRequest), getconnections(GetPropertyChangedSignal(Humanoid, "FloorMaterial")), getconnections(Humanoid.Jumping));
     for i, v in next, connections do
-        if (Hooks.NoJumpCooldown) then
-            v.Enable(v);
-        else
-            v.Disable(v);
+        if (v.Func and not is_synapse_function(v.Func)) then
+            if (Hooks.NoJumpCooldown) then
+                v.Enable(v);
+            else
+                v.Disable(v);
+            end
         end
     end
     Hooks.NoJumpCooldown = not Hooks.NoJumpCooldown
