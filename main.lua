@@ -3398,6 +3398,38 @@ AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "
     return "esp enabled"
 end)
 
+local EspLib;
+AddCommand("trace", {}, "traces a player", {"1"}, function(Caller, Args)
+    if (not EspLib) then
+        EspLib = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/esp-lib/esplibmain.lua"))();
+    end
+    local Target = GetPlayer(Args[1]);
+    local New = EspLib.new
+    for i, v in next, Target do
+        New("Tracer", {
+            Target = v
+        });
+        New("Text", {
+            Target = v,
+            ShowHealth = true,
+            ShowDistance = true
+        });
+    end
+    return format("now tracing %s", #Target == 1 and Target[1].Name or #Target .. " players");
+end)
+AddCommand("untrace", {}, "untraces a player", {"1"}, function(Caller, Args)
+    if (not EspLib) then
+        EspLib = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/esp-lib/esplibmain.lua"))();
+    end
+    local Target = GetPlayer(Args[1]);
+    local Remove = EspLib.Remove
+    for i, v in next, Target do
+        Remove(v);
+    end
+    return format("now stopped tracing %s", #Target == 1 and Target[1].Name or #Target .. " players");
+end)
+
+
 AddCommand("crosshair", {}, "enables a crosshair", {function()
     return Drawing ~= nil
 end}, function(Caller, Args, Tbl)
