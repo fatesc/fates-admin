@@ -26,7 +26,11 @@ local getconnections = function(...)
     if (not getconnections) then
         return {}
     end
-    return getconnections(...);
+    local Connections = getconnections(...);
+    local ActualConnections = filter(Connections, function(i, Connection)
+        return Connection.Func ~= nil
+    end);
+    return ActualConnections
 end
 
 local getrawmetatable = getrawmetatable or function()
@@ -211,13 +215,15 @@ MetaMethodHooks.NewIndex = function(...)
                 for i, v in next, getconnections(Parents[1].ChildAdded) do
                     v.Disable(v);
                 end
-                local Ret;
                 for i = 1, #Parents do
                     local Parent = Parents[i]
                     for i2, v in next, getconnections(Parent.DescendantAdded) do
                         v.Disable(v);
                     end
-                    Ret = __NewIndex(...);
+                end
+                local Ret = __NewIndex(...);
+                for i = 1, #Parents do
+                    local Parent = Parents[i]
                     for i2, v in next, getconnections(Parent.DescendantAdded) do
                         v.Enable(v);
                     end

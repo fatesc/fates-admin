@@ -684,6 +684,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 ReplaceHumanoid();
             end
         end
+        local Target2Root = GetRoot(Target2[1]);
         for i = 1, #Target do
             local v = Target[i]
             if (GetCharacter(v)) then
@@ -3370,13 +3371,10 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     local Humanoid = GetHumanoid();
     local connections = tbl_concat(getconnections(UserInputService.JumpRequest), getconnections(GetPropertyChangedSignal(Humanoid, "FloorMaterial")), getconnections(Humanoid.Jumping));
     for i, v in next, connections do
-        local env = getfenv(v.Func);
-        if (env.script ~= script or not env.syn) then -- not sure why syanpse creates humanoid action events on execution but if you disable it you'll crash
-            if (Hooks.NoJumpCooldown) then
-                v.Enable(v);
-            else
-                v.Disable(v);
-            end
+        if (Hooks.NoJumpCooldown) then
+            v.Enable(v);
+        else
+            v.Disable(v);
         end
     end
     Hooks.NoJumpCooldown = not Hooks.NoJumpCooldown
