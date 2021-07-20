@@ -684,7 +684,6 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 ReplaceHumanoid();
             end
         end
-        local Target2Root = GetRoot(Target2[1]);
         for i = 1, #Target do
             local v = Target[i]
             if (GetCharacter(v)) then
