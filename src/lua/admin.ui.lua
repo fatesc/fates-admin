@@ -11,6 +11,8 @@ UI.Enabled = true
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
+local ConfigUI = UI.Config
+local ConfigElements = ConfigUI.GuiElements
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
 local ChatLogs = UI.ChatLogs
@@ -45,6 +47,7 @@ local ChatLogsTransparencyClone = Clone(ChatLogs);
 local GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
 local HttpLogsTransparencyClone = Clone(HttpLogs);
 local CommandsTransparencyClone
+local ConfigUIClone = Clone(ConfigUI);
 local PredictionText = ""
 
 local UIParent = CommandBar.Parent

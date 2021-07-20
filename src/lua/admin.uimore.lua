@@ -11,10 +11,11 @@ GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
 -- make the ui draggable
-Utils.Draggable(Commands)
-Utils.Draggable(ChatLogs)
-Utils.Draggable(GlobalChatLogs)
+Utils.Draggable(Commands);
+Utils.Draggable(ChatLogs);
+Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
+Utils.Draggable(ConfigUI);
 
 -- parent ui
 ParentGui(UI);
@@ -382,3 +383,209 @@ if (ChatBar) then
         end
     end))
 end
+
+local ConfigUILib = {}
+do
+    local GuiObjects = ConfigElements
+    local PageCount = 0
+    local SelectedPage
+
+    local Colors = {
+        ToggleEnabled = Color3.fromRGB(5, 5, 6);
+        Background = Color3.fromRGB(32, 33, 36);
+        ToggleDisabled = Color3.fromRGB(27, 28, 31);
+    }
+
+    local function UpdateClone()
+        ConfigUIClone = Clone(ConfigUI);
+    end
+
+    function ConfigUILib.NewPage(Title)
+        local Page = Clone(GuiObjects.Page.Container);
+        local TextButton = Clone(GuiObjects.Page.TextButton);
+
+        Page.Visible = true
+        TextButton.Visible = true
+
+        Utils.Click(TextButton, "BackgroundColor3")
+            
+        if PageCount == 0 then
+            SelectedPage = Page
+        end
+
+        AddConnection(CConnect(TextButton.MouseButton1Click, function()
+            if SelectedPage.Name ~= TextButton.Name then          
+                SelectedPage = Page
+                ConfigUI.Container.UIPageLayout:JumpTo(SelectedPage)
+            end
+        end))
+        
+        Page.Name = Title
+        TextButton.Name = Title
+        TextButton.Text = Title
+        
+        Page.Parent = ConfigUI.Container
+        TextButton.Parent = ConfigUI.Selection
+        
+        PageCount = PageCount + 1
+
+        UpdateClone()
+
+        local PageLibrary = {}
+
+        function PageLibrary.NewSection(Title)
+            local Section = Clone(GuiObjects.Section.Container);
+            local SectionOptions = Section.Options
+            local SectionUIListLayout = SectionOptions.UIListLayout
+
+            Section.Visible = true
+
+            Utils.SmoothScroll(Section.Options, .14)
+            Section.Title.Text = Title
+            Section.Parent = Page.Selection
+            
+            
+            SectionOptions.CanvasSize = UDim2.fromOffset(0,0) --// change
+            CConnect(GetPropertyChangedSignal(SectionUIListLayout, "AbsoluteContentSize"), function()
+                SectionOptions.CanvasSize = UDim2.fromOffset(0, SectionUIListLayout.AbsoluteContentSize.Y + 5)
+            end)
+            
+            UpdateClone();
+
+            local ElementLibrary = {}
+
+            function ElementLibrary.Toggle(Title, Enabled, Callback)
+                local Toggle = Clone(GuiObjects.Elements.Toggle);
+                local Container = Toggle.Container
+
+                local Switch = Container.Switch
+                local Hitbox = Container.Hitbox
+                
+                if not Enabled then
+                    Switch.Position = UDim2.fromOffset(2, 2)
+                    Container.BackgroundColor3 = Colors.ToggleDisabled
+                end
+                
+                CConnect(Hitbox.MouseButton1Click, function()
+                    Enabled = not Enabled
+                    
+                    Utils.Tween(Switch, "Quad", "Out", .25, {
+                        Position = Enabled and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
+                    })
+                    Utils.Tween(Container, "Quad", "Out", .25, {
+                        BackgroundColor3 = Enabled and Colors.ToggleEnabled or Colors.ToggleDisabled
+                    })
+                    
+                    Callback(Enabled)
+                end)
+                
+                Toggle.Visible = true
+                Toggle.Title.Text = Title
+                Toggle.Parent = Section.Options
+
+                UpdateClone()
+            end
+
+            function ElementLibrary.ScrollingFrame(Title, Callback, Elements)
+                local ScrollingFrame = Clone(GuiObjects.Elements.ScrollingFrame);
+                local Frame = ScrollingFrame.Frame
+                local Toggle = ScrollingFrame.Toggle
+
+                for ElementTitle, Enabled in next, Elements do
+                    local NewToggle = Clone(Toggle);
+                    NewToggle.Visible = true
+                    NewToggle.Title.Text = ElementTitle
+                    NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+
+
+                    Utils.Click(NewToggle.Plugins, "BackgroundColor3")
+
+                    CConnect(NewToggle.Plugins.MouseButton1Click, function()
+                        Enabled = not Enabled
+                        NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+
+                        Callback(Title, Enabled)
+                    end)
+
+                    NewToggle.Parent = Frame.Container
+                end
+
+                Frame.Visible = true
+                Frame.Title.Text = Title
+                Frame.Parent = Section.Options
+
+                UpdateClone()
+            end
+
+            function ElementLibrary.Keybind(Title, Callback)
+                local Keybind = Clone(GuiObjects.Elements.Keybind);
+                local Enabled = false
+                local Connection
+
+                local function GetKeyName(KeyCode)
+                    local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
+                    local IsEnum = Stringed == ""
+                    return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
+                end
+
+                AddConnection(CConnect(Keybind.Container.MouseButton1Click, function()
+                    Enabled = not Enabled
+
+                    if Enabled then
+                        Keybind.Container.Text = "..."
+                        local OldShiftLock = LocalPlayer.DevEnableMouseLock
+                        -- disable shift lock so it doesn't interfere with keybind
+                        LocalPlayer.DevEnableMouseLock = false
+                        Connection = AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Processed)
+                            if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
+                                local Input2, Proccessed2;
+                                coroutine.wrap(function()
+                                    Input2, Proccessed2 = CWait(Services.UserInputService.InputBegan);
+                                end)()
+                                CWait(Services.UserInputService.InputEnded);
+                                if (Input2 and not Processed) then
+                                    local KeyName, IsEnum = GetKeyName(Input.KeyCode);
+                                    local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
+                                    -- Order by if it's an enum first, example 'Shift + K' and not 'K + Shift'
+                                    Keybind.Container.Text = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                                    Callback(Input.KeyCode, Input2.KeyCode);
+                                else
+                                    local KeyName = GetKeyName(Input.KeyCode);
+                                    Keybind.Container.Text = KeyName
+                                    Callback(Input.KeyCode);
+                                end
+                                LocalPlayer.DevEnableMouseLock = OldShiftLock
+                            else
+                                Keybind.Container.Text = "press"
+                            end
+                            Enabled = false
+                            Disconnect(Connection);
+                        end));
+                    else
+                        Keybind.Container.Text = "press"
+                        Disconnect(Connection);
+                    end
+                end));
+
+                Utils.Click(Keybind.Container, "BackgroundColor3");
+                Keybind.Visible = true
+                Keybind.Parent = Section.Options
+                UpdateClone();
+            end
+            
+            return ElementLibrary
+        end
+
+        return PageLibrary
+    end
+end
+
+
+local ConfigLoaded = false
+
+Utils.Click(ConfigUI.Close, "TextColor3")
+CConnect(ConfigUI.Close.MouseButton1Click, function()
+    ConfigLoaded = false
+    CWait(Utils.TweenAllTrans(ConfigUI, .25).Completed);
+    ConfigUI.Visible = false
+end)

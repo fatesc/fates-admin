@@ -7,10 +7,11 @@ local LoadPlugin = function(Plugin)
         return 
     end
     if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
-        return Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
+        Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
+        return "Disabled"
     end
     if (#keys(Plugin) < 3) then
-        return IsDebug and Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.") or nil
+        return Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.");
     end
     if (IsDebug) then
         Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
@@ -57,6 +58,18 @@ end), function(i, v)
     return {split(v, "\\")[2], loadfile(v)}
 end) or {}
 
+-- local PluginsPage = ConfigUILib.NewPage("Plugins");
+-- local CurrentPlugins = PluginsPage.NewSection("Current Plugins");
+
+-- CurrentPlugins.ScrollingFrame("plugins", function(Option, Enabled)
+--     if (not Enabled) then
+--         -- will do later
+--     end
+--     Utils.Notify(nil, "Plugin Conf", "Temporary Disabled");
+-- end, map(Plugins, function(Key, Plugin)
+--     return Plugin[1], not PluginConf.DisabledPlugins[Plugin[1]]
+-- end));
+
 for i, Plugin in next, Plugins do
     LoadPlugin(Plugin[2]());
 end
@@ -77,4 +90,35 @@ AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugin
     for i, Plugin in next, Plugins do
         LoadPlugin(Plugin[2]());
     end
+end)
+
+local PluginsPage = ConfigUILib.NewPage("Plugins")
+local Customize = ConfigUILib.NewPage("Customize")
+
+local NewPlugins = PluginsPage.NewSection("1")
+local OldPlugins = PluginsPage.NewSection("2")
+
+NewPlugins.Toggle("show health", nil, function(Callback)
+    print(Callback);
+end)
+
+NewPlugins.Toggle("not show health", nil, function(Callback)
+    print(Callback);
+end)
+
+NewPlugins.ScrollingFrame("plugins", function(Option, Enabled)
+    print(Option, Enabled);
+end, {
+    ["lol.lua"] = true;
+    ["stdio.h"] = false;
+    ["a.lua"] = false;
+    af = true;
+    bsrd = false;
+    egsgf = false;
+    gewg = false;
+    dsgkw = false;
+})
+
+NewPlugins.Keybind("test", function(Callback)
+    print(Callback)
 end)

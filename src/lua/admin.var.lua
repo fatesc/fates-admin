@@ -173,7 +173,8 @@ local map = function(tbl, ret)
     if (type(tbl) == 'table') then
         local new = {}
         for i, v in next, tbl do
-            new[#new + 1] = ret(i, v);
+            local Value, Key = ret(i, v);
+            new[Key or #new + 1] = Value
         end
         return new
     end

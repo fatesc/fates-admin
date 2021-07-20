@@ -315,11 +315,22 @@ local AddCommand = function(name, aliases, description, options, func)
     return Success
 end
 
-local LoadCommand = function(Name)
-    local Command = rawget(CommandsTable, Name);
+local RemoveCommand = function(Name)
+    local Command = LoadCommand(Name);
     if (Command) then
-        return Command
+        CommandsTable[Name] = nil
+        local CommandsList = Commands.Frame.List
+        local CommandLabel = FindFirstChild(CommandsList, Name);
+        if (CommandLabel) then
+            Destroy(CommandLabel);
+        end
+        return true
     end
+    return false
+end
+
+local LoadCommand = function(Name)
+    return rawget(CommandsTable, Name);
 end
 
 local ExecuteCommand = function(Name, Args, Caller)
@@ -439,10 +450,6 @@ AddConnection(CConnect(Services.UserInputService.InputEnded, function(Input, Gam
         Keys[KeyCode] = false
     end
 end));
-
---[[
-    require - plugin
-]]
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", format("There are currently %s commands.", #filter(CommandsTable, function(i,v)
@@ -2288,7 +2295,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
                 elseif (OP == "verification_needed") then
                     MakeMessage(format("[%s] - [C-LOG]: You need to visit http://whatever/chat/verify", CurrentTime), Color3.fromRGB(255, 0, 0));
                 elseif (OP == "error") then
-                    MakeMessage(format("[%s] - [C-LOG]: %s", CurrentTime, DATA.message);
+                    MakeMessage(format("[%s] - [C-LOG]: %s", CurrentTime, DATA.message));
                 end
 
             end
@@ -3449,6 +3456,16 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
+AddCommand("config", {"conf"}, "shows fates admin config", {}, function()
+    if (not ConfigLoaded) then
+        Utils.SetAllTrans(ConfigUI);
+        ConfigUI.Visible = true
+        Utils.TweenAllTransToObject(ConfigUI, .25, ConfigUIClone);
+        ConfigLoaded = true
+        return "config loaded" 
+    end
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
@@ -3508,6 +3525,11 @@ end
 --[[
     require - uimore
 ]]
+
+--[[
+    require - plugin
+]]
+
 WideBar = false
 Draggable = false
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()

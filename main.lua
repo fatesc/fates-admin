@@ -1,5 +1,5 @@
 --[[
-	fates admin - 20/7/2021
+	fates admin - 21/7/2021
 ]]
 
 local game = game
@@ -197,7 +197,8 @@ local map = function(tbl, ret)
     if (type(tbl) == 'table') then
         local new = {}
         for i, v in next, tbl do
-            new[#new + 1] = ret(i, v);
+            local Value, Key = ret(i, v);
+            new[Key or #new + 1] = Value
         end
         return new
     end
@@ -863,6 +864,8 @@ UI.Enabled = true
 
 local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 
+local ConfigUI = UI.Config
+local ConfigElements = ConfigUI.GuiElements
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
 local ChatLogs = UI.ChatLogs
@@ -897,6 +900,7 @@ local ChatLogsTransparencyClone = Clone(ChatLogs);
 local GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
 local HttpLogsTransparencyClone = Clone(HttpLogs);
 local CommandsTransparencyClone
+local ConfigUIClone = Clone(ConfigUI);
 local PredictionText = ""
 
 local UIParent = CommandBar.Parent
@@ -1193,7 +1197,7 @@ Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transp
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             if (IsText) then
                 Utils.Tween(v, "Sine", "Out", Time, {
                     TextTransparency = OldDescentants[i].TextTransparency,
@@ -1229,7 +1233,7 @@ Utils.SetAllTrans = function(Object)
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             v.BackgroundTransparency = 1
 
             if (IsText) then
@@ -1255,7 +1259,7 @@ Utils.TweenAllTrans = function(Object, Time)
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             if (IsText) then
                 Utils.Tween(v, "Sine", "Out", Time, {
                     TextTransparency = 1,
@@ -1409,7 +1413,7 @@ end
 
 Utils.ClearAllObjects = function(Object)
     for _, v in ipairs(GetChildren(Object)) do
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             Destroy(v);
         end
     end
@@ -1644,11 +1648,22 @@ local AddCommand = function(name, aliases, description, options, func)
     return Success
 end
 
-local LoadCommand = function(Name)
-    local Command = rawget(CommandsTable, Name);
+local RemoveCommand = function(Name)
+    local Command = LoadCommand(Name);
     if (Command) then
-        return Command
+        CommandsTable[Name] = nil
+        local CommandsList = Commands.Frame.List
+        local CommandLabel = FindFirstChild(CommandsList, Name);
+        if (CommandLabel) then
+            Destroy(CommandLabel);
+        end
+        return true
     end
+    return false
+end
+
+local LoadCommand = function(Name)
+    return rawget(CommandsTable, Name);
 end
 
 local ExecuteCommand = function(Name, Args, Caller)
@@ -1768,90 +1783,6 @@ AddConnection(CConnect(Services.UserInputService.InputEnded, function(Input, Gam
         Keys[KeyCode] = false
     end
 end));
-
---IMPORT [plugin]
-local IsSupportedExploit = isfile and isfolder and writefile and readfile
-local PluginConf = IsSupportedExploit and GetPluginConfig();
-local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
-
-local LoadPlugin = function(Plugin)
-    if (not IsSupportedExploit) then
-        return 
-    end
-    if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
-        return Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
-    end
-    if (#keys(Plugin) < 3) then
-        return IsDebug and Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.") or nil
-    end
-    if (IsDebug) then
-        Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
-    end
-
-    local Ran, Return = pcall(Plugin.Init);
-    if (not Ran and Return and IsDebug) then
-        return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
-    end
-    
-    for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
-        if (#keys(command) < 3) then
-            Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
-            continue
-        end
-        AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
-
-        if (FindFirstChild(Commands.Frame.List, command.Name)) then
-            Destroy(FindFirstChild(Commands.Frame.List, command.Name));
-        end
-        local Clone = Clone(Command);
-        Utils.Hover(Clone, "BackgroundColor3");
-        Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
-        Clone.CommandText.RichText = true
-        Clone.CommandText.Text = format("%s %s %s", command.Name, next(command.Aliases or {}) and format("(%s)", concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
-        Clone.Name = command.Name
-        Clone.Visible = true
-        Clone.Parent = Commands.Frame.List
-        if (IsDebug) then
-            Utils.Notify(LocalPlayer, "Plugin Command Loaded", format("Command %s loaded successfully", command.Name));
-        end
-    end
-end
-
-if (IsSupportedExploit) then
-    if (not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
-        WriteConfig();
-    end
-end
-
-local Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
-    return lower(split(v, ".")[#split(v, ".")]) == "lua"
-end), function(i, v)
-    return {split(v, "\\")[2], loadfile(v)}
-end) or {}
-
-for i, Plugin in next, Plugins do
-    LoadPlugin(Plugin[2]());
-end
-
-AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
-    if (not IsSupportedExploit) then
-        return "your exploit does not support plugins"
-    end
-    PluginConf = GetPluginConfig();
-    IsDebug = PluginConf.PluginDebug
-    
-    Plugins = map(filter(listfiles("fates-admin/plugins"), function(i, v)
-        return lower(split(v, ".")[#split(v, ".")]) == "lua"
-    end), function(i, v)
-        return {split(v, "\\")[2], loadfile(v)}
-    end)
-    
-    for i, Plugin in next, Plugins do
-        LoadPlugin(Plugin[2]());
-    end
-end)
---END IMPORT [plugin]
-
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", format("There are currently %s commands.", #filter(CommandsTable, function(i,v)
@@ -3669,23 +3600,58 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     GlobalChatLogsEnabled = true
     if (not Socket) then
         Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
+        
+        local MakeMessage = function(Message, Color)
+            Clone.Text = Message
+            if (Color) then
+                Clone.TextColor3 = Color
+            end
+            Clone.Visible = true
+            Clone.TextTransparency = 1
+            Clone.Parent = GlobalChatLogs.Frame.List
+            Utils.Tween(Clone, "Sine", "Out", .25, {
+                TextTransparency = 0
+            });
+            GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+
+        end
+
         CConnect(Socket.OnMessage, function(msg)
             if (GlobalChatLogsEnabled) then
-                msg = JSONDecode(Services.HttpService, msg);
+                local OP, DATA = unpack(JSONDecode(Services.HttpService, msg));
                 local Clone = Clone(GlobalChatLogMessage);
-                Clone.Text = format("%s - [%s]: %s", msg.fromDiscord and "from discord" or tostring(os.date("%X")), msg.username, msg.message);
-                if (msg.tagColour) then
-                    Clone.TextColor3 = Color3.fromRGB(msg.tagColour[1], msg.tagColour[2], msg.tagColour[3]);
+                local CurrentTime = tostring(os.date("%X"));
+                if (OP == "received_message") then
+                    MakeMessage(format("%s - [%s]: %s", CurrentTime, DATA.username, msg.message));
+                elseif (OP == "admin_message") then
+                    MakeMessage(format("%s - [%s]: %s", CurrentTime, DATA.username, msg.message), Color3.fromRGB(DATA.Color.R, DATA.Color.G, DATA.Color.B));
+                elseif (OP == "verification_needed") then
+                    MakeMessage(format("[%s] - [C-LOG]: You need to visit http://whatever/chat/verify", CurrentTime), Color3.fromRGB(255, 0, 0));
+                elseif (OP == "error") then
+                    MakeMessage(format("[%s] - [C-LOG]: %s", CurrentTime, DATA.message));
                 end
-                Clone.Visible = true
-                Clone.TextTransparency = 1
-                Clone.Parent = GlobalChatLogs.Frame.List
-                Utils.Tween(Clone, "Sine", "Out", .25, {
-                    TextTransparency = 0
-                });
-                GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+
             end
         end)
+        local MessageSender = require(LocalPlayer.PlayerScripts.ChatScript.ChatMain.MessageSender);
+        local OldSendMessage = MessageSender.SendMessage
+        MessageSender.SendMessage = function(self, Message, ...)
+            if (GlobalChatLogsEnabled) then
+                local CurrentTime = tostring(os.date("%X"));
+                if (#Message > 30) then
+                    MakeMessage(format("[%s] - [C-LOG]: Message is too long dsadsadasdasd.aas...", CurrentTime));
+                end
+                Socket.Send(Socket, JSONEncode({
+                    username = LocalPlayer.Name,
+                    message = Message,
+                }));
+            else
+                return OldSendMessage(self, Message, ...);
+            end
+        end
+
+        MessageSender.SendMessage = OldSendMessage
+
         while (Socket and wait(30)) do
             Send(Socket, "ping");
         end
@@ -4823,6 +4789,16 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
+AddCommand("config", {"conf"}, "shows fates admin config", {}, function()
+    if (not ConfigLoaded) then
+        Utils.SetAllTrans(ConfigUI);
+        ConfigUI.Visible = true
+        Utils.TweenAllTransToObject(ConfigUI, .25, ConfigUIClone);
+        ConfigLoaded = true
+        return "config loaded" 
+    end
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
@@ -4859,14 +4835,6 @@ local PlrChat = function(i, plr)
             ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         end
 
-        if (GlobalChatLogsEnabled and plr == LocalPlayer) then
-            local Message = {
-                username = LocalPlayer.Name,
-                userid = LocalPlayer.UserId,
-                message = message
-            }
-            Socket.Send(Socket, JSONEncode(Services.HttpService, Message));
-        end
         if (startsWith(raw, "/e")) then
             raw = sub(raw, 4);
         elseif (startsWith(raw, Prefix)) then
@@ -4901,10 +4869,11 @@ GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
 -- make the ui draggable
-Utils.Draggable(Commands)
-Utils.Draggable(ChatLogs)
-Utils.Draggable(GlobalChatLogs)
+Utils.Draggable(Commands);
+Utils.Draggable(ChatLogs);
+Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
+Utils.Draggable(ConfigUI);
 
 -- parent ui
 ParentGui(UI);
@@ -5272,7 +5241,342 @@ if (ChatBar) then
         end
     end))
 end
+
+local ConfigUILib = {}
+do
+    local GuiObjects = ConfigElements
+    local PageCount = 0
+    local SelectedPage
+
+    local Colors = {
+        ToggleEnabled = Color3.fromRGB(5, 5, 6);
+        Background = Color3.fromRGB(32, 33, 36);
+        ToggleDisabled = Color3.fromRGB(27, 28, 31);
+    }
+
+    local function UpdateClone()
+        ConfigUIClone = Clone(ConfigUI);
+    end
+
+    function ConfigUILib.NewPage(Title)
+        local Page = Clone(GuiObjects.Page.Container);
+        local TextButton = Clone(GuiObjects.Page.TextButton);
+
+        Page.Visible = true
+        TextButton.Visible = true
+
+        Utils.Click(TextButton, "BackgroundColor3")
+            
+        if PageCount == 0 then
+            SelectedPage = Page
+        end
+
+        AddConnection(CConnect(TextButton.MouseButton1Click, function()
+            if SelectedPage.Name ~= TextButton.Name then          
+                SelectedPage = Page
+                ConfigUI.Container.UIPageLayout:JumpTo(SelectedPage)
+            end
+        end))
+        
+        Page.Name = Title
+        TextButton.Name = Title
+        TextButton.Text = Title
+        
+        Page.Parent = ConfigUI.Container
+        TextButton.Parent = ConfigUI.Selection
+        
+        PageCount = PageCount + 1
+
+        UpdateClone()
+
+        local PageLibrary = {}
+
+        function PageLibrary.NewSection(Title)
+            local Section = Clone(GuiObjects.Section.Container);
+            local SectionOptions = Section.Options
+            local SectionUIListLayout = SectionOptions.UIListLayout
+
+            Section.Visible = true
+
+            Utils.SmoothScroll(Section.Options, .14)
+            Section.Title.Text = Title
+            Section.Parent = Page.Selection
+            
+            
+            SectionOptions.CanvasSize = UDim2.fromOffset(0,0) --// change
+            CConnect(GetPropertyChangedSignal(SectionUIListLayout, "AbsoluteContentSize"), function()
+                SectionOptions.CanvasSize = UDim2.fromOffset(0, SectionUIListLayout.AbsoluteContentSize.Y + 5)
+            end)
+            
+            UpdateClone();
+
+            local ElementLibrary = {}
+
+            function ElementLibrary.Toggle(Title, Enabled, Callback)
+                local Toggle = Clone(GuiObjects.Elements.Toggle);
+                local Container = Toggle.Container
+
+                local Switch = Container.Switch
+                local Hitbox = Container.Hitbox
+                
+                if not Enabled then
+                    Switch.Position = UDim2.fromOffset(2, 2)
+                    Container.BackgroundColor3 = Colors.ToggleDisabled
+                end
+                
+                CConnect(Hitbox.MouseButton1Click, function()
+                    Enabled = not Enabled
+                    
+                    Utils.Tween(Switch, "Quad", "Out", .25, {
+                        Position = Enabled and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
+                    })
+                    Utils.Tween(Container, "Quad", "Out", .25, {
+                        BackgroundColor3 = Enabled and Colors.ToggleEnabled or Colors.ToggleDisabled
+                    })
+                    
+                    Callback(Enabled)
+                end)
+                
+                Toggle.Visible = true
+                Toggle.Title.Text = Title
+                Toggle.Parent = Section.Options
+
+                UpdateClone()
+            end
+
+            function ElementLibrary.ScrollingFrame(Title, Callback, Elements)
+                local ScrollingFrame = Clone(GuiObjects.Elements.ScrollingFrame);
+                local Frame = ScrollingFrame.Frame
+                local Toggle = ScrollingFrame.Toggle
+
+                for ElementTitle, Enabled in next, Elements do
+                    local NewToggle = Clone(Toggle);
+                    NewToggle.Visible = true
+                    NewToggle.Title.Text = ElementTitle
+                    NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+
+
+                    Utils.Click(NewToggle.Plugins, "BackgroundColor3")
+
+                    CConnect(NewToggle.Plugins.MouseButton1Click, function()
+                        Enabled = not Enabled
+                        NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+
+                        Callback(Title, Enabled)
+                    end)
+
+                    NewToggle.Parent = Frame.Container
+                end
+
+                Frame.Visible = true
+                Frame.Title.Text = Title
+                Frame.Parent = Section.Options
+
+                UpdateClone()
+            end
+
+            function ElementLibrary.Keybind(Title, Callback)
+                local Keybind = Clone(GuiObjects.Elements.Keybind);
+                local Enabled = false
+                local Connection
+
+                local function GetKeyName(KeyCode)
+                    local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
+                    local IsEnum = Stringed == ""
+                    return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
+                end
+
+                AddConnection(CConnect(Keybind.Container.MouseButton1Click, function()
+                    Enabled = not Enabled
+
+                    if Enabled then
+                        Keybind.Container.Text = "..."
+                        local OldShiftLock = LocalPlayer.DevEnableMouseLock
+                        -- disable shift lock so it doesn't interfere with keybind
+                        LocalPlayer.DevEnableMouseLock = false
+                        Connection = AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Processed)
+                            if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
+                                local Input2, Proccessed2;
+                                coroutine.wrap(function()
+                                    Input2, Proccessed2 = CWait(Services.UserInputService.InputBegan);
+                                end)()
+                                CWait(Services.UserInputService.InputEnded);
+                                if (Input2 and not Processed) then
+                                    local KeyName, IsEnum = GetKeyName(Input.KeyCode);
+                                    local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
+                                    -- Order by if it's an enum first, example 'Shift + K' and not 'K + Shift'
+                                    Keybind.Container.Text = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                                    Callback(Input.KeyCode, Input2.KeyCode);
+                                else
+                                    local KeyName = GetKeyName(Input.KeyCode);
+                                    Keybind.Container.Text = KeyName
+                                    Callback(Input.KeyCode);
+                                end
+                                LocalPlayer.DevEnableMouseLock = OldShiftLock
+                            else
+                                Keybind.Container.Text = "press"
+                            end
+                            Enabled = false
+                            Disconnect(Connection);
+                        end));
+                    else
+                        Keybind.Container.Text = "press"
+                        Disconnect(Connection);
+                    end
+                end));
+
+                Utils.Click(Keybind.Container, "BackgroundColor3");
+                Keybind.Visible = true
+                Keybind.Parent = Section.Options
+                UpdateClone();
+            end
+            
+            return ElementLibrary
+        end
+
+        return PageLibrary
+    end
+end
+
+
+local ConfigLoaded = false
+
+Utils.Click(ConfigUI.Close, "TextColor3")
+CConnect(ConfigUI.Close.MouseButton1Click, function()
+    ConfigLoaded = false
+    CWait(Utils.TweenAllTrans(ConfigUI, .25).Completed);
+    ConfigUI.Visible = false
+end)
 --END IMPORT [uimore]
+
+
+--IMPORT [plugin]
+local IsSupportedExploit = isfile and isfolder and writefile and readfile
+local PluginConf = IsSupportedExploit and GetPluginConfig();
+local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
+
+local LoadPlugin = function(Plugin)
+    if (not IsSupportedExploit) then
+        return 
+    end
+    if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
+        Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
+        return "Disabled"
+    end
+    if (#keys(Plugin) < 3) then
+        return Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.");
+    end
+    if (IsDebug) then
+        Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
+    end
+
+    local Ran, Return = pcall(Plugin.Init);
+    if (not Ran and Return and IsDebug) then
+        return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
+    end
+    
+    for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
+        if (#keys(command) < 3) then
+            Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
+            continue
+        end
+        AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
+
+        if (FindFirstChild(Commands.Frame.List, command.Name)) then
+            Destroy(FindFirstChild(Commands.Frame.List, command.Name));
+        end
+        local Clone = Clone(Command);
+        Utils.Hover(Clone, "BackgroundColor3");
+        Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
+        Clone.CommandText.RichText = true
+        Clone.CommandText.Text = format("%s %s %s", command.Name, next(command.Aliases or {}) and format("(%s)", concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
+        Clone.Name = command.Name
+        Clone.Visible = true
+        Clone.Parent = Commands.Frame.List
+        if (IsDebug) then
+            Utils.Notify(LocalPlayer, "Plugin Command Loaded", format("Command %s loaded successfully", command.Name));
+        end
+    end
+end
+
+if (IsSupportedExploit) then
+    if (not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+        WriteConfig();
+    end
+end
+
+local Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
+    return lower(split(v, ".")[#split(v, ".")]) == "lua"
+end), function(i, v)
+    return {split(v, "\\")[2], loadfile(v)}
+end) or {}
+
+-- local PluginsPage = ConfigUILib.NewPage("Plugins");
+-- local CurrentPlugins = PluginsPage.NewSection("Current Plugins");
+
+-- CurrentPlugins.ScrollingFrame("plugins", function(Option, Enabled)
+--     if (not Enabled) then
+--         -- will do later
+--     end
+--     Utils.Notify(nil, "Plugin Conf", "Temporary Disabled");
+-- end, map(Plugins, function(Key, Plugin)
+--     return Plugin[1], not PluginConf.DisabledPlugins[Plugin[1]]
+-- end));
+
+for i, Plugin in next, Plugins do
+    LoadPlugin(Plugin[2]());
+end
+
+AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
+    if (not IsSupportedExploit) then
+        return "your exploit does not support plugins"
+    end
+    PluginConf = GetPluginConfig();
+    IsDebug = PluginConf.PluginDebug
+    
+    Plugins = map(filter(listfiles("fates-admin/plugins"), function(i, v)
+        return lower(split(v, ".")[#split(v, ".")]) == "lua"
+    end), function(i, v)
+        return {split(v, "\\")[2], loadfile(v)}
+    end)
+    
+    for i, Plugin in next, Plugins do
+        LoadPlugin(Plugin[2]());
+    end
+end)
+
+local PluginsPage = ConfigUILib.NewPage("Plugins")
+local Customize = ConfigUILib.NewPage("Customize")
+
+local NewPlugins = PluginsPage.NewSection("1")
+local OldPlugins = PluginsPage.NewSection("2")
+
+NewPlugins.Toggle("show health", nil, function(Callback)
+    print(Callback);
+end)
+
+NewPlugins.Toggle("not show health", nil, function(Callback)
+    print(Callback);
+end)
+
+NewPlugins.ScrollingFrame("plugins", function(Option, Enabled)
+    print(Option, Enabled);
+end, {
+    ["lol.lua"] = true;
+    ["stdio.h"] = false;
+    ["a.lua"] = false;
+    af = true;
+    bsrd = false;
+    egsgf = false;
+    gewg = false;
+    dsgkw = false;
+})
+
+NewPlugins.Keybind("test", function(Callback)
+    print(Callback)
+end)
+--END IMPORT [plugin]
+
 
 WideBar = false
 Draggable = false

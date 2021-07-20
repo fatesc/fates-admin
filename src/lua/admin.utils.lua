@@ -200,7 +200,7 @@ Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transp
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             if (IsText) then
                 Utils.Tween(v, "Sine", "Out", Time, {
                     TextTransparency = OldDescentants[i].TextTransparency,
@@ -236,7 +236,7 @@ Utils.SetAllTrans = function(Object)
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             v.BackgroundTransparency = 1
 
             if (IsText) then
@@ -262,7 +262,7 @@ Utils.TweenAllTrans = function(Object, Time)
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
 
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             if (IsText) then
                 Utils.Tween(v, "Sine", "Out", Time, {
                     TextTransparency = 1,
@@ -416,7 +416,7 @@ end
 
 Utils.ClearAllObjects = function(Object)
     for _, v in ipairs(GetChildren(Object)) do
-        if (not IsA(v, "UIListLayout")) then
+        if (IsA(v, "GuiObject")) then
             Destroy(v);
         end
     end
