@@ -2260,23 +2260,58 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     GlobalChatLogsEnabled = true
     if (not Socket) then
         Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
+        
+        local MakeMessage = function(Message, Color)
+            Clone.Text = Message
+            if (Color) then
+                Clone.TextColor3 = Color
+            end
+            Clone.Visible = true
+            Clone.TextTransparency = 1
+            Clone.Parent = GlobalChatLogs.Frame.List
+            Utils.Tween(Clone, "Sine", "Out", .25, {
+                TextTransparency = 0
+            });
+            GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+
+        end
+
         CConnect(Socket.OnMessage, function(msg)
             if (GlobalChatLogsEnabled) then
-                msg = JSONDecode(Services.HttpService, msg);
+                local OP, DATA = unpack(JSONDecode(Services.HttpService, msg));
                 local Clone = Clone(GlobalChatLogMessage);
-                Clone.Text = format("%s - [%s]: %s", msg.fromDiscord and "from discord" or tostring(os.date("%X")), msg.username, msg.message);
-                if (msg.tagColour) then
-                    Clone.TextColor3 = Color3.fromRGB(msg.tagColour[1], msg.tagColour[2], msg.tagColour[3]);
+                local CurrentTime = tostring(os.date("%X"));
+                if (OP == "received_message") then
+                    MakeMessage(format("%s - [%s]: %s", CurrentTime, DATA.username, msg.message));
+                elseif (OP == "admin_message") then
+                    MakeMessage(format("%s - [%s]: %s", CurrentTime, DATA.username, msg.message), Color3.fromRGB(DATA.Color.R, DATA.Color.G, DATA.Color.B));
+                elseif (OP == "verification_needed") then
+                    MakeMessage(format("[%s] - [C-LOG]: You need to visit http://whatever/chat/verify", CurrentTime), Color3.fromRGB(255, 0, 0));
+                elseif (OP == "error") then
+                    MakeMessage(format("[%s] - [C-LOG]: %s", CurrentTime, DATA.message);
                 end
-                Clone.Visible = true
-                Clone.TextTransparency = 1
-                Clone.Parent = GlobalChatLogs.Frame.List
-                Utils.Tween(Clone, "Sine", "Out", .25, {
-                    TextTransparency = 0
-                });
-                GlobalChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, GlobalChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+
             end
         end)
+        local MessageSender = require(LocalPlayer.PlayerScripts.ChatScript.ChatMain.MessageSender);
+        local OldSendMessage = MessageSender.SendMessage
+        MessageSender.SendMessage = function(self, Message, ...)
+            if (GlobalChatLogsEnabled) then
+                local CurrentTime = tostring(os.date("%X"));
+                if (#Message > 30) then
+                    MakeMessage(format("[%s] - [C-LOG]: Message is too long dsadsadasdasd.aas...", CurrentTime));
+                end
+                Socket.Send(Socket, JSONEncode({
+                    username = LocalPlayer.Name,
+                    message = Message,
+                }));
+            else
+                return OldSendMessage(self, Message, ...);
+            end
+        end
+
+        MessageSender.SendMessage = OldSendMessage
+
         while (Socket and wait(30)) do
             Send(Socket, "ping");
         end
@@ -3450,14 +3485,6 @@ local PlrChat = function(i, plr)
             ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         end
 
-        if (GlobalChatLogsEnabled and plr == LocalPlayer) then
-            local Message = {
-                username = LocalPlayer.Name,
-                userid = LocalPlayer.UserId,
-                message = message
-            }
-            Socket.Send(Socket, JSONEncode(Services.HttpService, Message));
-        end
         if (startsWith(raw, "/e")) then
             raw = sub(raw, 4);
         elseif (startsWith(raw, Prefix)) then
