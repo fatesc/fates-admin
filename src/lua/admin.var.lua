@@ -120,6 +120,7 @@ local GetAccessories = __H.GetAccessories
 local MoveTo = __H.MoveTo
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
 
 local startsWith = function(str, searchString, rawPos)

@@ -63,7 +63,8 @@ PluginLibrary.GetMagnitude = GetMagnitude
 
 local Settings = {
     Prefix = "!",
-    CommandBarPrefix = "Semicolon"
+    CommandBarPrefix = "Semicolon",
+    ChatPrediction = false,
 }
 local PluginSettings = {
     PluginsEnabled = true,
@@ -107,13 +108,23 @@ local GetPluginConfig = function()
     end
 end
 
+local SetPluginConfig = function(conf)
+    if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfile("fates-admin/plugins/plugin-conf.json")) then
+        WriteConfig();
+    end
+    local NewConfig = GetPluginConfig();
+    for i, v in next, conf do
+        NewConfig[i] = v
+    end
+    writefile("fates-admin/plugins/plugin-conf.json", JSONEncode(Services.HttpService, NewConfig));
+end
+
 local SetConfig = function(conf)
     if (not isfolder("fates-admin") and isfile("fates-admin/config.json")) then
         WriteConfig();
     end
     local NewConfig = GetConfig();
-    for i = 1, #conf do
-        local v = conf[i]
+    for i, v in next, conf do
         NewConfig[i] = v
     end
     writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
@@ -3164,9 +3175,10 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     return format("draggable command bar %s", Draggable and "enabled" or "disabled")
 end)
 
+local ToggleChatPrediction
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    ParentGui(PredictionClone, Frame2);
-    local ChatBar = WaitForChild(Frame2, 'ChatBar', .1);
+    ToggleChatPrediction();
+    local ChatBar = WaitForChild(Frame2, "ChatBar", .1);
     ChatBar.CaptureFocus(ChatBar);
     wait();
     ChatBar.Text = Prefix
@@ -3456,12 +3468,17 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
-AddCommand("config", {"conf"}, "shows fates admin config", {}, function()
+local LoadConfig;
+AddCommand("config", {"conf"}, "shows fates admin config", {}, function(Caller, Args, Tbl)
     if (not ConfigLoaded) then
+        if (not Tbl[1]) then
+            LoadConfig();
+        end
         Utils.SetAllTrans(ConfigUI);
         ConfigUI.Visible = true
         Utils.TweenAllTransToObject(ConfigUI, .25, ConfigUIClone);
         ConfigLoaded = true
+        Tbl[1] = true
         return "config loaded" 
     end
 end)
@@ -3532,6 +3549,11 @@ end
 
 WideBar = false
 Draggable = false
+
+--[[
+    require - config
+]]
+
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
         v.Enable(v);

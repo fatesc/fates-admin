@@ -306,82 +306,142 @@ AddConnection(CConnect(GetPropertyChangedSignal(CommandBar.Input, "Text"), funct
     end
 end))
 
-if (ChatBar) then
-    AddConnection(CConnect(GetPropertyChangedSignal(ChatBar, "Text"), function() -- todo: add detection for /e
-        local Text = ChatBar.Text
-        local Prediction = PredictionClone
-        local PredictionText = PredictionClone.Text
-    
-        local Args = split(concat(shift(split(Text, ""))), " ");
-    
-        Prediction.Text = ""
-        if (not startsWith(Text, Prefix)) then
-            return
-        end
-    
-        local FoundCommand = false
-        local FoundAlias = false
-        CommandArgs = CommandArgs or {}
-        if (not rawget(CommandsTable, Args[1])) then
-            for _, v in next, CommandsTable do
-                local CommandName = v.Name
-                local Aliases = v.Aliases
-                local FoundAlias
-        
-                if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
-                    Prediction.Text = Prefix .. CommandName
-                    FoundCommand = true
-                    CommandArgs = v.Args or {}
-                    break
+do
+    local Enabled = false
+    local Connection, Frame2;
+    local Predict;
+    ToggleChatPrediction = function()
+        if (not Enabled) then
+            local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
+            local RobloxChatBarFrame;
+            if (RobloxChat) then
+                local RobloxChatFrame = FindFirstChild(RobloxChat, "Frame");
+                if (RobloxChatFrame) then
+                    RobloxChatBarFrame = FindFirstChild(RobloxChatFrame, "ChatBarParentFrame");
                 end
-        
-                for _, v2 in next, Aliases do
-                    if (Utils.MatchSearch(Args[1], v2)) then
-                        FoundAlias = true
-                        Prediction.Text = v2
-                        CommandArgs = v.Args or {}
-                        break
-                    end
-        
-                    if (FoundAlias) then
-                        break
+            end
+            local PredictionClone, ChatBar
+            if (RobloxChatBarFrame) then
+                local Frame1 = FindFirstChild(RobloxChatBarFrame, 'Frame');
+                if Frame1 then
+                    local BoxFrame = FindFirstChild(Frame1, 'BoxFrame');
+                    if BoxFrame then
+                        Frame2 = FindFirstChild(BoxFrame, 'Frame');
+                        if Frame2 then
+                            local TextLabel = FindFirstChild(Frame2, 'TextLabel');
+                            ChatBar = FindFirstChild(Frame2, 'ChatBar');
+                            if TextLabel and ChatBar then
+                                PredictionClone = InstanceNew('TextLabel');
+                                PredictionClone.Font = TextLabel.Font
+                                PredictionClone.LineHeight = TextLabel.LineHeight
+                                PredictionClone.MaxVisibleGraphemes = TextLabel.MaxVisibleGraphemes
+                                PredictionClone.RichText = TextLabel.RichText
+                                PredictionClone.Text = ''
+                                PredictionClone.TextColor3 = TextLabel.TextColor3
+                                PredictionClone.TextScaled = TextLabel.TextScaled
+                                PredictionClone.TextSize = TextLabel.TextSize
+                                PredictionClone.TextStrokeColor3 = TextLabel.TextStrokeColor3
+                                PredictionClone.TextStrokeTransparency = TextLabel.TextStrokeTransparency
+                                PredictionClone.TextTransparency = 0.3
+                                PredictionClone.TextTruncate = TextLabel.TextTruncate
+                                PredictionClone.TextWrapped = TextLabel.TextWrapped
+                                PredictionClone.TextXAlignment = TextLabel.TextXAlignment
+                                PredictionClone.TextYAlignment = TextLabel.TextYAlignment
+                                PredictionClone.Name = "Predict"
+                                PredictionClone.Size = UDim2.new(1, 0, 1, 0);
+                                PredictionClone.BackgroundTransparency = 1
+                            end
+                        end
                     end
                 end
             end
-        end
-    
-        for i, v in next, Args do -- make it get more players after i space out
-            if (i > 1 and v ~= "") then
-                local Predict = ""
-                if (#CommandArgs >= 1) then
-                    for i2, v2 in next, CommandArgs do
-                        if (lower(v2) == "player") then
-                            Predict = Utils.GetPlayerArgs(v) or Predict;
+
+            ParentGui(PredictionClone, Frame2);
+            Predict = PredictionClone
+
+            Connection = AddConnection(CConnect(GetPropertyChangedSignal(ChatBar, "Text"), function() -- todo: add detection for /e
+                local Text = ChatBar.Text
+                local Prediction = PredictionClone
+                local PredictionText = PredictionClone.Text
+            
+                local Args = split(concat(shift(split(Text, ""))), " ");
+            
+                Prediction.Text = ""
+                if (not startsWith(Text, Prefix)) then
+                    return
+                end
+            
+                local FoundCommand = false
+                local FoundAlias = false
+                CommandArgs = CommandArgs or {}
+                if (not rawget(CommandsTable, Args[1])) then
+                    for _, v in next, CommandsTable do
+                        local CommandName = v.Name
+                        local Aliases = v.Aliases
+                        local FoundAlias
+                
+                        if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
+                            Prediction.Text = Prefix .. CommandName
+                            FoundCommand = true
+                            CommandArgs = v.Args or {}
+                            break
+                        end
+                
+                        for _, v2 in next, Aliases do
+                            if (Utils.MatchSearch(Args[1], v2)) then
+                                FoundAlias = true
+                                Prediction.Text = v2
+                                CommandArgs = v.Args or {}
+                                break
+                            end
+                
+                            if (FoundAlias) then
+                                break
+                            end
+                        end
+                    end
+                end
+            
+                for i, v in next, Args do -- make it get more players after i space out
+                    if (i > 1 and v ~= "") then
+                        local Predict = ""
+                        if (#CommandArgs >= 1) then
+                            for i2, v2 in next, CommandArgs do
+                                if (lower(v2) == "player") then
+                                    Predict = Utils.GetPlayerArgs(v) or Predict;
+                                else
+                                    Predict = Utils.MatchSearch(v, v2) and v2 or Predict
+                                end
+                            end
                         else
-                            Predict = Utils.MatchSearch(v, v2) and v2 or Predict
+                            Predict = Utils.GetPlayerArgs(v) or Predict;
                         end
-                    end
-                else
-                    Predict = Utils.GetPlayerArgs(v) or Predict;
-                end
-                Prediction.Text = sub(Text, 1, #Text - #Args[#Args]) .. Predict
-                local split = split(v, ",");
-                if (next(split)) then
-                    for i2, v2 in next, split do
-                        if (i2 > 1 and v2 ~= "") then
-                            local PlayerName = Utils.GetPlayerArgs(v2)
-                            Prediction.Text = sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
+                        Prediction.Text = sub(Text, 1, #Text - #Args[#Args]) .. Predict
+                        local split = split(v, ",");
+                        if (next(split)) then
+                            for i2, v2 in next, split do
+                                if (i2 > 1 and v2 ~= "") then
+                                    local PlayerName = Utils.GetPlayerArgs(v2)
+                                    Prediction.Text = sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
+                                end
+                            end
                         end
                     end
                 end
-            end
+            
+                if (Sfind(Text, "\t")) then -- remove tab from preditction text also
+                    ChatBar.Text = PredictionText
+                    ChatBar.CursorPosition = #ChatBar.Text + 2
+                end
+            end))
+            Enabled = true
+            return ChatBar
+        else
+            Disconnect(Connection);
+            Destroy(Predict);
+            Enabled = false
         end
-    
-        if (Sfind(Text, "\t")) then -- remove tab from preditction text also
-            ChatBar.Text = PredictionText
-            ChatBar.CursorPosition = #ChatBar.Text + 2
-        end
-    end))
+    end
 end
 
 local ConfigUILib = {}
@@ -465,8 +525,9 @@ do
                     Switch.Position = UDim2.fromOffset(2, 2)
                     Container.BackgroundColor3 = Colors.ToggleDisabled
                 end
-                
-                CConnect(Hitbox.MouseButton1Click, function()
+                local NoCallback = false
+
+                local OnClick = function()
                     Enabled = not Enabled
                     
                     Utils.Tween(Switch, "Quad", "Out", .25, {
@@ -476,17 +537,27 @@ do
                         BackgroundColor3 = Enabled and Colors.ToggleEnabled or Colors.ToggleDisabled
                     })
                     
-                    Callback(Enabled)
-                end)
+                    if (not NoCallback) then
+                        Callback(Enabled);
+                    end
+                end
+
+                CConnect(Hitbox.MouseButton1Click, OnClick);
                 
                 Toggle.Visible = true
                 Toggle.Title.Text = Title
                 Toggle.Parent = Section.Options
 
                 UpdateClone()
+
+                return function()
+                    NoCallback = true
+                    OnClick();
+                    NoCallback = false
+                end
             end
 
-            function ElementLibrary.ScrollingFrame(Title, Callback, Elements)
+            function ElementLibrary.ScrollingFrame(Title, Callback, Elements, Toggles)
                 local ScrollingFrame = Clone(GuiObjects.Elements.ScrollingFrame);
                 local Frame = ScrollingFrame.Frame
                 local Toggle = ScrollingFrame.Toggle
@@ -495,16 +566,16 @@ do
                     local NewToggle = Clone(Toggle);
                     NewToggle.Visible = true
                     NewToggle.Title.Text = ElementTitle
-                    NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+                    NewToggle.Plugins.Text = Enabled and (Toggles and Toggles[1] or "Enabled") or (Toggles and Toggles[2] or "Disabled");
 
 
                     Utils.Click(NewToggle.Plugins, "BackgroundColor3")
 
                     CConnect(NewToggle.Plugins.MouseButton1Click, function()
                         Enabled = not Enabled
-                        NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+                        NewToggle.Plugins.Text = Enabled and (Toggles and Toggles[1] or "Enabled") or (Toggles and Toggles[2] or "Disabled");
 
-                        Callback(Title, Enabled)
+                        Callback(ElementTitle, Enabled);
                     end)
 
                     NewToggle.Parent = Frame.Container
@@ -517,11 +588,13 @@ do
                 UpdateClone()
             end
 
-            function ElementLibrary.Keybind(Title, Callback)
+            function ElementLibrary.Keybind(Title, Bind, Callback)
                 local Keybind = Clone(GuiObjects.Elements.Keybind);
                 local Enabled = false
                 local Connection
 
+                Keybind.Container.Text = Bind
+                Keybind.Title.Text = Title
                 local function GetKeyName(KeyCode)
                     local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
                     local IsEnum = Stringed == ""
@@ -584,8 +657,8 @@ end
 local ConfigLoaded = false
 
 Utils.Click(ConfigUI.Close, "TextColor3")
-CConnect(ConfigUI.Close.MouseButton1Click, function()
+AddConnection(CConnect(ConfigUI.Close.MouseButton1Click, function()
     ConfigLoaded = false
     CWait(Utils.TweenAllTrans(ConfigUI, .25).Completed);
     ConfigUI.Visible = false
-end)
+end))

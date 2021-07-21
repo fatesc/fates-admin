@@ -144,6 +144,7 @@ local GetAccessories = __H.GetAccessories
 local MoveTo = __H.MoveTo
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
 
 local startsWith = function(str, searchString, rawPos)
@@ -271,14 +272,18 @@ end
 --IMPORT [extend]
 local Debug = true
 
-local firetouchinterest = firetouchinterest or function(part1, part2, toggle)
-    if (part1 and part2) then
-        if (toggle == 0) then
-            touched[1] = part1.CFrame
-            part1.CFrame = part2.CFrame
-        else
-            part1.CFrame = touched[1]
-            touched[1] = nil
+local firetouchinterest;
+do
+    local touched = {}
+    firetouchinterest = firetouchinterest or function(part1, part2, toggle)
+        if (part1 and part2) then
+            if (toggle == 0) then
+                touched[1] = part1.CFrame
+                part1.CFrame = part2.CFrame
+            else
+                part1.CFrame = touched[1]
+                touched[1] = nil
+            end
         end
     end
 end
@@ -718,7 +723,8 @@ PluginLibrary.GetMagnitude = GetMagnitude
 
 local Settings = {
     Prefix = "!",
-    CommandBarPrefix = "Semicolon"
+    CommandBarPrefix = "Semicolon",
+    ChatPrediction = false,
 }
 local PluginSettings = {
     PluginsEnabled = true,
@@ -762,13 +768,23 @@ local GetPluginConfig = function()
     end
 end
 
+local SetPluginConfig = function(conf)
+    if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfile("fates-admin/plugins/plugin-conf.json")) then
+        WriteConfig();
+    end
+    local NewConfig = GetPluginConfig();
+    for i, v in next, conf do
+        NewConfig[i] = v
+    end
+    writefile("fates-admin/plugins/plugin-conf.json", JSONEncode(Services.HttpService, NewConfig));
+end
+
 local SetConfig = function(conf)
     if (not isfolder("fates-admin") and isfile("fates-admin/config.json")) then
         WriteConfig();
     end
     local NewConfig = GetConfig();
-    for i = 1, #conf do
-        local v = conf[i]
+    for i, v in next, conf do
         NewConfig[i] = v
     end
     writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
@@ -879,21 +895,6 @@ local NotificationBar = UI.NotificationBar
 local Stats = Clone(UI.Notification);
 local StatsBar = Clone(UI.NotificationBar);
 
-local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
-if (RobloxChat) then
-    local RobloxChatFrame = WaitForChild(RobloxChat, "Frame", .1);
-    if RobloxChatFrame then
-        RobloxChatChannelParentFrame = WaitForChild(RobloxChatFrame, "ChatChannelParentFrame", .1);
-        RobloxChatBarFrame = WaitForChild(RobloxChatFrame, "ChatBarParentFrame", .1);
-        if RobloxChatChannelParentFrame then
-            RobloxFrameMessageLogDisplay = WaitForChild(RobloxChatChannelParentFrame, "Frame_MessageLogDisplay", .1);
-            if RobloxFrameMessageLogDisplay then
-                RobloxScroller = WaitForChild(RobloxFrameMessageLogDisplay, "Scroller", .1);
-            end
-        end
-    end
-end
-
 local CommandBarOpen = false
 local CommandBarTransparencyClone = Clone(CommandBar);
 local ChatLogsTransparencyClone = Clone(ChatLogs);
@@ -913,43 +914,6 @@ HttpLogs.Parent = UIParent
 HttpLogs.Name = "HttpLogs"
 HttpLogs.Size = UDim2.new(0, 421, 0, 260);
 HttpLogs.Search.PlaceholderText = "Search"
-
-local Frame2;
-local PredictionClone;
-if (RobloxChatBarFrame) then
-    local Frame1 = WaitForChild(RobloxChatBarFrame, 'Frame', .1);
-    if Frame1 then
-        local BoxFrame = WaitForChild(Frame1, 'BoxFrame', .1);
-        if BoxFrame then
-            Frame2 = WaitForChild(BoxFrame, 'Frame', .1);
-            if Frame2 then
-                local TextLabel = WaitForChild(Frame2, 'TextLabel', .1);
-                ChatBar = WaitForChild(Frame2, 'ChatBar', .1);
-                if TextLabel and ChatBar then
-                    PredictionClone = InstanceNew('TextLabel');
-                    PredictionClone.Font = TextLabel.Font
-                    PredictionClone.LineHeight = TextLabel.LineHeight
-                    PredictionClone.MaxVisibleGraphemes = TextLabel.MaxVisibleGraphemes
-                    PredictionClone.RichText = TextLabel.RichText
-                    PredictionClone.Text = ''
-                    PredictionClone.TextColor3 = TextLabel.TextColor3
-                    PredictionClone.TextScaled = TextLabel.TextScaled
-                    PredictionClone.TextSize = TextLabel.TextSize
-                    PredictionClone.TextStrokeColor3 = TextLabel.TextStrokeColor3
-                    PredictionClone.TextStrokeTransparency = TextLabel.TextStrokeTransparency
-                    PredictionClone.TextTransparency = 0.3
-                    PredictionClone.TextTruncate = TextLabel.TextTruncate
-                    PredictionClone.TextWrapped = TextLabel.TextWrapped
-                    PredictionClone.TextXAlignment = TextLabel.TextXAlignment
-                    PredictionClone.TextYAlignment = TextLabel.TextYAlignment
-                    PredictionClone.Name = "Predict"
-                    PredictionClone.Size = UDim2.new(1, 0, 1, 0);
-                    PredictionClone.BackgroundTransparency = 1
-                end
-            end
-        end
-    end
-end
 
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
@@ -4497,9 +4461,10 @@ AddCommand("draggablebar", {"draggable"}, "makes the command bar draggable", {},
     return format("draggable command bar %s", Draggable and "enabled" or "disabled")
 end)
 
+local ToggleChatPrediction
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    ParentGui(PredictionClone, Frame2);
-    local ChatBar = WaitForChild(Frame2, 'ChatBar', .1);
+    ToggleChatPrediction();
+    local ChatBar = WaitForChild(Frame2, "ChatBar", .1);
     ChatBar.CaptureFocus(ChatBar);
     wait();
     ChatBar.Text = Prefix
@@ -4789,12 +4754,17 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
-AddCommand("config", {"conf"}, "shows fates admin config", {}, function()
+local LoadConfig;
+AddCommand("config", {"conf"}, "shows fates admin config", {}, function(Caller, Args, Tbl)
     if (not ConfigLoaded) then
+        if (not Tbl[1]) then
+            LoadConfig();
+        end
         Utils.SetAllTrans(ConfigUI);
         ConfigUI.Visible = true
         Utils.TweenAllTransToObject(ConfigUI, .25, ConfigUIClone);
         ConfigLoaded = true
+        Tbl[1] = true
         return "config loaded" 
     end
 end)
@@ -5164,82 +5134,142 @@ AddConnection(CConnect(GetPropertyChangedSignal(CommandBar.Input, "Text"), funct
     end
 end))
 
-if (ChatBar) then
-    AddConnection(CConnect(GetPropertyChangedSignal(ChatBar, "Text"), function() -- todo: add detection for /e
-        local Text = ChatBar.Text
-        local Prediction = PredictionClone
-        local PredictionText = PredictionClone.Text
-    
-        local Args = split(concat(shift(split(Text, ""))), " ");
-    
-        Prediction.Text = ""
-        if (not startsWith(Text, Prefix)) then
-            return
-        end
-    
-        local FoundCommand = false
-        local FoundAlias = false
-        CommandArgs = CommandArgs or {}
-        if (not rawget(CommandsTable, Args[1])) then
-            for _, v in next, CommandsTable do
-                local CommandName = v.Name
-                local Aliases = v.Aliases
-                local FoundAlias
-        
-                if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
-                    Prediction.Text = Prefix .. CommandName
-                    FoundCommand = true
-                    CommandArgs = v.Args or {}
-                    break
+do
+    local Enabled = false
+    local Connection, Frame2;
+    local Predict;
+    ToggleChatPrediction = function()
+        if (not Enabled) then
+            local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
+            local RobloxChatBarFrame;
+            if (RobloxChat) then
+                local RobloxChatFrame = FindFirstChild(RobloxChat, "Frame");
+                if (RobloxChatFrame) then
+                    RobloxChatBarFrame = FindFirstChild(RobloxChatFrame, "ChatBarParentFrame");
                 end
-        
-                for _, v2 in next, Aliases do
-                    if (Utils.MatchSearch(Args[1], v2)) then
-                        FoundAlias = true
-                        Prediction.Text = v2
-                        CommandArgs = v.Args or {}
-                        break
-                    end
-        
-                    if (FoundAlias) then
-                        break
+            end
+            local PredictionClone, ChatBar
+            if (RobloxChatBarFrame) then
+                local Frame1 = FindFirstChild(RobloxChatBarFrame, 'Frame');
+                if Frame1 then
+                    local BoxFrame = FindFirstChild(Frame1, 'BoxFrame');
+                    if BoxFrame then
+                        Frame2 = FindFirstChild(BoxFrame, 'Frame');
+                        if Frame2 then
+                            local TextLabel = FindFirstChild(Frame2, 'TextLabel');
+                            ChatBar = FindFirstChild(Frame2, 'ChatBar');
+                            if TextLabel and ChatBar then
+                                PredictionClone = InstanceNew('TextLabel');
+                                PredictionClone.Font = TextLabel.Font
+                                PredictionClone.LineHeight = TextLabel.LineHeight
+                                PredictionClone.MaxVisibleGraphemes = TextLabel.MaxVisibleGraphemes
+                                PredictionClone.RichText = TextLabel.RichText
+                                PredictionClone.Text = ''
+                                PredictionClone.TextColor3 = TextLabel.TextColor3
+                                PredictionClone.TextScaled = TextLabel.TextScaled
+                                PredictionClone.TextSize = TextLabel.TextSize
+                                PredictionClone.TextStrokeColor3 = TextLabel.TextStrokeColor3
+                                PredictionClone.TextStrokeTransparency = TextLabel.TextStrokeTransparency
+                                PredictionClone.TextTransparency = 0.3
+                                PredictionClone.TextTruncate = TextLabel.TextTruncate
+                                PredictionClone.TextWrapped = TextLabel.TextWrapped
+                                PredictionClone.TextXAlignment = TextLabel.TextXAlignment
+                                PredictionClone.TextYAlignment = TextLabel.TextYAlignment
+                                PredictionClone.Name = "Predict"
+                                PredictionClone.Size = UDim2.new(1, 0, 1, 0);
+                                PredictionClone.BackgroundTransparency = 1
+                            end
+                        end
                     end
                 end
             end
-        end
-    
-        for i, v in next, Args do -- make it get more players after i space out
-            if (i > 1 and v ~= "") then
-                local Predict = ""
-                if (#CommandArgs >= 1) then
-                    for i2, v2 in next, CommandArgs do
-                        if (lower(v2) == "player") then
-                            Predict = Utils.GetPlayerArgs(v) or Predict;
+
+            ParentGui(PredictionClone, Frame2);
+            Predict = PredictionClone
+
+            Connection = AddConnection(CConnect(GetPropertyChangedSignal(ChatBar, "Text"), function() -- todo: add detection for /e
+                local Text = ChatBar.Text
+                local Prediction = PredictionClone
+                local PredictionText = PredictionClone.Text
+            
+                local Args = split(concat(shift(split(Text, ""))), " ");
+            
+                Prediction.Text = ""
+                if (not startsWith(Text, Prefix)) then
+                    return
+                end
+            
+                local FoundCommand = false
+                local FoundAlias = false
+                CommandArgs = CommandArgs or {}
+                if (not rawget(CommandsTable, Args[1])) then
+                    for _, v in next, CommandsTable do
+                        local CommandName = v.Name
+                        local Aliases = v.Aliases
+                        local FoundAlias
+                
+                        if (Utils.MatchSearch(Args[1], CommandName)) then -- better search
+                            Prediction.Text = Prefix .. CommandName
+                            FoundCommand = true
+                            CommandArgs = v.Args or {}
+                            break
+                        end
+                
+                        for _, v2 in next, Aliases do
+                            if (Utils.MatchSearch(Args[1], v2)) then
+                                FoundAlias = true
+                                Prediction.Text = v2
+                                CommandArgs = v.Args or {}
+                                break
+                            end
+                
+                            if (FoundAlias) then
+                                break
+                            end
+                        end
+                    end
+                end
+            
+                for i, v in next, Args do -- make it get more players after i space out
+                    if (i > 1 and v ~= "") then
+                        local Predict = ""
+                        if (#CommandArgs >= 1) then
+                            for i2, v2 in next, CommandArgs do
+                                if (lower(v2) == "player") then
+                                    Predict = Utils.GetPlayerArgs(v) or Predict;
+                                else
+                                    Predict = Utils.MatchSearch(v, v2) and v2 or Predict
+                                end
+                            end
                         else
-                            Predict = Utils.MatchSearch(v, v2) and v2 or Predict
+                            Predict = Utils.GetPlayerArgs(v) or Predict;
                         end
-                    end
-                else
-                    Predict = Utils.GetPlayerArgs(v) or Predict;
-                end
-                Prediction.Text = sub(Text, 1, #Text - #Args[#Args]) .. Predict
-                local split = split(v, ",");
-                if (next(split)) then
-                    for i2, v2 in next, split do
-                        if (i2 > 1 and v2 ~= "") then
-                            local PlayerName = Utils.GetPlayerArgs(v2)
-                            Prediction.Text = sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
+                        Prediction.Text = sub(Text, 1, #Text - #Args[#Args]) .. Predict
+                        local split = split(v, ",");
+                        if (next(split)) then
+                            for i2, v2 in next, split do
+                                if (i2 > 1 and v2 ~= "") then
+                                    local PlayerName = Utils.GetPlayerArgs(v2)
+                                    Prediction.Text = sub(Text, 1, #Text - #split[#split]) .. (PlayerName or "")
+                                end
+                            end
                         end
                     end
                 end
-            end
+            
+                if (Sfind(Text, "\t")) then -- remove tab from preditction text also
+                    ChatBar.Text = PredictionText
+                    ChatBar.CursorPosition = #ChatBar.Text + 2
+                end
+            end))
+            Enabled = true
+            return ChatBar
+        else
+            Disconnect(Connection);
+            Destroy(Predict);
+            Enabled = false
         end
-    
-        if (Sfind(Text, "\t")) then -- remove tab from preditction text also
-            ChatBar.Text = PredictionText
-            ChatBar.CursorPosition = #ChatBar.Text + 2
-        end
-    end))
+    end
 end
 
 local ConfigUILib = {}
@@ -5323,8 +5353,9 @@ do
                     Switch.Position = UDim2.fromOffset(2, 2)
                     Container.BackgroundColor3 = Colors.ToggleDisabled
                 end
-                
-                CConnect(Hitbox.MouseButton1Click, function()
+                local NoCallback = false
+
+                local OnClick = function()
                     Enabled = not Enabled
                     
                     Utils.Tween(Switch, "Quad", "Out", .25, {
@@ -5334,17 +5365,27 @@ do
                         BackgroundColor3 = Enabled and Colors.ToggleEnabled or Colors.ToggleDisabled
                     })
                     
-                    Callback(Enabled)
-                end)
+                    if (not NoCallback) then
+                        Callback(Enabled);
+                    end
+                end
+
+                CConnect(Hitbox.MouseButton1Click, OnClick);
                 
                 Toggle.Visible = true
                 Toggle.Title.Text = Title
                 Toggle.Parent = Section.Options
 
                 UpdateClone()
+
+                return function()
+                    NoCallback = true
+                    OnClick();
+                    NoCallback = false
+                end
             end
 
-            function ElementLibrary.ScrollingFrame(Title, Callback, Elements)
+            function ElementLibrary.ScrollingFrame(Title, Callback, Elements, Toggles)
                 local ScrollingFrame = Clone(GuiObjects.Elements.ScrollingFrame);
                 local Frame = ScrollingFrame.Frame
                 local Toggle = ScrollingFrame.Toggle
@@ -5353,16 +5394,16 @@ do
                     local NewToggle = Clone(Toggle);
                     NewToggle.Visible = true
                     NewToggle.Title.Text = ElementTitle
-                    NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+                    NewToggle.Plugins.Text = Enabled and (Toggles and Toggles[1] or "Enabled") or (Toggles and Toggles[2] or "Disabled");
 
 
                     Utils.Click(NewToggle.Plugins, "BackgroundColor3")
 
                     CConnect(NewToggle.Plugins.MouseButton1Click, function()
                         Enabled = not Enabled
-                        NewToggle.Plugins.Text = Enabled and "Enabled" or "Disabled"
+                        NewToggle.Plugins.Text = Enabled and (Toggles and Toggles[1] or "Enabled") or (Toggles and Toggles[2] or "Disabled");
 
-                        Callback(Title, Enabled)
+                        Callback(ElementTitle, Enabled);
                     end)
 
                     NewToggle.Parent = Frame.Container
@@ -5375,11 +5416,13 @@ do
                 UpdateClone()
             end
 
-            function ElementLibrary.Keybind(Title, Callback)
+            function ElementLibrary.Keybind(Title, Bind, Callback)
                 local Keybind = Clone(GuiObjects.Elements.Keybind);
                 local Enabled = false
                 local Connection
 
+                Keybind.Container.Text = Bind
+                Keybind.Title.Text = Title
                 local function GetKeyName(KeyCode)
                     local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
                     local IsEnum = Stringed == ""
@@ -5442,144 +5485,282 @@ end
 local ConfigLoaded = false
 
 Utils.Click(ConfigUI.Close, "TextColor3")
-CConnect(ConfigUI.Close.MouseButton1Click, function()
+AddConnection(CConnect(ConfigUI.Close.MouseButton1Click, function()
     ConfigLoaded = false
     CWait(Utils.TweenAllTrans(ConfigUI, .25).Completed);
     ConfigUI.Visible = false
-end)
+end))
 --END IMPORT [uimore]
 
 
 --IMPORT [plugin]
 local IsSupportedExploit = isfile and isfolder and writefile and readfile
 local PluginConf = IsSupportedExploit and GetPluginConfig();
-local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
+local Plugins;
 
-local LoadPlugin = function(Plugin)
-    if (not IsSupportedExploit) then
-        return 
-    end
-    if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
-        Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
-        return "Disabled"
-    end
-    if (#keys(Plugin) < 3) then
-        return Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.");
-    end
-    if (IsDebug) then
-        Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
-    end
-
-    local Ran, Return = pcall(Plugin.Init);
-    if (not Ran and Return and IsDebug) then
-        return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
-    end
+do
+    local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
     
-    for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
-        if (#keys(command) < 3) then
-            Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
-            continue
-        end
-        AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
-
-        if (FindFirstChild(Commands.Frame.List, command.Name)) then
-            Destroy(FindFirstChild(Commands.Frame.List, command.Name));
-        end
-        local Clone = Clone(Command);
-        Utils.Hover(Clone, "BackgroundColor3");
-        Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
-        Clone.CommandText.RichText = true
-        Clone.CommandText.Text = format("%s %s %s", command.Name, next(command.Aliases or {}) and format("(%s)", concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
-        Clone.Name = command.Name
-        Clone.Visible = true
-        Clone.Parent = Commands.Frame.List
-        if (IsDebug) then
-            Utils.Notify(LocalPlayer, "Plugin Command Loaded", format("Command %s loaded successfully", command.Name));
-        end
-    end
-end
-
-if (IsSupportedExploit) then
-    if (not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
-        WriteConfig();
-    end
-end
-
-local Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
-    return lower(split(v, ".")[#split(v, ".")]) == "lua"
-end), function(i, v)
-    return {split(v, "\\")[2], loadfile(v)}
-end) or {}
-
--- local PluginsPage = ConfigUILib.NewPage("Plugins");
--- local CurrentPlugins = PluginsPage.NewSection("Current Plugins");
-
--- CurrentPlugins.ScrollingFrame("plugins", function(Option, Enabled)
---     if (not Enabled) then
---         -- will do later
---     end
---     Utils.Notify(nil, "Plugin Conf", "Temporary Disabled");
--- end, map(Plugins, function(Key, Plugin)
---     return Plugin[1], not PluginConf.DisabledPlugins[Plugin[1]]
--- end));
-
-for i, Plugin in next, Plugins do
-    LoadPlugin(Plugin[2]());
-end
-
-AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
-    if (not IsSupportedExploit) then
-        return "your exploit does not support plugins"
-    end
-    PluginConf = GetPluginConfig();
-    IsDebug = PluginConf.PluginDebug
-    
-    Plugins = map(filter(listfiles("fates-admin/plugins"), function(i, v)
+    Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
         return {split(v, "\\")[2], loadfile(v)}
-    end)
-    
-    for i, Plugin in next, Plugins do
-        LoadPlugin(Plugin[2]());
+    end) or {}
+
+    if (PluginConf.PluginsEnabled) then
+        local LoadPlugin = function(Plugin)
+            if (not IsSupportedExploit) then
+                return 
+            end
+        
+            if (Plugin and PluginConf.DisabledPlugins[Plugin.Name]) then
+                Utils.Notify(LocalPlayer, "Plugin not loaded.", format("Plugin %s was not loaded as it is on the disabled list.", Plugin.Name));
+                return "Disabled"
+            end
+            if (#keys(Plugin) < 3) then
+                return Utils.Notify(LocalPlayer, "Plugin Fail", "One of your plugins is missing information.");
+            end
+            if (IsDebug) then
+                Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
+            end
+        
+            local Ran, Return = pcall(Plugin.Init);
+            if (not Ran and Return and IsDebug) then
+                return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
+            end
+            
+            for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
+                if (#keys(command) < 3) then
+                    Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
+                    continue
+                end
+                AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
+        
+                if (FindFirstChild(Commands.Frame.List, command.Name)) then
+                    Destroy(FindFirstChild(Commands.Frame.List, command.Name));
+                end
+                local Clone = Clone(Command);
+                Utils.Hover(Clone, "BackgroundColor3");
+                Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
+                Clone.CommandText.RichText = true
+                Clone.CommandText.Text = format("%s %s %s", command.Name, next(command.Aliases or {}) and format("(%s)", concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
+                Clone.Name = command.Name
+                Clone.Visible = true
+                Clone.Parent = Commands.Frame.List
+                if (IsDebug) then
+                    Utils.Notify(LocalPlayer, "Plugin Command Loaded", format("Command %s loaded successfully", command.Name));
+                end
+            end
+        end
+        
+        if (IsSupportedExploit) then
+            if (not isfolder("fates-admin") and not isfolder("fates-admin/plugins") and not isfolder("fates-admin/plugin-conf.json") or not isfolder("fates-admin/chatlogs")) then
+                WriteConfig();
+            end
+        end
+
+        for i, Plugin in next, Plugins do
+            LoadPlugin(Plugin[2]());
+        end
+        
+        AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
+            if (not IsSupportedExploit) then
+                return "your exploit does not support plugins"
+            end
+            PluginConf = GetPluginConfig();
+            IsDebug = PluginConf.PluginDebug
+            
+            Plugins = map(filter(listfiles("fates-admin/plugins"), function(i, v)
+                return lower(split(v, ".")[#split(v, ".")]) == "lua"
+            end), function(i, v)
+                return {split(v, "\\")[2], loadfile(v)}
+            end)
+            
+            for i, Plugin in next, Plugins do
+                LoadPlugin(Plugin[2]());
+            end
+        end)
     end
-end)
-
-local PluginsPage = ConfigUILib.NewPage("Plugins")
-local Customize = ConfigUILib.NewPage("Customize")
-
-local NewPlugins = PluginsPage.NewSection("1")
-local OldPlugins = PluginsPage.NewSection("2")
-
-NewPlugins.Toggle("show health", nil, function(Callback)
-    print(Callback);
-end)
-
-NewPlugins.Toggle("not show health", nil, function(Callback)
-    print(Callback);
-end)
-
-NewPlugins.ScrollingFrame("plugins", function(Option, Enabled)
-    print(Option, Enabled);
-end, {
-    ["lol.lua"] = true;
-    ["stdio.h"] = false;
-    ["a.lua"] = false;
-    af = true;
-    bsrd = false;
-    egsgf = false;
-    gewg = false;
-    dsgkw = false;
-})
-
-NewPlugins.Keybind("test", function(Callback)
-    print(Callback)
-end)
+end
 --END IMPORT [plugin]
 
 
 WideBar = false
 Draggable = false
+
+--IMPORT [config]
+do
+    local function GetKeyName(KeyCode)
+        local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
+        local IsEnum = Stringed == ""
+        return not IsEnum and Stringed or split(tostring(KeyCode), ".")[3], IsEnum
+    end
+
+    LoadConfig = function()
+        local Script = ConfigUILib.NewPage("Script");
+        local Settings = Script.NewSection("Settings");
+    
+        local CurrentConf = GetConfig();
+
+        Settings.Keybind("Chat Prefix", Prefix, function(KeyCode)
+            local Key = GetKeyName(KeyCode);
+            if (not match(Key, "%A") or #Key > 1) then
+                Utils.Notify(nil, "Prefix", "Prefix must be a 1 character symbol.");
+                return
+            end
+            Prefix = Key
+            Utils.Notify(nil, nil, "");
+        end)
+    
+        Settings.Keybind("CMDBar Prefix", GetKeyName(CommandBarPrefix), function(KeyCode1, KeyCode2)
+            CommandBarPrefix = KeyCode1
+            Utils.Notify(nil, nil, "");
+        end)
+    
+        local ToggleSave;
+        ToggleSave = Settings.Toggle("Save Prefix's", false, function(Callback)
+            SetConfig({["Prefix"]=Prefix,["CommandBarPrefix"]=split(tostring(CommandBarPrefix), ".")[3]});
+            wait(.5);
+            ToggleSave();
+            Utils.Notify(nil, nil, "");
+        end)
+    
+        local Misc = Script.NewSection("Misc");
+
+        Misc.Toggle("Chat Prediction", CurrentConf.ChatPrediction or false, function(Callback)
+            local ChatBar = ToggleChatPrediction();
+            if (Callback) then
+                ChatBar.CaptureFocus(ChatBar);
+                wait();
+                ChatBar.Text = Prefix
+            end
+            SetConfig({ChatPrediction=Callback});
+            Utils.Notify(nil, nil, format("ChatPrediction %s", Callback and "enabled" or "disabled"));
+        end)
+
+        Misc.Toggle("Anti Kick", AntiKick, function(Callback)
+            AntiKick = Callback
+            Utils.Notify(nil, nil, format("AntiKick %s", AntiKick and "enabled" or "disabled"));
+        end)
+
+        Misc.Toggle("Anti Teleport", AntiTeleport, function(Callback)
+            AntiTeleport = Callback
+            Utils.Notify(nil, nil, format("AntiTeleport %s", AntiTeleport and "enabled" or "disabled"));
+        end)
+
+        Misc.Toggle("wide cmdbar", WideBar, function(Callback)
+            WideBar = Callback
+            if (not Draggable) then
+                Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween -110
+                })
+            end
+            Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
+            })
+            Utils.Notify(nil, nil, format("widebar %s", WideBar and "enabled" or "disabled"));
+        end)
+
+        Misc.Toggle("draggable cmdbar", Draggable, function(Callback)
+            Draggable = Callback
+            CommandBarOpen = true
+            Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                Position = UDim2.new(0, Mouse.X, 0, Mouse.Y + 36);
+            })
+            Utils.Draggable(CommandBar);
+            local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
+            local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone);
+            CommandBar.Input.Text = ""
+            if (not Callback) then
+                Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
+                })
+            end
+            Utils.Notify(nil, nil, format("draggable command bar %s", Draggable and "enabled" or "disabled"));
+        end)
+
+        local OldFireTouchInterest = firetouchinterest
+        Misc.Toggle("cframe touchinterest", firetouchinterest == nil, function(Callback)
+            firetouchinterest = Callback and function(part1, part2, toggle)
+                if (part1 and part2) then
+                    if (toggle == 0) then
+                        touched[1] = part1.CFrame
+                        part1.CFrame = part2.CFrame
+                    else
+                        part1.CFrame = touched[1]
+                        touched[1] = nil
+                    end
+                end
+            end or OldFireTouchInterest
+        end)
+
+        local PluginsPage = ConfigUILib.NewPage("Plugins")
+        
+        local CurrentPlugins = PluginsPage.NewSection("Current Plugins");
+        local PluginSettings = PluginsPage.NewSection("Plugin Settings");
+    
+        local CurrentPluginConf = GetPluginConfig();
+    
+        CurrentPlugins.ScrollingFrame("plugins", function(Option, Enabled)
+            CurrentPluginConf = GetPluginConfig();
+            for i = 1, #Plugins do
+                local Plugin = Plugins[i]
+                if (Plugin[1] == Option) then
+                    local DisabledPlugins = CurrentPluginConf.DisabledPlugins
+                    local PluginName = Plugin[2]().Name
+                    if (Enabled) then
+                        DisabledPlugins[PluginName] = nil
+                        SetPluginConfig({DisabledPlugins=DisabledPlugins});
+                        Utils.Notify(nil, "Plugin Enabled", format("plugin %s successfully enabled", PluginName));
+                    else
+                        DisabledPlugins[PluginName] = true
+                        SetPluginConfig({DisabledPlugins=DisabledPlugins});
+                        Utils.Notify(nil, "Plugin Disabled", format("plugin %s successfully disabled", PluginName));
+                    end
+                end
+            end
+        end, map(Plugins, function(Key, Plugin)
+            return not PluginConf.DisabledPlugins[Plugin[2]().Name], Plugin[1]
+        end));
+    
+        PluginSettings.Toggle("Plugins Enabled", CurrentPluginConf.PluginsEnabled, function(Callback)
+            SetPluginConfig({PluginsEnabled = Callback});
+        end)
+
+        PluginSettings.Toggle("Plugins Debug", CurrentPluginConf.PluginDebug, function(Callback)
+            SetPluginConfig({PluginDebug = Callback});
+        end)
+    
+    
+        -- NewPlugins.Toggle("show health", nil, function(Callback)
+        --     print(Callback);
+        -- end)
+        
+        -- NewPlugins.Toggle("not show health", nil, function(Callback)
+        --     print(Callback);
+        -- end)
+        
+        -- NewPlugins.ScrollingFrame("plugins", function(Option, Enabled)
+        --     print(Option, Enabled);
+        -- end, {
+        --     ["lol.lua"] = true;
+        --     ["stdio.h"] = false;
+        --     ["a.lua"] = false;
+        --     af = true;
+        --     bsrd = false;
+        --     egsgf = false;
+        --     gewg = false;
+        --     dsgkw = false;
+        -- })
+        
+        -- NewPlugins.Keybind("test", function(Callback)
+        --     print(Callback)
+        -- end)
+    end
+end
+--END IMPORT [config]
+
+
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
         v.Enable(v);
