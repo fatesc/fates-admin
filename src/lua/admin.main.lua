@@ -388,6 +388,7 @@ end
 local ReplaceCharacter = function()
     local Char = LocalPlayer.Character
     local Model = InstanceNew("Model");
+    Model.Name = Char.Name
     LocalPlayer.Character = Model
     LocalPlayer.Character = Char
     Destroy(Model);
