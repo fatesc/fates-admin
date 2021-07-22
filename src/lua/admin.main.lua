@@ -966,16 +966,17 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         end
     end)()
 
-    UnequipTools(GetHumanoid());
+
     local ToolAmount = #filter(GetChildren(LocalPlayer.Backpack), function(i, v)
         return IsA(v, "Tool");
     end)
     local Duped = {}
+    local Humanoid = GetHumanoid();
+    UnequipTools(Humanoid);
     for i = 1, Amount do
         if (not LoadCommand("dupetools").CmdExtra[1]) then
             do break end;
         end
-        UnequipTools(GetHumanoid());
         ReplaceCharacter();
         local OldPos
         if (Protected) then
@@ -983,15 +984,14 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
             delay(Players.RespawnTime - .3, function()
                 Services.Workspace.FallenPartsDestroyHeight = -math.huge
                 OldPos = GetRoot().CFrame
-                SpoofProperty(GetRoot(), "Anchored");
                 GetRoot().CFrame = CFrameNew(0, 1e9, 0);
                 GetRoot().Anchored = true
             end)
         end
-        wait(Players.RespawnTime - .05); --todo: add the amount of tools divided by 100 or something like that
+        UnequipTools(Humanoid);
+        wait(Players.RespawnTime - .05);
         OldPos = OldPos or GetRoot().CFrame
-        ReplaceHumanoid(Humanoid);
-
+        Humanoid = ReplaceHumanoid(Humanoid);
         local Tools = filter(GetChildren(LocalPlayer.Backpack), function(i, v)
             return IsA(v, "Tool");
         end)
@@ -1013,12 +1013,12 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         repeat CWait(RenderStepped);
             FindFirstChild(Char, "HumanoidRootPart").CFrame = OldPos
         until GetRoot().CFrame == OldPos
-        local Humanoid = nil
+
         repeat CWait(RenderStepped);
             Humanoid = FindFirstChild(Char, "Humanoid")
         until Humanoid
-        wait(.2);
-        UnequipTools(GetHumanoid());
+        wait(.4);
+        UnequipTools(Humanoid);
         AmountDuped = AmountDuped + 1
     end
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);

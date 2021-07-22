@@ -3,7 +3,7 @@ local Debug = true
 local firetouchinterest;
 do
     local touched = {}
-    firetouchinterest = firetouchinterest or function(part1, part2, toggle)
+    firetouchinterest = getgenv().firetouchinterest or function(part1, part2, toggle)
         if (part1 and part2) then
             if (toggle == 0) then
                 touched[1] = part1.CFrame
