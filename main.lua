@@ -1,5 +1,5 @@
 --[[
-	fates admin - 22/7/2021
+	fates admin - 21/7/2021
 ]]
 
 local game = game
@@ -1799,7 +1799,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         end
     end
     UnequipTools(Humanoid);
-    local ClearAllChildren = game.ClearAllChildren
+
     coroutine.wrap(function()
         for i = 1, #Target do
             local v = Target[i]
@@ -1826,7 +1826,11 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
                 Tool.Parent = GetCharacter();
                 if (FindFirstChild(Tool, "Handle")) then
                     Tool.Handle.Size = Vector3New(4, 4, 4);
-                    ClearAllChildren(Tool.Handle);
+                    for i2, v2 in next, GetDescendants(Tool) do
+                        if (IsA(v, "Sound")) then
+                            Destroy(v);
+                        end
+                    end
                     CFrameTool(Tool, TargetRoot.CFrame * CFrameNew(0, 3, 0));
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
@@ -1862,7 +1866,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
             Humanoid2 = ReplaceHumanoid();
         end
     end
-    local ClearAllChildren = game.ClearAllChildren
+
     UnequipTools(Humanoid);
     local Destroy_;
     coroutine.wrap(function()
@@ -1894,7 +1898,6 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
                 SpoofInstance(Tool);
                 Tool.Parent = GetCharacter();
                 Tool.Handle.Size = Vector3New(4, 4, 4);
-                ClearAllChildren(Tool.Handle);
                 CFrameTool(Tool, TargetRoot.CFrame * CFrameNew(0, 3, 0));
                 firetouchinterest(TargetRoot, Tool.Handle, 0);
                 wait();
@@ -1985,7 +1988,6 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 ReplaceHumanoid();
             end
         end
-        local ClearAllChildren = game.ClearAllChildren
         for i = 1, #Target do
             local v = Target[i]
             if (GetCharacter(v)) then
@@ -2014,7 +2016,11 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 end
                 Tool.Parent = GetCharacter();
                 Tool.Handle.Size = Vector3New(4, 4, 4);
-                ClearAllChildren(Tool.Handle);
+                for i2, v2 in next, GetDescendants(Tool) do
+                    if (IsA(v2, "Sound")) then
+                        Destroy(v2);
+                    end
+                end
                 for i2 = 1, 3 do
                     if (TargetRoot) then
                         firetouchinterest(TargetRoot, Tool.Handle, 0);
