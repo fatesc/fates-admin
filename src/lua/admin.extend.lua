@@ -33,8 +33,8 @@ local getconnections = function(...)
     local Connections = getconnections(...);
     do return Connections end
     local ActualConnections = filter(Connections, function(i, Connection)
-        if (Connection.Function) then
-            if (syn and not is_synapse_function(Connection.Function)) then
+        if (Connection.Func) then
+            if (syn and not is_synapse_function(Connection.Func)) then
                 return true
             end
             return true
@@ -215,7 +215,7 @@ MetaMethodHooks.NewIndex = function(...)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
-        if (Index == "Parent") then -- disabled rn as of getconections broken
+        if (Index == "Parent" and false) then -- disabled rn as of getconections broken
             local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
             if (ProtectedInstance) then
                 local Parents = GetAllParents(Value);
