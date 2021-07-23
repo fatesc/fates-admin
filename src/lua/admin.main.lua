@@ -3488,6 +3488,31 @@ AddCommand("config", {"conf"}, "shows fates admin config", {}, function(Caller, 
     end
 end)
 
+AddCommand("deletetool", {"deltool"}, "deletes your equipped tool", {1}, function()
+    local Tool = FindFirstChildWhichIsA(GetCharacter(), "Tool");
+    if (Tool) then
+        Destroy(Tool);
+        return "deleted tool"
+    else
+        return "no tool equipped"
+    end
+end)
+
+AddCommand("deletetools", {"deltools"}, "delets all of your tools in your inventory", {1}, function()
+    UnequipTools(GetHumanoid());
+    local Tools = GetChildren(LocalPlayer.Backpack);
+    for i = 1, #Tools do
+        Destroy(Tools[i]);
+    end
+    return "deleted all tools"
+end)
+
+AddCommand("rejoinre", {"rje"}, "rejoins and tps you to your old position", {3}, function()
+    local Pos = GetRoot().CFrame
+    syn.queue_on_teleport(format("game.Loaded:Wait();game:GetService('ReplicatedFirst'):SetDefaultLoadingGuiRemoved();local LocalPlayer = game:GetService('Players').LocalPlayer;LocalPlayer.CharacterAdded:Wait():WaitForChild('HumanoidRootPart').CFrame = CFrame.new(%s);loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()", tostring(Pos)));
+    ExecuteCommand("rejoin", {}, LocalPlayer);
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
