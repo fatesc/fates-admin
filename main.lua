@@ -305,8 +305,8 @@ local getconnections = function(...)
     local Connections = getconnections(...);
     do return Connections end
     local ActualConnections = filter(Connections, function(i, Connection)
-        if (Connection.Func) then
-            if (syn and not is_synapse_function(Connection.Func)) then
+        if (Connection.Function) then
+            if (syn and not is_synapse_function(Connection.Function)) then
                 return true
             end
             return true
@@ -487,7 +487,7 @@ MetaMethodHooks.NewIndex = function(...)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
-        if (Index == "Parent" and false) then -- disabled rn as of getconections broken
+        if (Index == "Parent") then
             local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
             if (ProtectedInstance) then
                 local Parents = GetAllParents(Value);
@@ -790,7 +790,8 @@ local SetConfig = function(conf)
     writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
 end
 
-local Prefix = isfolder and GetConfig().Prefix or "!"
+local CurrentConfig = GetConfig();
+local Prefix = isfolder and CurrentConfig.Prefix or "!"
 local AdminUsers = AdminUsers or {}
 local Exceptions = Exceptions or {}
 local Connections = {
@@ -5274,6 +5275,10 @@ do
             Enabled = false
         end
     end
+
+    if (CurrentConfig.ChatPrediction) then
+        delay(2, ToggleChatPrediction);
+    end
 end
 
 local ConfigUILib = {}
@@ -5478,6 +5483,26 @@ do
                 UpdateClone();
             end
             
+            function ElementLibrary.TextboxKeybind(Title, Bind, Callback)
+                local Keybind = Clone(GuiObjects.Elements.TextboxKeybind);
+                
+                Keybind.Container.Text = Bind
+                Keybind.Title.Text = Title
+                
+                local Container = Keybind.Container
+                AddConnection(CConnect(GetPropertyChangedSignal(Container, "Text"), function(Key)
+                    if (#Container.Text >= 1) then
+                        Container.Text = sub(Container.Text, 1, 1);
+                        Callback(Container.Text);
+                        Container.ReleaseFocus(Container);
+                    end
+                end))
+                
+                Keybind.Visible = true
+                Keybind.Parent = Section.Options
+                UpdateClone();
+            end
+
             return ElementLibrary
         end
 
@@ -5606,19 +5631,18 @@ do
     
         local CurrentConf = GetConfig();
 
-        Settings.Keybind("Chat Prefix", Prefix, function(KeyCode)
-            local Key = GetKeyName(KeyCode);
-            if (not match(Key, "%A") or #Key > 1) then
+        Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
+            if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
                 Utils.Notify(nil, "Prefix", "Prefix must be a 1 character symbol.");
                 return
             end
             Prefix = Key
-            Utils.Notify(nil, nil, "");
+            Utils.Notify(nil, "Prefix", "Prefix is now " .. Key);
         end)
     
         Settings.Keybind("CMDBar Prefix", GetKeyName(CommandBarPrefix), function(KeyCode1, KeyCode2)
             CommandBarPrefix = KeyCode1
-            Utils.Notify(nil, nil, "");
+            Utils.Notify(nil, "Prefix", "CommandBar Prefix is now " .. GetKeyName(KeyCode1));
         end)
     
         local ToggleSave;
@@ -5626,7 +5650,7 @@ do
             SetConfig({["Prefix"]=Prefix,["CommandBarPrefix"]=split(tostring(CommandBarPrefix), ".")[3]});
             wait(.5);
             ToggleSave();
-            Utils.Notify(nil, nil, "");
+            Utils.Notify(nil, "Prefix", "saved prefix's");
         end)
     
         local Misc = Script.NewSection("Misc");

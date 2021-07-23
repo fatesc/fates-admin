@@ -442,6 +442,10 @@ do
             Enabled = false
         end
     end
+
+    if (CurrentConfig.ChatPrediction) then
+        delay(2, ToggleChatPrediction);
+    end
 end
 
 local ConfigUILib = {}
@@ -646,6 +650,26 @@ do
                 UpdateClone();
             end
             
+            function ElementLibrary.TextboxKeybind(Title, Bind, Callback)
+                local Keybind = Clone(GuiObjects.Elements.TextboxKeybind);
+                
+                Keybind.Container.Text = Bind
+                Keybind.Title.Text = Title
+                
+                local Container = Keybind.Container
+                AddConnection(CConnect(GetPropertyChangedSignal(Container, "Text"), function(Key)
+                    if (#Container.Text >= 1) then
+                        Container.Text = sub(Container.Text, 1, 1);
+                        Callback(Container.Text);
+                        Container.ReleaseFocus(Container);
+                    end
+                end))
+                
+                Keybind.Visible = true
+                Keybind.Parent = Section.Options
+                UpdateClone();
+            end
+
             return ElementLibrary
         end
 

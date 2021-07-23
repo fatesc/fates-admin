@@ -11,19 +11,18 @@ do
     
         local CurrentConf = GetConfig();
 
-        Settings.Keybind("Chat Prefix", Prefix, function(KeyCode)
-            local Key = GetKeyName(KeyCode);
-            if (not match(Key, "%A") or #Key > 1) then
+        Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
+            if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
                 Utils.Notify(nil, "Prefix", "Prefix must be a 1 character symbol.");
                 return
             end
             Prefix = Key
-            Utils.Notify(nil, nil, "");
+            Utils.Notify(nil, "Prefix", "Prefix is now " .. Key);
         end)
     
         Settings.Keybind("CMDBar Prefix", GetKeyName(CommandBarPrefix), function(KeyCode1, KeyCode2)
             CommandBarPrefix = KeyCode1
-            Utils.Notify(nil, nil, "");
+            Utils.Notify(nil, "Prefix", "CommandBar Prefix is now " .. GetKeyName(KeyCode1));
         end)
     
         local ToggleSave;
@@ -31,7 +30,7 @@ do
             SetConfig({["Prefix"]=Prefix,["CommandBarPrefix"]=split(tostring(CommandBarPrefix), ".")[3]});
             wait(.5);
             ToggleSave();
-            Utils.Notify(nil, nil, "");
+            Utils.Notify(nil, "Prefix", "saved prefix's");
         end)
     
         local Misc = Script.NewSection("Misc");

@@ -47,7 +47,7 @@ local PluginLibrary = {
 }
 
 local GetRoot = function(Plr)
-    return Plr and GetCharacter(Plr) and FindFirstChild(GetCharacter(Plr), "HumanoidRootPart") or GetCharacter() and FindFirstChild(GetCharacter(), "HumanoidRootPart");
+    return Plr and GetCharacter(Plr) and (FindFirstChild(GetCharacter(Plr), "HumanoidRootPart") or FindFirstChild(GetCharacter(Plr), "Torso") or FindFirstChild(GetCharacter(Plr), "UpperTorso")) or GetCharacter() and (FindFirstChild(GetCharacter(), "HumanoidRootPart") or FindFirstChild(GetCharacter(), "Torso") or FindFirstChild(GetCharacter(Plr), "UpperTorso"));
 end
 PluginLibrary.GetRoot = GetRoot
 
@@ -130,7 +130,8 @@ local SetConfig = function(conf)
     writefile("fates-admin/config.json", JSONEncode(Services.HttpService, NewConfig));
 end
 
-local Prefix = isfolder and GetConfig().Prefix or "!"
+local CurrentConfig = GetConfig();
+local Prefix = isfolder and CurrentConfig.Prefix or "!"
 local AdminUsers = AdminUsers or {}
 local Exceptions = Exceptions or {}
 local Connections = {
