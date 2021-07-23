@@ -2012,7 +2012,7 @@ AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "
 end)
 
 local EspLib;
-AddCommand("trace", {}, "traces a player", {"1"}, function(Caller, Args)
+AddCommand("trace", {"locate"}, "traces a player", {"1"}, function(Caller, Args)
     if (not EspLib) then
         EspLib = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/esp-lib/esplibmain.lua"))();
     end
@@ -2030,7 +2030,7 @@ AddCommand("trace", {}, "traces a player", {"1"}, function(Caller, Args)
     end
     return format("now tracing %s", #Target == 1 and Target[1].Name or #Target .. " players");
 end)
-AddCommand("untrace", {}, "untraces a player", {"1"}, function(Caller, Args)
+AddCommand("untrace", {"unlocate"}, "untraces a player", {"1"}, function(Caller, Args)
     if (not EspLib) then
         EspLib = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/esp-lib/esplibmain.lua"))();
     end
