@@ -1,5 +1,5 @@
 --[[
-	fates admin - 22/7/2021
+	fates admin - 23/7/2021
 ]]
 
 local game = game
@@ -1979,6 +1979,7 @@ end)
 
 AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
+    local Target2 = Args[2] and GetPlayer(Args[2]);
     local OldPos = GetRoot(Caller).CFrame
     if (Caller ~= LocalPlayer and Target[1] == LocalPlayer) then
         GetRoot().CFrame = GetRoot(Caller).CFrame * CFrameNew(-5, 0, 0);
@@ -1999,6 +2000,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 ReplaceHumanoid();
             end
         end
+        local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
             if (GetCharacter(v)) then
@@ -2021,10 +2023,9 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 if (not Tool) then
                     continue
                 end
-                Tool.CanBeDropped = true
                 Tool.Parent = GetCharacter();
                 Tool.Handle.Size = Vector3New(4, 4, 4);
-                CFrameTool(Tool, OldPos * CFrameNew(-5, 0, 0));
+                CFrameTool(Tool, (Target2 and Target2Root.CFrame or OldPos) * CFrameNew(-5, 0, 0));
                 if (not syn) then
                     wait(.1);
                 end
@@ -2046,6 +2047,7 @@ end)
 
 AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
+    local Target2 = Args[2] and GetPlayer(Args[2]);
     local TempRespawnTimes = {}
     for i, v in next, Target do
         TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
@@ -2054,9 +2056,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Character = ReplaceCharacter();
     wait(Players.RespawnTime - (#Target == 1 and .2 or .3));
     local OldPos = GetRoot().CFrame
-    if (Character.Animate) then
-        Character.Animate.Disabled = true
-    end
+    DisableAnimate();
     local Humanoid2 = ReplaceHumanoid(Humanoid);
     for i, v in next, Target do
         if (#Target == 1 and TempRespawnTimes[v.Name]) then
@@ -2066,6 +2066,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
             Humanoid2 = ReplaceHumanoid();
         end
     end
+    local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     local Destroy_;
     coroutine.wrap(function()
         for i, v in next, Target do
@@ -2090,11 +2091,11 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
                 Tool.CanBeDropped = true
                 Tool.Parent = Character
                 Tool.Handle.Size = Vector3New(4, 4, 4);
-                CFrameTool(Tool, OldPos * CFrameNew(-5, 0, 0));
+                CFrameTool(Tool, (Target2 and Target2Root.CFrame or OldPos) * CFrameNew(-5, 0, 0));
                 if (not syn) then
                     wait(.1);
                 end
-                for i = 1, 3 do
+                for i2 = 1, 3 do
                     firetouchinterest(TargetRoot, Tool.Handle, 0);
                     wait()
                     firetouchinterest(TargetRoot, Tool.Handle, 1);
@@ -2106,77 +2107,82 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     end)()
     if (Destroy_) then
         wait(.2);
+        GetRoot().CFrame = CFrameNew(0, Services.Workspace.FallenPartsDestroyHeight + 50, 0);
         Destroy(Character);
     end
     Character = CWait(LocalPlayer.CharacterAdded);
     WaitForChild(Character, "HumanoidRootPart").CFrame = OldPos
 end)
 
-AddCommand("void", {}, "voids a player", {"1",1,3}, function(Caller, Args)
+AddCommand("void", {}, "voids a user", {1}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
+    local Target2 = Args[2] and GetPlayer(Args[2]);
+    local OldPos = GetRoot(Caller).CFrame
+
     local TempRespawnTimes = {}
-    for i, v in next, Target do
+    for i = 1, #Target do
+        local v = Target[i]
         TempRespawnTimes[v.Name] = RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name]
     end
-    local Humanoid = FindFirstChildWhichIsA(GetCharacter(), "Humanoid");
-    local Character = ReplaceCharacter();
-    wait(Players.RespawnTime - (#Target == 1 and .01 or .3));
-    local OldPos = GetRoot().CFrame
-    if (Character.Animate) then
-        Character.Animate.Disabled = true
-    end
-    local Humanoid2 = ReplaceHumanoid(Humanoid);
+    DisableAnimate();
+    ReplaceHumanoid();
     for i, v in next, Target do
-        if (#Target == 1 and TempRespawnTimes[v.Name]) then
-            Character = CWait(LocalPlayer.CharacterAdded);
-            WaitForChild(Character, "HumanoidRootPart").CFrame = OldPos
+        if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
+            Destroy(LocalPlayer.Character);
+            CWait(LocalPlayer.CharacterAdded);
+            WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos;
             wait(.1);
-            Humanoid2 = ReplaceHumanoid();
+            ReplaceHumanoid();
         end
     end
-    local Destroy_;
-    Character = GetCharacter();
-    coroutine.wrap(function()
-        for i = 1, #Target do
-            local v = Target[i]
-            if (GetCharacter(v)) then
-                if (isSat(v)) then
-                    Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not void");
-                    continue
+    local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
+    for i = 1, #Target do
+        local v = Target[i]
+        if (GetCharacter(v)) then
+            if (isSat(v)) then
+                if (#Target == 1) then
+                    Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
                 end
-                if (TempRespawnTimes[v.Name]) then
-                    if (#Target == 1) then
-                        Destroy_ = true
-                    else
-                        continue
-                    end
-                end
-                local TargetRoot = GetRoot(v);
-                local Tool = GetCorrectToolWithHandle();
-                if (not Tool) then
-                    continue
-                end
-                Tool.CanBeDropped = true
-                Tool.Parent = Character
-                Tool.Handle.Size = Vector3New(4, 4, 4);
-                for i2 = 1, 3 do
-                    firetouchinterest(TargetRoot, Tool.Handle, 0);
-                    wait()
-                    firetouchinterest(TargetRoot, Tool.Handle, 1);
-                end
-                GetRoot().CFrame = CFrameNew(0, 9e9, 0);
-            else
-                Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not void.");
+                continue
             end
+            if (RespawnTimes[LocalPlayer.Name] <= RespawnTimes[v.Name] and isR6(v)) then
+                continue
+            end
+
+            local TargetRoot = GetRoot(v);
+            if (not TargetRoot) then
+                continue
+            end
+            
+            local Tool = GetCorrectToolWithHandle();
+            if (not Tool) then
+                continue
+            end
+            Tool.Parent = GetCharacter();
+            Tool.Handle.Size = Vector3New(4, 4, 4);
+            CFrameTool(Tool, (Target2 and Target2Root.CFrame or OldPos) * CFrameNew(-5, 0, 0));
+            if (not syn) then
+                wait(.1);
+            end
+            for i2 = 1, 3 do
+                firetouchinterest(TargetRoot, Tool.Handle, 0);
+                wait();
+                firetouchinterest(TargetRoot, Tool.Handle, 1);
+            end
+        else
+            Utils.Notify(Caller or LocalPlayer, "Fail", v.Name .. " is dead or does not have a root part, could not bring.");
         end
-    end)();
-    if (Destroy_) then
-        wait(.2);
-        Destroy(Character);
     end
-    Character = CWait(LocalPlayer.CharacterAdded);
-    WaitForChild(Character, "HumanoidRootPart").CFrame = OldPos
+    for i = 1, 3 do
+        GetRoot().CFrame = CFrameNew(0, Services.Workspace.FallenPartsDestroyHeight + 50, 0);
+        wait();
+    end
+    wait(.2);
+    Destroy(LocalPlayer.Character);
+    CWait(LocalPlayer.CharacterAdded);
+    WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
 end)
+
 
 
 AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args)
