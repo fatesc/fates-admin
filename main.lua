@@ -303,11 +303,10 @@ local getconnections = function(...)
         return {}
     end
     local Connections = getconnections(...);
-    do return Connections end
     local ActualConnections = filter(Connections, function(i, Connection)
         if (Connection.Function) then
-            if (syn and not is_synapse_function(Connection.Function)) then
-                return true
+            if (syn and is_synapse_function(Connection.Function)) then
+                return false
             end
             return true
         end
