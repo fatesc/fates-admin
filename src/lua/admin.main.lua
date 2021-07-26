@@ -1,17 +1,11 @@
 local game = game
 local GetService = game.GetService
-local UndetectedMode = UndetectedMode or false
-if (not UndetectedMode and not game.IsLoaded(game)) then
+if (not game.IsLoaded(game)) then
     print("fates admin: waiting for game to load...");
     game.Loaded.Wait(game.Loaded);
 end
 
 local start = start or tick();
-
-if (game.IsLoaded(game) and UndetectedMode and syn) then
-    syn.queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
-    return GetService(game, "TeleportService").TeleportToPlaceInstance(GetService(game, "TeleportService"), game.PlaceId, game.JobId);
-end
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
@@ -65,6 +59,7 @@ local Settings = {
     Prefix = "!",
     CommandBarPrefix = "Semicolon",
     ChatPrediction = false,
+    Macros = {}
 }
 local PluginSettings = {
     PluginsEnabled = true,
@@ -132,6 +127,7 @@ end
 
 local CurrentConfig = GetConfig();
 local Prefix = isfolder and CurrentConfig.Prefix or "!"
+local Macros = CurrentConfig.Macros or {}
 local AdminUsers = AdminUsers or {}
 local Exceptions = Exceptions or {}
 local Connections = {
@@ -304,7 +300,7 @@ local CommandRequirements = {
     }
 }
 
-local AddCommand = function(name, aliases, description, options, func)
+local AddCommand = function(name, aliases, description, options, func, isplugin)
     local Cmd = {
         Name = name,
         Aliases = aliases,
@@ -334,7 +330,8 @@ local AddCommand = function(name, aliases, description, options, func)
             end)
             return sorted[1] and sorted[1] or {}
         end)(),
-        CmdExtra = {}
+        CmdExtra = {},
+        IsPlugin = isplugin == true
     }
     local Success, Err = pcall(function()
         CommandsTable[name] = Cmd
@@ -371,6 +368,11 @@ local ExecuteCommand = function(Name, Args, Caller)
         if (Command.ArgsNeeded > #Args) then
             return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
         end
+        local Context;
+        if (Command.IsPlugin and syn and syn_context_set) then
+            Context = syn_context_get();
+            syn_context_set(2);
+        end
         local Success, Ret = pcall(function()
             local Func = Command.Function();
             if (Func) then
@@ -384,6 +386,9 @@ local ExecuteCommand = function(Name, Args, Caller)
                 LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
             end
         end);
+        if (Command.IsPlugin and syn and syn_context_set) then
+            syn_context_set(Context);
+        end
         if (not Success and Debug) then
             warn(Ret);
             Utils.Notify(Caller, "Error", Ret);
@@ -469,19 +474,34 @@ end
 
 local Keys = {}
 
-AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, GameProccesed)
-    if (GameProccesed) then return end
-    local KeyCode = split(tostring(Input.KeyCode), ".")[3]
-    Keys[KeyCode] = true
-end));
-
-AddConnection(CConnect(Services.UserInputService.InputEnded, function(Input, GameProccesed)
-    if (GameProccesed) then return end
-    local KeyCode = split(tostring(Input.KeyCode), ".")[3]
-    if (Keys[KeyCode]) then
-        Keys[KeyCode] = false
-    end
-end));
+do 
+    local UserInputService = Services.UserInputService
+    local IsKeyDown = UserInputService.IsKeyDown
+    AddConnection(CConnect(UserInputService.InputBegan, function(Input, GameProccesed)
+        if (GameProccesed) then return end
+        local KeyCode = split(tostring(Input.KeyCode), ".")[3]
+        Keys[KeyCode] = true
+        for i = 1, #Macros do
+            local Macro = Macros[i]
+            if (Tfind(Macro.Keys, Input.KeyCode)) then
+                if (#Macro.Keys == 2) then
+                    if (IsKeyDown(UserInputService, Macro.Keys[1]) and IsKeyDown(UserInputService, Macro.Keys[2]) --[[and Macro.Keys[1] == Input.KeyCode]]) then
+                        ExecuteCommand(Macro.Command, Macro.Args);
+                    end
+                else
+                    ExecuteCommand(Macro.Command, Macro.Args);
+                end
+            end
+        end
+    end));
+    AddConnection(CConnect(UserInputService.InputEnded, function(Input, GameProccesed)
+        if (GameProccesed) then return end
+        local KeyCode = split(tostring(Input.KeyCode), ".")[3]
+        if (Keys[KeyCode] or Keys[Input.KeyCode]) then
+            Keys[KeyCode] = false
+        end
+    end));
+end
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", format("There are currently %s commands.", #filter(CommandsTable, function(i,v)
@@ -3342,6 +3362,18 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
     return "copied " .. Target.Name .. "'s username"
 end)
 
+AddCommand("copyid", {"copyuserid", "copyuid"}, "copies someones userid to your clipboard", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])[1]
+    if (setclipboard) then
+        setclipboard(Target.UserId);
+    else
+        Frame2.Chatbar.CaptureFocus(Frame2.Chatbar);
+        wait();
+        Frame2.Chatbar.Text = Target.UserId
+    end
+    return format("copied %s' userid", Target.Name);
+end)
+
 AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Args)
     local Team = Args[1]
     Team = FindFirstChild(Services.Teams, Team);
@@ -3542,7 +3574,7 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
-local LoadConfig;
+local LoadConfig, ConfigLoaded;
 AddCommand("config", {"conf"}, "shows fates admin config", {}, function(Caller, Args, Tbl)
     if (not ConfigLoaded) then
         if (not Tbl[1]) then

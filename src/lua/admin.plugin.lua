@@ -11,6 +11,7 @@ do
         return {split(v, "\\")[2], loadfile(v)}
     end) or {}
 
+    local Renv = getrenv();
     if (PluginConf.PluginsEnabled) then
         local LoadPlugin = function(Plugin)
             if (not IsSupportedExploit) then
@@ -27,10 +28,19 @@ do
             if (IsDebug) then
                 Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
             end
-        
+            
+            setfenv(Plugin.Init, Renv);
+            local Context;
+            if (syn and syn_context_set) then
+                Context = syn_context_get();
+                syn_context_set(2);
+            end
             local Ran, Return = pcall(Plugin.Init);
             if (not Ran and Return and IsDebug) then
                 return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
+            end
+            if (syn and syn_context_set) then
+                syn_context_set(Context);
             end
             
             for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
@@ -38,7 +48,8 @@ do
                     Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
                     continue
                 end
-                AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
+                setfenv(command.Func, Renv);
+                AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func, true);
         
                 if (FindFirstChild(Commands.Frame.List, command.Name)) then
                     Destroy(FindFirstChild(Commands.Frame.List, command.Name));

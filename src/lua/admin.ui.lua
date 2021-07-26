@@ -34,18 +34,18 @@ local HttpLogsTransparencyClone = Clone(HttpLogs);
 local CommandsTransparencyClone
 local ConfigUIClone = Clone(ConfigUI);
 local PredictionText = ""
+do
+    local UIParent = CommandBar.Parent
+    GlobalChatLogs.Parent = UIParent
+    GlobalChatLogMessage.Parent = UIParent
+    GlobalChatLogs.Name = "GlobalChatLogs"
+    GlobalChatLogMessage.Name = "GlobalChatLogMessage"
 
-local UIParent = CommandBar.Parent
-GlobalChatLogs.Parent = UIParent
-GlobalChatLogMessage.Parent = UIParent
-GlobalChatLogs.Name = "GlobalChatLogs"
-GlobalChatLogMessage.Name = "GlobalChatLogMessage"
-
-HttpLogs.Parent = UIParent
-HttpLogs.Name = "HttpLogs"
-HttpLogs.Size = UDim2.new(0, 421, 0, 260);
-HttpLogs.Search.PlaceholderText = "Search"
-
+    HttpLogs.Parent = UIParent
+    HttpLogs.Name = "HttpLogs"
+    HttpLogs.Size = UDim2.new(0, 421, 0, 260);
+    HttpLogs.Search.PlaceholderText = "Search"
+end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
 ProtectInstance(CommandBar.Input, true);

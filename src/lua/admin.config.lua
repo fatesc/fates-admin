@@ -102,7 +102,61 @@ do
             end or OldFireTouchInterest
         end)
 
-        local PluginsPage = ConfigUILib.NewPage("Plugins")
+        local MacrosPage = ConfigUILib.NewPage("Macros");
+        local MacroSection;
+        MacroSection = MacrosPage.CreateMacroSection(Macros, function(Bind, Command, Args)
+            local KeyName, IsEnum = GetKeyName(Bind[1]);
+            local Formatted;
+            if (Bind[2]) then
+                local KeyName2, IsEnum2 = GetKeyName(Bind[2]); 
+                Formatted = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+            else
+                Formatted = KeyName
+            end
+            Args = split(Args, " ");
+            local AlreadyAdded = false
+            for i = 1, #Macros do
+                if (Macros[i].Command == Command) then
+                    AlreadyAdded = true
+                end
+            end
+            if (CommandsTable[Command] and not AlreadyAdded) then
+                MacroSection.AddMacro(Command .. " " .. Args, Formatted);
+                Macros[#Macros + 1] = {
+                    Command = Command,
+                    Args = Args,
+                    Keys = Bind
+                }
+                local TempMacros = clone(Macros);
+                for i, v in next, TempMacros do
+                    for i2, v2 in next, v.Keys do
+                        TempMacros[i]["Keys"][i2] = split(tostring(v2), ".")[3]
+                    end
+                end
+                SetConfig({Macros=TempMacros});
+            end
+        end)
+        local UIListLayout = MacroSection.CommandsList.UIListLayout
+        for i, v in next, CommandsTable do
+            if (not FindFirstChild(MacroSection.CommandsList, v.Name)) then
+                MacroSection.AddCmd(v.Name);
+            end
+        end
+        MacroSection.CommandsList.CanvasSize = UDim2.fromOffset(0, UIListLayout.AbsoluteContentSize.Y);
+        local Search = FindFirstChild(MacroSection.CommandsList.Parent.Parent, "Search");
+
+        AddConnection(CConnect(GetPropertyChangedSignal(Search, "Text"), function()
+            local Text = Search.Text
+            for _, v in next, GetChildren(MacroSection.CommandsList) do
+                if (IsA(v, "TextButton")) then
+                    local Command = v.Text
+                    v.Visible = Sfind(lower(Command), Text, 1, true)
+                end
+            end
+            MacroSection.CommandsList.CanvasSize = UDim2.fromOffset(0, UIListLayout.AbsoluteContentSize.Y);
+        end), Connections.UI, true);
+        
+        local PluginsPage = ConfigUILib.NewPage("Plugins");
         
         local CurrentPlugins = PluginsPage.NewSection("Current Plugins");
         local PluginSettings = PluginsPage.NewSection("Plugin Settings");
@@ -165,4 +219,13 @@ do
         --     print(Callback)
         -- end)
     end
+
+    delay(1, function()
+        for i = 1, #Macros do
+            local Macro = Macros[i]
+            for i2 = 1, #Macro.Keys do
+                Macros[i].Keys[i2] = Enum.KeyCode[Macros[i].Keys[i2]]
+            end
+        end
+    end)
 end

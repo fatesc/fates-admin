@@ -1,21 +1,15 @@
 --[[
-	fates admin - 24/7/2021
+	fates admin - 26/7/2021
 ]]
 
 local game = game
 local GetService = game.GetService
-local UndetectedMode = UndetectedMode or false
-if (not UndetectedMode and not game.IsLoaded(game)) then
+if (not game.IsLoaded(game)) then
     print("fates admin: waiting for game to load...");
     game.Loaded.Wait(game.Loaded);
 end
 
 local start = start or tick();
-
-if (game.IsLoaded(game) and UndetectedMode and syn) then
-    syn.queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
-    return GetService(game, "TeleportService").TeleportToPlaceInstance(GetService(game, "TeleportService"), game.PlaceId, game.JobId);
-end
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
@@ -254,6 +248,20 @@ local keys = function(tbl)
         return new
     end
 end
+
+local clone;
+clone = function(tbl)
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            if (type(v) == 'table') then
+                v = clone(v);
+            end
+            new[i] = v
+        end
+        return new
+    end
+end
 --END IMPORT [var]
 
 
@@ -303,11 +311,10 @@ local getconnections = function(...)
         return {}
     end
     local Connections = getconnections(...);
-    do return Connections end
     local ActualConnections = filter(Connections, function(i, Connection)
         if (Connection.Function) then
-            if (syn and not is_synapse_function(Connection.Function)) then
-                return true
+            if (syn and is_synapse_function(Connection.Function)) then
+                return false
             end
             return true
         end
@@ -487,7 +494,7 @@ MetaMethodHooks.NewIndex = function(...)
     local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
     if (checkcaller()) then
-        if (Index == "Parent") then
+        if (Index == "Parent" and false) then
             local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
             if (ProtectedInstance) then
                 local Parents = GetAllParents(Value);
@@ -725,6 +732,7 @@ local Settings = {
     Prefix = "!",
     CommandBarPrefix = "Semicolon",
     ChatPrediction = false,
+    Macros = {}
 }
 local PluginSettings = {
     PluginsEnabled = true,
@@ -792,6 +800,7 @@ end
 
 local CurrentConfig = GetConfig();
 local Prefix = isfolder and CurrentConfig.Prefix or "!"
+local Macros = CurrentConfig.Macros or {}
 local AdminUsers = AdminUsers or {}
 local Exceptions = Exceptions or {}
 local Connections = {
@@ -904,18 +913,18 @@ local HttpLogsTransparencyClone = Clone(HttpLogs);
 local CommandsTransparencyClone
 local ConfigUIClone = Clone(ConfigUI);
 local PredictionText = ""
+do
+    local UIParent = CommandBar.Parent
+    GlobalChatLogs.Parent = UIParent
+    GlobalChatLogMessage.Parent = UIParent
+    GlobalChatLogs.Name = "GlobalChatLogs"
+    GlobalChatLogMessage.Name = "GlobalChatLogMessage"
 
-local UIParent = CommandBar.Parent
-GlobalChatLogs.Parent = UIParent
-GlobalChatLogMessage.Parent = UIParent
-GlobalChatLogs.Name = "GlobalChatLogs"
-GlobalChatLogMessage.Name = "GlobalChatLogMessage"
-
-HttpLogs.Parent = UIParent
-HttpLogs.Name = "HttpLogs"
-HttpLogs.Size = UDim2.new(0, 421, 0, 260);
-HttpLogs.Search.PlaceholderText = "Search"
-
+    HttpLogs.Parent = UIParent
+    HttpLogs.Name = "HttpLogs"
+    HttpLogs.Size = UDim2.new(0, 421, 0, 260);
+    HttpLogs.Search.PlaceholderText = "Search"
+end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
 ProtectInstance(CommandBar.Input, true);
@@ -1590,7 +1599,7 @@ local CommandRequirements = {
     }
 }
 
-local AddCommand = function(name, aliases, description, options, func)
+local AddCommand = function(name, aliases, description, options, func, isplugin)
     local Cmd = {
         Name = name,
         Aliases = aliases,
@@ -1620,7 +1629,8 @@ local AddCommand = function(name, aliases, description, options, func)
             end)
             return sorted[1] and sorted[1] or {}
         end)(),
-        CmdExtra = {}
+        CmdExtra = {},
+        IsPlugin = isplugin == true
     }
     local Success, Err = pcall(function()
         CommandsTable[name] = Cmd
@@ -1657,6 +1667,11 @@ local ExecuteCommand = function(Name, Args, Caller)
         if (Command.ArgsNeeded > #Args) then
             return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
         end
+        local Context;
+        if (Command.IsPlugin and syn and syn_context_set) then
+            Context = syn_context_get();
+            syn_context_set(2);
+        end
         local Success, Ret = pcall(function()
             local Func = Command.Function();
             if (Func) then
@@ -1670,6 +1685,9 @@ local ExecuteCommand = function(Name, Args, Caller)
                 LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdExtra}
             end
         end);
+        if (Command.IsPlugin and syn and syn_context_set) then
+            syn_context_set(Context);
+        end
         if (not Success and Debug) then
             warn(Ret);
             Utils.Notify(Caller, "Error", Ret);
@@ -1755,19 +1773,34 @@ end
 
 local Keys = {}
 
-AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, GameProccesed)
-    if (GameProccesed) then return end
-    local KeyCode = split(tostring(Input.KeyCode), ".")[3]
-    Keys[KeyCode] = true
-end));
-
-AddConnection(CConnect(Services.UserInputService.InputEnded, function(Input, GameProccesed)
-    if (GameProccesed) then return end
-    local KeyCode = split(tostring(Input.KeyCode), ".")[3]
-    if (Keys[KeyCode]) then
-        Keys[KeyCode] = false
-    end
-end));
+do 
+    local UserInputService = Services.UserInputService
+    local IsKeyDown = UserInputService.IsKeyDown
+    AddConnection(CConnect(UserInputService.InputBegan, function(Input, GameProccesed)
+        if (GameProccesed) then return end
+        local KeyCode = split(tostring(Input.KeyCode), ".")[3]
+        Keys[KeyCode] = true
+        for i = 1, #Macros do
+            local Macro = Macros[i]
+            if (Tfind(Macro.Keys, Input.KeyCode)) then
+                if (#Macro.Keys == 2) then
+                    if (IsKeyDown(UserInputService, Macro.Keys[1]) and IsKeyDown(UserInputService, Macro.Keys[2]) --[[and Macro.Keys[1] == Input.KeyCode]]) then
+                        ExecuteCommand(Macro.Command, Macro.Args);
+                    end
+                else
+                    ExecuteCommand(Macro.Command, Macro.Args);
+                end
+            end
+        end
+    end));
+    AddConnection(CConnect(UserInputService.InputEnded, function(Input, GameProccesed)
+        if (GameProccesed) then return end
+        local KeyCode = split(tostring(Input.KeyCode), ".")[3]
+        if (Keys[KeyCode] or Keys[Input.KeyCode]) then
+            Keys[KeyCode] = false
+        end
+    end));
+end
 
 AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fates admin", {}, function(Caller)
     Utils.Notify(Caller, "Amount of Commands", format("There are currently %s commands.", #filter(CommandsTable, function(i,v)
@@ -4628,6 +4661,18 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
     return "copied " .. Target.Name .. "'s username"
 end)
 
+AddCommand("copyid", {"copyuserid", "copyuid"}, "copies someones userid to your clipboard", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])[1]
+    if (setclipboard) then
+        setclipboard(Target.UserId);
+    else
+        Frame2.Chatbar.CaptureFocus(Frame2.Chatbar);
+        wait();
+        Frame2.Chatbar.Text = Target.UserId
+    end
+    return format("copied %s' userid", Target.Name);
+end)
+
 AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Args)
     local Team = Args[1]
     Team = FindFirstChild(Services.Teams, Team);
@@ -4828,7 +4873,7 @@ AddCommand("nojumpcooldown", {}, "removes a jumpcooldown if any in games", {}, f
     return "nojumpcooldown " .. (Hooks.NoJumpCooldown and "Enabled" or "Disabled")
 end)
 
-local LoadConfig;
+local LoadConfig, ConfigLoaded;
 AddCommand("config", {"conf"}, "shows fates admin config", {}, function(Caller, Args, Tbl)
     if (not ConfigLoaded) then
         if (not Tbl[1]) then
@@ -5380,6 +5425,7 @@ do
     local GuiObjects = ConfigElements
     local PageCount = 0
     local SelectedPage
+    local UserInputService = Services.UserInputService
 
     local Colors = {
         ToggleEnabled = Color3.fromRGB(5, 5, 6);
@@ -5420,9 +5466,150 @@ do
         
         PageCount = PageCount + 1
 
+
         UpdateClone()
 
+        local function GetKeyName(KeyCode)
+            local Stringed = UserInputService.GetStringForKeyCode(UserInputService, KeyCode);
+            local IsEnum = Stringed == ""
+            return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
+        end
+
         local PageLibrary = {}
+
+        function PageLibrary.CreateMacroSection(MacrosToAdd, Callback)
+            local Macro = Clone(GuiObjects.Elements.Macro);
+            local MacroPage = Macro.MacroPage
+            local Selection = Page.Selection
+            
+            Selection.ClearAllChildren(Selection);
+            for i,v in next, GetChildren(MacroPage) do
+                v.Parent = Selection
+            end
+            Selection.Container.Visible = true
+            local CommandsList = Selection.Container.Commands.Frame.List
+            local CurrentMacros = Selection.Container.CurrentMacros
+            local AddMacro = Selection.AddMacro
+            local BindA, CommandA, ArgsA = AddMacro.Bind, AddMacro.Command, AddMacro["z Args"]
+            local Add = AddMacro.AddMacro
+            local Keybind = {};
+            local Enabled = false
+            local Connection
+            
+            local OnClick = function()
+                Enabled = not Enabled
+                if Enabled then
+                    BindA.Text = "..."
+                    local OldShiftLock = LocalPlayer.DevEnableMouseLock
+                    LocalPlayer.DevEnableMouseLock = false
+                    Keybind = {}
+                    Connection = AddConnection(CConnect(UserInputService.InputBegan, function(Input, Processed)
+                        if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
+                            local Input2, Proccessed2;
+                            coroutine.wrap(function()
+                                Input2, Proccessed2 = CWait(UserInputService.InputBegan);
+                            end)()
+                            CWait(UserInputService.InputEnded);
+                            if (Input2 and not Processed) then
+                                local KeyName, IsEnum = GetKeyName(Input.KeyCode);
+                                local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
+                                BindA.Text = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                                Keybind[1] = Input.KeyCode
+                                Keybind[2] = Input2.KeyCode
+                            else
+                                local KeyName = GetKeyName(Input.KeyCode);
+                                BindA.Text = KeyName
+                                Keybind[1] = Input.KeyCode
+                                Keybind[2] = nil
+                            end
+                            LocalPlayer.DevEnableMouseLock = OldShiftLock
+                        else
+                            BindA.Text = "Bind"
+                        end
+                        Enabled = false
+                        Disconnect(Connection);
+                    end));
+                else
+                    BindA.Text = "Bind"
+                    Disconnect(Connection);
+                end
+            end
+
+            AddConnection(CConnect(BindA.MouseButton1Click, OnClick));
+            AddConnection(CConnect(Add.MouseButton1Click, function()
+                if (BindA.Text == "Bind") then
+                    Utils.Notify(nil, nil, "You must assign a keybind");
+                    return
+                end
+                if (not CommandsTable[CommandA.Text]) then
+                    Utils.Notify(nil, nil, "You must add a command");
+                    return
+                end
+                Callback(Keybind, CommandA.Text, ArgsA.Text);
+            end));
+
+            local Focused = false
+            local MacroSection = {
+                CommandsList = CommandsList,
+                AddCmd = function(Name) 
+                    local Command = Clone(Macro.Command);
+                    Command.Name = Name
+                    Command.Text = Name
+                    Command.Parent = CommandsList
+                    Command.Visible = true
+                    AddConnection(CConnect(Command.MouseButton1Click, function()
+                        CommandA.Text = Name
+                        ArgsA.CaptureFocus(ArgsA);
+                        Focused = true
+                        CWait(ArgsA.FocusLost);
+                        CWait(UserInputService.InputBegan);
+                        Focused = false
+                        wait(.2);
+                        if (not Focused) then
+                            OnClick();
+                        end
+                    end))
+                end,
+                AddMacro = function(MacroName, Bind)
+                    local NewMacro = Clone(Macro.EditMacro);
+                    NewMacro.Bind.Text = Bind
+                    NewMacro.Macro.Text = MacroName
+                    NewMacro.Parent = CurrentMacros
+                    NewMacro.Visible = true
+                    FindFirstChild(NewMacro, "Remove").Name = "Delete"
+                    AddConnection(CConnect(NewMacro.Delete.MouseButton1Click, function()
+                        CWait(Utils.TweenAllTrans(NewMacro, .25).Completed);
+                        Destroy(NewMacro);
+                        for i = 1, #Macros do
+                            if (Macros[i].Command == split(MacroName, " ")[1]) then
+                                Macros[i] = nil
+                            end
+                        end
+                        local TempMacros = clone(Macros);
+                        for i, v in next, TempMacros do
+                            for i2, v2 in next, v.Keys do
+                                TempMacros[i]["Keys"][i2] = split(tostring(v2), ".")[3]
+                            end
+                        end
+                        SetConfig({Macros=TempMacros});
+                    end))
+                end
+            }
+
+            for i, v in next, MacrosToAdd do
+                local KeyName, IsEnum = GetKeyName(v.Keys[1]);
+                local Formatted;
+                if (v.Keys[2]) then
+                    local KeyName2, IsEnum2 = GetKeyName(v.Keys[2]); 
+                    Formatted = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                else
+                    Formatted = KeyName
+                end
+                MacroSection.AddMacro(v.Command, Formatted);
+            end
+
+            return MacroSection
+        end
 
         function PageLibrary.NewSection(Title)
             local Section = Clone(GuiObjects.Section.Container);
@@ -5444,6 +5631,7 @@ do
             UpdateClone();
 
             local ElementLibrary = {}
+
 
             function ElementLibrary.Toggle(Title, Enabled, Callback)
                 local Toggle = Clone(GuiObjects.Elements.Toggle);
@@ -5526,11 +5714,6 @@ do
 
                 Keybind.Container.Text = Bind
                 Keybind.Title.Text = Title
-                local function GetKeyName(KeyCode)
-                    local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
-                    local IsEnum = Stringed == ""
-                    return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
-                end
 
                 AddConnection(CConnect(Keybind.Container.MouseButton1Click, function()
                     Enabled = not Enabled
@@ -5540,13 +5723,13 @@ do
                         local OldShiftLock = LocalPlayer.DevEnableMouseLock
                         -- disable shift lock so it doesn't interfere with keybind
                         LocalPlayer.DevEnableMouseLock = false
-                        Connection = AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Processed)
+                        Connection = AddConnection(CConnect(UserInputService.InputBegan, function(Input, Processed)
                             if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
                                 local Input2, Proccessed2;
                                 coroutine.wrap(function()
-                                    Input2, Proccessed2 = CWait(Services.UserInputService.InputBegan);
+                                    Input2, Proccessed2 = CWait(UserInputService.InputBegan);
                                 end)()
-                                CWait(Services.UserInputService.InputEnded);
+                                CWait(UserInputService.InputEnded);
                                 if (Input2 and not Processed) then
                                     local KeyName, IsEnum = GetKeyName(Input.KeyCode);
                                     local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
@@ -5604,9 +5787,6 @@ do
     end
 end
 
-
-local ConfigLoaded = false
-
 Utils.Click(ConfigUI.Close, "TextColor3")
 AddConnection(CConnect(ConfigUI.Close.MouseButton1Click, function()
     ConfigLoaded = false
@@ -5630,6 +5810,7 @@ do
         return {split(v, "\\")[2], loadfile(v)}
     end) or {}
 
+    local Renv = getrenv();
     if (PluginConf.PluginsEnabled) then
         local LoadPlugin = function(Plugin)
             if (not IsSupportedExploit) then
@@ -5646,10 +5827,19 @@ do
             if (IsDebug) then
                 Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
             end
-        
+            
+            setfenv(Plugin.Init, Renv);
+            local Context;
+            if (syn and syn_context_set) then
+                Context = syn_context_get();
+                syn_context_set(2);
+            end
             local Ran, Return = pcall(Plugin.Init);
             if (not Ran and Return and IsDebug) then
                 return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
+            end
+            if (syn and syn_context_set) then
+                syn_context_set(Context);
             end
             
             for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
@@ -5657,7 +5847,8 @@ do
                     Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
                     continue
                 end
-                AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func);
+                setfenv(command.Func, Renv);
+                AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func, true);
         
                 if (FindFirstChild(Commands.Frame.List, command.Name)) then
                     Destroy(FindFirstChild(Commands.Frame.List, command.Name));
@@ -5816,7 +6007,61 @@ do
             end or OldFireTouchInterest
         end)
 
-        local PluginsPage = ConfigUILib.NewPage("Plugins")
+        local MacrosPage = ConfigUILib.NewPage("Macros");
+        local MacroSection;
+        MacroSection = MacrosPage.CreateMacroSection(Macros, function(Bind, Command, Args)
+            local KeyName, IsEnum = GetKeyName(Bind[1]);
+            local Formatted;
+            if (Bind[2]) then
+                local KeyName2, IsEnum2 = GetKeyName(Bind[2]); 
+                Formatted = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+            else
+                Formatted = KeyName
+            end
+            Args = split(Args, " ");
+            local AlreadyAdded = false
+            for i = 1, #Macros do
+                if (Macros[i].Command == Command) then
+                    AlreadyAdded = true
+                end
+            end
+            if (CommandsTable[Command] and not AlreadyAdded) then
+                MacroSection.AddMacro(Command .. " " .. Args, Formatted);
+                Macros[#Macros + 1] = {
+                    Command = Command,
+                    Args = Args,
+                    Keys = Bind
+                }
+                local TempMacros = clone(Macros);
+                for i, v in next, TempMacros do
+                    for i2, v2 in next, v.Keys do
+                        TempMacros[i]["Keys"][i2] = split(tostring(v2), ".")[3]
+                    end
+                end
+                SetConfig({Macros=TempMacros});
+            end
+        end)
+        local UIListLayout = MacroSection.CommandsList.UIListLayout
+        for i, v in next, CommandsTable do
+            if (not FindFirstChild(MacroSection.CommandsList, v.Name)) then
+                MacroSection.AddCmd(v.Name);
+            end
+        end
+        MacroSection.CommandsList.CanvasSize = UDim2.fromOffset(0, UIListLayout.AbsoluteContentSize.Y);
+        local Search = FindFirstChild(MacroSection.CommandsList.Parent.Parent, "Search");
+
+        AddConnection(CConnect(GetPropertyChangedSignal(Search, "Text"), function()
+            local Text = Search.Text
+            for _, v in next, GetChildren(MacroSection.CommandsList) do
+                if (IsA(v, "TextButton")) then
+                    local Command = v.Text
+                    v.Visible = Sfind(lower(Command), Text, 1, true)
+                end
+            end
+            MacroSection.CommandsList.CanvasSize = UDim2.fromOffset(0, UIListLayout.AbsoluteContentSize.Y);
+        end), Connections.UI, true);
+        
+        local PluginsPage = ConfigUILib.NewPage("Plugins");
         
         local CurrentPlugins = PluginsPage.NewSection("Current Plugins");
         local PluginSettings = PluginsPage.NewSection("Plugin Settings");
@@ -5879,6 +6124,15 @@ do
         --     print(Callback)
         -- end)
     end
+
+    delay(1, function()
+        for i = 1, #Macros do
+            local Macro = Macros[i]
+            for i2 = 1, #Macro.Keys do
+                Macros[i].Keys[i2] = Enum.KeyCode[Macros[i].Keys[i2]]
+            end
+        end
+    end)
 end
 --END IMPORT [config]
 

@@ -230,3 +230,17 @@ local keys = function(tbl)
         return new
     end
 end
+
+local clone;
+clone = function(tbl)
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            if (type(v) == 'table') then
+                v = clone(v);
+            end
+            new[i] = v
+        end
+        return new
+    end
+end

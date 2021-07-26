@@ -453,6 +453,7 @@ do
     local GuiObjects = ConfigElements
     local PageCount = 0
     local SelectedPage
+    local UserInputService = Services.UserInputService
 
     local Colors = {
         ToggleEnabled = Color3.fromRGB(5, 5, 6);
@@ -493,9 +494,150 @@ do
         
         PageCount = PageCount + 1
 
+
         UpdateClone()
 
+        local function GetKeyName(KeyCode)
+            local Stringed = UserInputService.GetStringForKeyCode(UserInputService, KeyCode);
+            local IsEnum = Stringed == ""
+            return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
+        end
+
         local PageLibrary = {}
+
+        function PageLibrary.CreateMacroSection(MacrosToAdd, Callback)
+            local Macro = Clone(GuiObjects.Elements.Macro);
+            local MacroPage = Macro.MacroPage
+            local Selection = Page.Selection
+            
+            Selection.ClearAllChildren(Selection);
+            for i,v in next, GetChildren(MacroPage) do
+                v.Parent = Selection
+            end
+            Selection.Container.Visible = true
+            local CommandsList = Selection.Container.Commands.Frame.List
+            local CurrentMacros = Selection.Container.CurrentMacros
+            local AddMacro = Selection.AddMacro
+            local BindA, CommandA, ArgsA = AddMacro.Bind, AddMacro.Command, AddMacro["z Args"]
+            local Add = AddMacro.AddMacro
+            local Keybind = {};
+            local Enabled = false
+            local Connection
+            
+            local OnClick = function()
+                Enabled = not Enabled
+                if Enabled then
+                    BindA.Text = "..."
+                    local OldShiftLock = LocalPlayer.DevEnableMouseLock
+                    LocalPlayer.DevEnableMouseLock = false
+                    Keybind = {}
+                    Connection = AddConnection(CConnect(UserInputService.InputBegan, function(Input, Processed)
+                        if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
+                            local Input2, Proccessed2;
+                            coroutine.wrap(function()
+                                Input2, Proccessed2 = CWait(UserInputService.InputBegan);
+                            end)()
+                            CWait(UserInputService.InputEnded);
+                            if (Input2 and not Processed) then
+                                local KeyName, IsEnum = GetKeyName(Input.KeyCode);
+                                local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
+                                BindA.Text = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                                Keybind[1] = Input.KeyCode
+                                Keybind[2] = Input2.KeyCode
+                            else
+                                local KeyName = GetKeyName(Input.KeyCode);
+                                BindA.Text = KeyName
+                                Keybind[1] = Input.KeyCode
+                                Keybind[2] = nil
+                            end
+                            LocalPlayer.DevEnableMouseLock = OldShiftLock
+                        else
+                            BindA.Text = "Bind"
+                        end
+                        Enabled = false
+                        Disconnect(Connection);
+                    end));
+                else
+                    BindA.Text = "Bind"
+                    Disconnect(Connection);
+                end
+            end
+
+            AddConnection(CConnect(BindA.MouseButton1Click, OnClick));
+            AddConnection(CConnect(Add.MouseButton1Click, function()
+                if (BindA.Text == "Bind") then
+                    Utils.Notify(nil, nil, "You must assign a keybind");
+                    return
+                end
+                if (not CommandsTable[CommandA.Text]) then
+                    Utils.Notify(nil, nil, "You must add a command");
+                    return
+                end
+                Callback(Keybind, CommandA.Text, ArgsA.Text);
+            end));
+
+            local Focused = false
+            local MacroSection = {
+                CommandsList = CommandsList,
+                AddCmd = function(Name) 
+                    local Command = Clone(Macro.Command);
+                    Command.Name = Name
+                    Command.Text = Name
+                    Command.Parent = CommandsList
+                    Command.Visible = true
+                    AddConnection(CConnect(Command.MouseButton1Click, function()
+                        CommandA.Text = Name
+                        ArgsA.CaptureFocus(ArgsA);
+                        Focused = true
+                        CWait(ArgsA.FocusLost);
+                        CWait(UserInputService.InputBegan);
+                        Focused = false
+                        wait(.2);
+                        if (not Focused) then
+                            OnClick();
+                        end
+                    end))
+                end,
+                AddMacro = function(MacroName, Bind)
+                    local NewMacro = Clone(Macro.EditMacro);
+                    NewMacro.Bind.Text = Bind
+                    NewMacro.Macro.Text = MacroName
+                    NewMacro.Parent = CurrentMacros
+                    NewMacro.Visible = true
+                    FindFirstChild(NewMacro, "Remove").Name = "Delete"
+                    AddConnection(CConnect(NewMacro.Delete.MouseButton1Click, function()
+                        CWait(Utils.TweenAllTrans(NewMacro, .25).Completed);
+                        Destroy(NewMacro);
+                        for i = 1, #Macros do
+                            if (Macros[i].Command == split(MacroName, " ")[1]) then
+                                Macros[i] = nil
+                            end
+                        end
+                        local TempMacros = clone(Macros);
+                        for i, v in next, TempMacros do
+                            for i2, v2 in next, v.Keys do
+                                TempMacros[i]["Keys"][i2] = split(tostring(v2), ".")[3]
+                            end
+                        end
+                        SetConfig({Macros=TempMacros});
+                    end))
+                end
+            }
+
+            for i, v in next, MacrosToAdd do
+                local KeyName, IsEnum = GetKeyName(v.Keys[1]);
+                local Formatted;
+                if (v.Keys[2]) then
+                    local KeyName2, IsEnum2 = GetKeyName(v.Keys[2]); 
+                    Formatted = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                else
+                    Formatted = KeyName
+                end
+                MacroSection.AddMacro(v.Command, Formatted);
+            end
+
+            return MacroSection
+        end
 
         function PageLibrary.NewSection(Title)
             local Section = Clone(GuiObjects.Section.Container);
@@ -517,6 +659,7 @@ do
             UpdateClone();
 
             local ElementLibrary = {}
+
 
             function ElementLibrary.Toggle(Title, Enabled, Callback)
                 local Toggle = Clone(GuiObjects.Elements.Toggle);
@@ -599,11 +742,6 @@ do
 
                 Keybind.Container.Text = Bind
                 Keybind.Title.Text = Title
-                local function GetKeyName(KeyCode)
-                    local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
-                    local IsEnum = Stringed == ""
-                    return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
-                end
 
                 AddConnection(CConnect(Keybind.Container.MouseButton1Click, function()
                     Enabled = not Enabled
@@ -613,13 +751,13 @@ do
                         local OldShiftLock = LocalPlayer.DevEnableMouseLock
                         -- disable shift lock so it doesn't interfere with keybind
                         LocalPlayer.DevEnableMouseLock = false
-                        Connection = AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Processed)
+                        Connection = AddConnection(CConnect(UserInputService.InputBegan, function(Input, Processed)
                             if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
                                 local Input2, Proccessed2;
                                 coroutine.wrap(function()
-                                    Input2, Proccessed2 = CWait(Services.UserInputService.InputBegan);
+                                    Input2, Proccessed2 = CWait(UserInputService.InputBegan);
                                 end)()
-                                CWait(Services.UserInputService.InputEnded);
+                                CWait(UserInputService.InputEnded);
                                 if (Input2 and not Processed) then
                                     local KeyName, IsEnum = GetKeyName(Input.KeyCode);
                                     local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
@@ -676,9 +814,6 @@ do
         return PageLibrary
     end
 end
-
-
-local ConfigLoaded = false
 
 Utils.Click(ConfigUI.Close, "TextColor3")
 AddConnection(CConnect(ConfigUI.Close.MouseButton1Click, function()
