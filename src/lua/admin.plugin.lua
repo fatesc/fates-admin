@@ -85,4 +85,10 @@ do
             end
         end)
     end
+    
+    getgenv().F_A.PluginManager = {
+        ["Load"] = LoadPlugin,
+        ["Plugins"] = Plugins,
+        ["Debug"] = IsDebug
+    }
 end
