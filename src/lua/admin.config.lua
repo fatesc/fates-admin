@@ -66,6 +66,7 @@ do
             Utils.Tween(CommandBar, "Quint", "Out", .5, {
                 Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
             })
+            SetConfig({WideBar=Callback});
             Utils.Notify(nil, nil, format("widebar %s", WideBar and "enabled" or "disabled"));
         end)
 
@@ -227,5 +228,11 @@ do
                 Macros[i].Keys[i2] = Enum.KeyCode[Macros[i].Keys[i2]]
             end
         end
-    end)
+        if (CurrentConfig.WideBar) then
+            WideBar = true
+            Utils.Tween(CommandBar, "Quint", "Out", .5, {
+                Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
+            })
+        end
+    end)    
 end
