@@ -46,7 +46,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
             end
 
             CommandBar.Input.CaptureFocus(CommandBar.Input);
-            coroutine.wrap(function()
+            CThread(function()
                 wait()
                 CommandBar.Input.Text = ""
             end)()
@@ -498,9 +498,9 @@ do
         UpdateClone()
 
         local function GetKeyName(KeyCode)
-            local Stringed = UserInputService.GetStringForKeyCode(UserInputService, KeyCode);
+            local _, Stringed = pcall(UserInputService.GetStringForKeyCode, UserInputService, KeyCode);
             local IsEnum = Stringed == ""
-            return not IsEnum and Stringed or sub(tostring(KeyCode), 14, -1), IsEnum
+            return (not IsEnum and _) and Stringed or sub(tostring(KeyCode), 14, -1), (IsEnum and not _);
         end
 
         local PageLibrary = {}
@@ -534,7 +534,7 @@ do
                     Connection = AddConnection(CConnect(UserInputService.InputBegan, function(Input, Processed)
                         if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
                             local Input2, Proccessed2;
-                            coroutine.wrap(function()
+                            CThread(function()
                                 Input2, Proccessed2 = CWait(UserInputService.InputBegan);
                             end)()
                             CWait(UserInputService.InputEnded);
@@ -743,18 +743,19 @@ do
                 Keybind.Container.Text = Bind
                 Keybind.Title.Text = Title
 
-                AddConnection(CConnect(Keybind.Container.MouseButton1Click, function()
+                local Container = Keybind.Container
+                AddConnection(CConnect(Container.MouseButton1Click, function()
                     Enabled = not Enabled
 
                     if Enabled then
-                        Keybind.Container.Text = "..."
+                        Container.Text = "..."
                         local OldShiftLock = LocalPlayer.DevEnableMouseLock
                         -- disable shift lock so it doesn't interfere with keybind
                         LocalPlayer.DevEnableMouseLock = false
                         Connection = AddConnection(CConnect(UserInputService.InputBegan, function(Input, Processed)
                             if not Processed and Input.UserInputType == Enum.UserInputType.Keyboard then
                                 local Input2, Proccessed2;
-                                coroutine.wrap(function()
+                                CThread(function()
                                     Input2, Proccessed2 = CWait(UserInputService.InputBegan);
                                 end)()
                                 CWait(UserInputService.InputEnded);
@@ -762,27 +763,27 @@ do
                                     local KeyName, IsEnum = GetKeyName(Input.KeyCode);
                                     local KeyName2, IsEnum2 = GetKeyName(Input2.KeyCode); 
                                     -- Order by if it's an enum first, example 'Shift + K' and not 'K + Shift'
-                                    Keybind.Container.Text = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+                                    Container.Text = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
                                     Callback(Input.KeyCode, Input2.KeyCode);
                                 else
                                     local KeyName = GetKeyName(Input.KeyCode);
-                                    Keybind.Container.Text = KeyName
+                                    Container.Text = KeyName
                                     Callback(Input.KeyCode);
                                 end
                                 LocalPlayer.DevEnableMouseLock = OldShiftLock
                             else
-                                Keybind.Container.Text = "press"
+                                Container.Text = "press"
                             end
                             Enabled = false
                             Disconnect(Connection);
                         end));
                     else
-                        Keybind.Container.Text = "press"
+                        Container.Text = "press"
                         Disconnect(Connection);
                     end
                 end));
 
-                Utils.Click(Keybind.Container, "BackgroundColor3");
+                Utils.Click(Container, "BackgroundColor3");
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
                 UpdateClone();

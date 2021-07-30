@@ -19,11 +19,11 @@ end
 local hookfunction = hookfunction or function(func, newfunc)
     if (replaceclosure) then
         replaceclosure(func, newfunc);
-        return newfunc
+        return func
     end
 
     func = newcclosure and newcclosure(newfunc) or newfunc
-    return newfunc
+    return func
 end
 
 local getconnections = function(...)

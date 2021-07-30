@@ -1,8 +1,10 @@
 do
+    local UserInputService = Services.UserInputService
+    local GetStringForKeyCode = UserInputService.GetStringForKeyCode
     local function GetKeyName(KeyCode)
-        local Stringed = Services.UserInputService.GetStringForKeyCode(Services.UserInputService, KeyCode);
+        local _, Stringed = pcall(GetStringForKeyCode, UserInputService, KeyCode);
         local IsEnum = Stringed == ""
-        return not IsEnum and Stringed or split(tostring(KeyCode), ".")[3], IsEnum
+        return (not IsEnum or _) and Stringed or sub(tostring(KeyCode), 14, -1), (IsEnum or not _);
     end
 
     LoadConfig = function()
@@ -192,6 +194,10 @@ do
 
         PluginSettings.Toggle("Plugins Debug", CurrentPluginConf.PluginDebug, function(Callback)
             SetPluginConfig({PluginDebug = Callback});
+        end)
+
+        PluginSettings.Toggle("Safe Plugins", CurrentPluginConf.SafePlugins, function(Callback)
+            SetPluginConfig({SafePlugins = Callback});
         end)
     
     

@@ -1,6 +1,37 @@
 local IsSupportedExploit = isfile and isfolder and writefile and readfile
-local PluginConf = IsSupportedExploit and GetPluginConfig();
+PluginConf = IsSupportedExploit and GetPluginConfig();
 local Plugins;
+
+PluginLibrary = {
+    LocalPlayer = LocalPlayer,
+    Services = Services,
+    GetCharacter = GetCharacter,
+    ProtectInstance = ProtectInstance,
+    SpoofInstance = SpoofInstance,
+    SpoofProperty = SpoofProperty,
+    UnSpoofInstance = UnSpoofInstance,
+    GetPlayer = GetPlayer,
+    GetHumanoid = GetHumanoid,
+    GetRoot = GetRoot,
+    GetMagnitude = GetMagnitude,
+    GetCommandEnv = function(Name)
+        local Command = LoadCommand(Name);
+        if (Command.CmdEnv) then
+            return Command.CmdEnv
+        end
+    end,
+    isR6 = isR6,
+    ExecuteCommand = ExecuteCommand,
+    Notify = Utils.Notify,
+    HasTool = HasTool,
+    isSat = isSat,
+    Request = syn and syn.request or request or game.HttpGet,
+    CThread = CThread,
+    AddConnection = AddConnection,
+    filter = filter,
+    map = map,
+    clone = clone
+}
 
 do
     local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
@@ -8,10 +39,17 @@ do
     Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
-        return {split(v, "\\")[2], loadfile(v)}
+        local splitted = split(v, "\\")
+        return {splitted[#splitted], loadfile(v)}
     end) or {}
 
     local Renv = getrenv();
+    for i, v in next, PluginLibrary do
+        Renv[i] = v
+    end
+    Renv.debug = nil
+
+
     if (PluginConf.PluginsEnabled) then
         local LoadPlugin = function(Plugin)
             if (not IsSupportedExploit) then
@@ -29,18 +67,19 @@ do
                 Utils.Notify(LocalPlayer, "Plugin loading", format("Plugin %s is being loaded.", Plugin.Name));
             end
             
-            setfenv(Plugin.Init, Renv);
             local Context;
-            if (syn and syn_context_set) then
-                Context = syn_context_get();
-                syn_context_set(2);
+            if (PluginConf.SafePlugins) then
+                if (syn_context_set or setthreadidentity) then
+                    Context = (syn_context_get or getthreadidentity)();
+                    (syn_context_set or setthreadidentity)(2);
+                end
             end
             local Ran, Return = pcall(Plugin.Init);
             if (not Ran and Return and IsDebug) then
                 return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
             end
-            if (syn and syn_context_set) then
-                syn_context_set(Context);
+            if (setthreadidentity or  syn_context_set and CurrentConfig.SafePlugins) then
+                (syn_context_set or setthreadidentity)(Context);
             end
             
             for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
@@ -48,7 +87,6 @@ do
                     Utils.Notify(LocalPlayer, "Plugin Command Fail", format("Command %s is missing information", command.Name));
                     continue
                 end
-                setfenv(command.Func, Renv);
                 AddCommand(command.Name, command.Aliases or {}, command.Description .. " - " .. Plugin.Author, command.Requirements or {}, command.Func, true);
         
                 if (FindFirstChild(Commands.Frame.List, command.Name)) then
@@ -75,10 +113,25 @@ do
         end
 
         for i, Plugin in next, Plugins do
-            LoadPlugin(Plugin[2]());
+            local PluginFunc = Plugin[2]
+            if (PluginConf.SafePlugins) then
+                setfenv(PluginFunc, Renv);
+            else
+                local CurrentEnv = getfenv(PluginFunc);
+                for i2, v2 in next, PluginLibrary do
+                    CurrentEnv[i2] = v2
+                end
+            end
+            local Success, Ret = pcall(PluginFunc);
+            if (Success) then
+                LoadPlugin(Ret);
+            elseif (PluginConf.PluginDebug) then
+                Utils.Notify(LocalPlayer, "Fail", "There was an error Loading plugin (console for more information)");
+                warn("[FA Plugin Error]: " .. debug.traceback(Ret));             
+            end
         end
         
-        AddCommand("refreshplugins", {"rfp", "refresh", "reload"}, "Loads all new plugins.", {}, function()
+        AddCommand("refreshplugins", {"rfp", "refreshp", "reloadp"}, "Loads all new plugins.", {}, function()
             if (not IsSupportedExploit) then
                 return "your exploit does not support plugins"
             end
@@ -92,7 +145,15 @@ do
             end)
             
             for i, Plugin in next, Plugins do
-                LoadPlugin(Plugin[2]());
+                local PluginFunc = Plugin[2]
+                setfenv(PluginFunc, Renv);
+                local Success, Ret = pcall(PluginFunc);
+                if (Success) then
+                    LoadPlugin(Ret);
+                elseif (PluginConf.PluginDebug) then
+                    Utils.Notify(LocalPlayer, "Fail", "There was an error Loading plugin (console for more information)");
+                    warn("[FA Plugin Error]: " .. debug.traceback(Ret));             
+                end
             end
         end)
     end

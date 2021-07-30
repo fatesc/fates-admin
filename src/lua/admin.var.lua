@@ -44,13 +44,16 @@ local GetPropertyChangedSignal, Changed =
     
 local Destroy, Clone = game.Destroy, game.Clone
 
-local RunService = GetService(game, "RunService");
-local Heartbeat, Stepped, RenderStepped =
-    RunService.Heartbeat,
-    RunService.Stepped,
-    RunService.RenderStepped
+local Heartbeat, Stepped, RenderStepped;
+do
+    local RunService = Services.RunService;
+    Heartbeat, Stepped, RenderStepped =
+        RunService.Heartbeat,
+        RunService.Stepped,
+        RunService.RenderStepped
+end
 
-local Players = GetService(game, "Players");
+local Players = Services.Players
 local GetPlayers = Players.GetPlayers
 
 local JSONEncode, JSONDecode, GenerateGUID = 
@@ -70,29 +73,35 @@ local Tfind, sort, concat, pack, unpack =
     table.pack,
     table.unpack
 
-local string = string
-local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
-    string.lower, 
-    string.find, 
-    string.split, 
-    string.sub,
-    string.format,
-    string.len,
-    string.match,
-    string.gmatch,
-    string.gsub,
-    string.byte
+local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte;
+do
+    local string = string
+    lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
+        string.lower,
+        string.find,
+        string.split, 
+        string.sub,
+        string.format,
+        string.len,
+        string.match,
+        string.gmatch,
+        string.gsub,
+        string.byte
+end
 
-local math = math
-local random, floor, round, abs, atan, cos, sin, rad = 
-    math.random,
-    math.floor,
-    math.round,
-    math.abs,
-    math.atan,
-    math.cos,
-    math.sin,
-    math.rad
+local random, floor, round, abs, atan, cos, sin, rad;
+do
+    local math = math
+    random, floor, round, abs, atan, cos, sin, rad = 
+        math.random,
+        math.floor,
+        math.round,
+        math.abs,
+        math.atan,
+        math.cos,
+        math.sin,
+        math.rad
+end
 
 local tostring, tonumber = tostring, tonumber
 
@@ -100,16 +109,23 @@ local InstanceNew = Instance.new
 local CFrameNew = CFrame.new
 local Vector3New = Vector3.new
 
-local CalledCFrameNew = CFrameNew();
-local Inverse = CalledCFrameNew.Inverse
-local toObjectSpace = CalledCFrameNew.toObjectSpace
-local components = CalledCFrameNew.components
+local Inverse, toObjectSpace, components
+do
+    local CalledCFrameNew = CFrameNew();
+    Inverse = CalledCFrameNew.Inverse
+    toObjectSpace = CalledCFrameNew.toObjectSpace
+    components = CalledCFrameNew.components
+end
 
 local Connection = game.Loaded
 local CWait = Connection.Wait
 local CConnect = Connection.Connect
-local CalledConnection = CConnect(Connection, function() end);
-local Disconnect = CalledConnection.Disconnect
+
+local Disconnect;
+do
+    local CalledConnection = CConnect(Connection, function() end);
+    Disconnect = CalledConnection.Disconnect
+end
 
 local __H = InstanceNew("Humanoid");
 local UnequipTools = __H.UnequipTools
@@ -122,6 +138,14 @@ local MoveTo = __H.MoveTo
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
+
+local CThread;
+do
+    local wrap = coroutine.wrap
+    CThread = function(Func, ...)
+        return wrap(Func, ...);
+    end
+end
 
 local startsWith = function(str, searchString, rawPos)
     local pos = rawPos or 1
@@ -232,15 +256,18 @@ local keys = function(tbl)
 end
 
 local clone;
-clone = function(tbl)
-    if (type(tbl) == 'table') then
+clone = function(toClone)
+    if (type(toClone) == 'table') then
         local new = {}
-        for i, v in next, tbl do
+        for i, v in next, toClone do
             if (type(v) == 'table') then
                 v = clone(v);
             end
             new[i] = v
         end
         return new
+    end
+    if (type(toClone) == 'function' and clonefunction) then
+        return clonefunction(toClone);
     end
 end
