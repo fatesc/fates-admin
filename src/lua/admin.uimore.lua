@@ -500,7 +500,7 @@ do
         local function GetKeyName(KeyCode)
             local _, Stringed = pcall(UserInputService.GetStringForKeyCode, UserInputService, KeyCode);
             local IsEnum = Stringed == ""
-            return (not IsEnum and _) and Stringed or sub(tostring(KeyCode), 14, -1), (IsEnum and not _);
+            return (not IsEnum and _) and Stringed or split(tostring(KeyCode), ".")[3], (IsEnum and not _);
         end
 
         local PageLibrary = {}

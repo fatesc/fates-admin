@@ -5830,7 +5830,7 @@ do
         local function GetKeyName(KeyCode)
             local _, Stringed = pcall(UserInputService.GetStringForKeyCode, UserInputService, KeyCode);
             local IsEnum = Stringed == ""
-            return (not IsEnum and _) and Stringed or sub(tostring(KeyCode), 14, -1), (IsEnum and not _);
+            return (not IsEnum and _) and Stringed or split(tostring(KeyCode), ".")[3], (IsEnum and not _);
         end
 
         local PageLibrary = {}
@@ -6329,7 +6329,7 @@ do
     local function GetKeyName(KeyCode)
         local _, Stringed = pcall(GetStringForKeyCode, UserInputService, KeyCode);
         local IsEnum = Stringed == ""
-        return (not IsEnum or _) and Stringed or sub(tostring(KeyCode), 14, -1), (IsEnum or not _);
+        return (not IsEnum and _) and Stringed or split(tostring(KeyCode), ".")[3], (IsEnum and not _);
     end
 
     LoadConfig = function()
@@ -6441,7 +6441,6 @@ do
             else
                 Formatted = KeyName
             end
-            Args = split(Args, " ");
             local AlreadyAdded = false
             for i = 1, #Macros do
                 if (Macros[i].Command == Command) then
@@ -6450,6 +6449,7 @@ do
             end
             if (CommandsTable[Command] and not AlreadyAdded) then
                 MacroSection.AddMacro(Command .. " " .. Args, Formatted);
+                Args = split(Args, " ");
                 Macros[#Macros + 1] = {
                     Command = Command,
                     Args = Args,
