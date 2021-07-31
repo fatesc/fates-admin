@@ -6226,18 +6226,17 @@ do
             end
             
             local Context;
-            if (PluginConf.SafePlugins) then
-                if (syn_context_set or setthreadidentity) then
-                    Context = (syn_context_get or getthreadidentity)();
-                    (syn_context_set or setthreadidentity)(2);
-                end
+            local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+            if (sett and PluginConf.SafePlugins) then
+                Context = gett();
+                sett(2);
             end
             local Ran, Return = pcall(Plugin.Init);
+            if (sett and Context) then
+                sett(Context);
+            end
             if (not Ran and Return and IsDebug) then
                 return Utils.Notify(LocalPlayer, "Plugin Fail", format("there is an error in plugin Init %s: %s", Plugin.Name, Return));
-            end
-            if (setthreadidentity or  syn_context_set and CurrentConfig.SafePlugins) then
-                (syn_context_set or setthreadidentity)(Context);
             end
             
             for i, command in next, Plugin.Commands or {} do -- adding the "or" because some people might have outdated plugins in the dir
