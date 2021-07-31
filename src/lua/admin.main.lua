@@ -3944,6 +3944,21 @@ AddCommand("toggle", {"togglecommand", "togglecmd"}, "toggles a command with an 
     end
 end)
 
+AddCommand("inviscam", {"inviscamera"}, "makes you see through walls more better", {}, function(Caller, Args, CEnv)
+    CEnv.OldCameraMaxZoomDistance = LocalPlayer.CameraMaxZoomDistance
+    CEnv.OldDevCameraOcclusionMode = LocalPlayer.DevCameraOcclusionMode
+    LocalPlayer.CameraMaxZoomDistance = 600
+    LocalPlayer.DevCameraOcclusionMode = "Invisicam"
+    return "inviscam enabled"
+end)
+
+AddCommand("uninviscam", {"uninviscamera"}, "disables inviscam", {}, function()
+    local CmdEnv = LoadCommand("inviscam").CmdEnv
+    LocalPlayer.CameraMaxZoomDistance = CmdEnv.OldCameraMaxZoomDistance
+    LocalPlayer.DevCameraOcclusionMode = CmdEnv.OldDevCameraOcclusionMode
+    return "inviscam disabled"
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
