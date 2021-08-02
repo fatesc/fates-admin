@@ -3118,10 +3118,17 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, CEn
                             return IsA(v, "BasePart");
                         end)
                         forEach(BaseParts, function(i, v)
-                            Tool.Activate(Tool);
-                            firetouchinterest(Tool.Handle, v, 0);
-                            wait();
-                            firetouchinterest(Tool.Handle, v, 1);
+                            if game.PlaceId == 6650331930 then
+                                Tool.Activate(Tool);
+                                firetouchinterest(Tool.Hitbox, v, 0);
+                                wait();
+                                firetouchinterest(Tool.Hitbox, v, 1);
+                            else
+                                Tool.Activate(Tool);
+                                firetouchinterest(Tool.Handle, v, 0);
+                                wait();
+                                firetouchinterest(Tool.Handle, v, 1);
+                            end
                         end)
                     end
                 end
