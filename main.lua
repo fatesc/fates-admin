@@ -6590,7 +6590,7 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
         for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
             v.Enable(v);
         end
-    end)
+    end)();
 
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");
