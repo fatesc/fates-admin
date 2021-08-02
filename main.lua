@@ -499,7 +499,11 @@ MetaMethodHooks.Index = function(...)
             end
         end
     end
-
+     if (Instance_:IsA("Humanoid") and game.PlaceId == 6650331930) then
+            for i, v in next, getconnections(Instance_:GetPropertyChangedSignal("WalkSpeed")) do
+                v:Disable();
+            end
+        end
     if (Tfind(ProtectedInstances, __Index(...))) then
         return nil
     end
