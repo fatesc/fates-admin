@@ -1780,22 +1780,30 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, CEn
         return v ~= LocalPlayer
     end)
 
+    local Hit = function(i, v)
+        Tool.Activate(Tool);
+        if (FindFirstChild(Tool, "Handle")) then
+            firetouchinterest(Tool.Handle, v, 0);
+            wait();
+            firetouchinterest(Tool.Handle, v, 1);
+        elseif (FindFirstChild(Tool, "HitBox")) then
+            firetouchinterest(Tool.HitBox, v, 0);
+            wait();
+            firetouchinterest(Tool.HitBox, v, 1);
+        end
+    end
+
     AddConnection(CConnect(Heartbeat, function()
         Tool = FindFirstChildWhichIsA(GetCharacter(), "Tool") or FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
         if (Tool and Tool.Handle) then
-            for i, v in next, PlayersTbl do
+            for i2, v2 in next, PlayersTbl do
                 if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
                     if (GetHumanoid().Health ~= 0) then
                         Tool.Parent = GetCharacter();
                         local BaseParts = filter(GetChildren(GetCharacter(v)), function(i, v)
                             return IsA(v, "BasePart");
                         end)
-                        forEach(BaseParts, function(i, v)
-                            Tool.Activate(Tool);
-                            firetouchinterest(Tool.Handle, v, 0);
-                            wait();
-                            firetouchinterest(Tool.Handle, v, 1);
-                        end)
+                        forEach(BaseParts, Hit);
                     end
                 end
             end
@@ -3959,6 +3967,30 @@ AddCommand("uninviscam", {"uninviscamera"}, "disables inviscam", {}, function()
     return "inviscam disabled"
 end)
 
+AddCommand("snipe", {"streamsnipe"}, "stream snipes a user", {"2"}, function(Caller, Args)
+    local PlaceId = tonumber(Args[1]);
+    local UserId = tonumber(Args[2]);
+    if (not PlaceId) then
+        return "placeid expected"
+    end
+    if (not UserId) then
+        return "userid expected"
+    end
+    local Ret = game.HttpGet(game, format("https://fate123.000webhostapp.com/sniper.php?uid=%s&placeId=%s", UserId, PlaceId));
+    local Success, JSON = pcall(JSONDecode, Services.HttpService, Ret);
+    if (not Success) then
+        return "error occured"
+    end
+    if (JSON.error) then
+        return "error: " .. JSON.error
+    end
+    local GameInfo = JSON.game
+    local UserInfo = JSON.userinfo
+    local TeleportService = Services.TeleportService
+    TeleportService.TeleportToPlaceInstance(TeleportService, GameInfo.gameid, GameInfo.guid);
+    return format("joining %s on game %s (%d/%d)", UserInfo.username, GameInfo.gamename, GameInfo.playing, GameInfo.capacity);
+end)
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
@@ -4036,7 +4068,7 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
         for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
             v.Enable(v);
         end
-    end)
+    end)()
 
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");
