@@ -143,7 +143,7 @@ local CThread;
 do
     local wrap = coroutine.wrap
     CThread = function(Func, ...)
-        return wrap(Func, ...);
+        return wrap(Func);
     end
 end
 

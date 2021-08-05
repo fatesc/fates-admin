@@ -1,12 +1,13 @@
 --[[
-	fates admin - 4/8/2021
+	fates admin - 5/8/2021
 ]]
 
 local game = game
 local GetService = game.GetService
 if (not game.IsLoaded(game)) then
     print("fates admin: waiting for game to load...");
-    game.Loaded.Wait(game.Loaded);
+    local Loaded = game.Loaded
+    Loaded.Wait(Loaded);
 end
 
 local start = start or tick();
@@ -161,7 +162,7 @@ local CThread;
 do
     local wrap = coroutine.wrap
     CThread = function(Func, ...)
-        return wrap(Func, ...);
+        return wrap(Func);
     end
 end
 
@@ -733,16 +734,22 @@ end
 
 
 
-local GetRoot = function(Plr)
-    return Plr and GetCharacter(Plr) and (FindFirstChild(GetCharacter(Plr), "HumanoidRootPart") or FindFirstChild(GetCharacter(Plr), "Torso") or FindFirstChild(GetCharacter(Plr), "UpperTorso")) or GetCharacter() and (FindFirstChild(GetCharacter(), "HumanoidRootPart") or FindFirstChild(GetCharacter(), "Torso") or FindFirstChild(GetCharacter(Plr), "UpperTorso"));
+local GetRoot = function(Plr, Char)
+    local LCharacter = GetCharacter();
+    local Character = Char or GetCharacter(Plr);
+    return Plr and Character and (FindFirstChild(Character, "HumanoidRootPart") or FindFirstChild(Character, "Torso") or FindFirstChild(Character, "UpperTorso")) or LCharacter and (FindFirstChild(LCharacter, "HumanoidRootPart") or FindFirstChild(LCharacter, "Torso") or FindFirstChild(LCharacter, "UpperTorso"));
 end
 
-local GetHumanoid = function(Plr)
-    return Plr and GetCharacter(Plr) and FindFirstChildWhichIsA(GetCharacter(Plr), "Humanoid") or GetCharacter() and FindFirstChildWhichIsA(GetCharacter(), "Humanoid");
+local GetHumanoid = function(Plr, Char)
+    local LCharacter = GetCharacter();
+    local Character = Char or GetCharacter(Plr);
+    return Plr and Character and FindFirstChildWhichIsA(Character, "Humanoid") or LCharacter and FindFirstChildWhichIsA(LCharacter, "Humanoid");
 end
 
-local GetMagnitude = function(Plr)
-    return Plr and GetRoot(Plr) and (GetRoot(Plr).Position - GetRoot().Position).magnitude or math.huge
+local GetMagnitude = function(Plr, Char)
+    local LRoot = GetRoot();
+    local Root = GetRoot(Plr, Char);
+    return Plr and Root and (Root.Position - LRoot.Position).magnitude or math.huge
 end
 
 local Settings = {
@@ -3106,6 +3113,12 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, CEn
     local PlayersTbl = filter(GetPlayers(Players), function(i, v)
         return v ~= LocalPlayer
     end)
+    PlayersTbl = map(PlayersTbl, function(i, Player)
+        AddConnection(CConnect(Player.CharacterAdded, function()
+            PlayersTbl[i] = {Player, Player.Character}
+        end), CEnv);
+        return {Player, Player.Character}
+    end)
 
     local Hit = function(i, v)
         Tool.Activate(Tool);
@@ -3119,15 +3132,16 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, CEn
             firetouchinterest(Tool.HitBox, v, 1);
         end
     end
-
+    local Character = GetCharacter();
     AddConnection(CConnect(Heartbeat, function()
-        Tool = FindFirstChildWhichIsA(GetCharacter(), "Tool") or FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
+        Character = Character or GetCharacter();
+        Tool = FindFirstChildWhichIsA(Character, "Tool") or FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
         if (Tool and Tool.Handle) then
-            for i2, v2 in next, PlayersTbl do
-                if (GetRoot(v) and GetHumanoid(v) and GetHumanoid(v).Health ~= 0 and GetMagnitude(v) <= SwordDistance) then
+            for i, v in next, PlayersTbl do
+                if (GetRoot(v[1], v[2]) and GetHumanoid(v[1], v[2]) and GetHumanoid(v[1], v[2]).Health ~= 0 and GetMagnitude(v[1], v[2]) <= SwordDistance) then
                     if (GetHumanoid().Health ~= 0) then
-                        Tool.Parent = GetCharacter();
-                        local BaseParts = filter(GetChildren(GetCharacter(v)), function(i, v)
+                        Tool.Parent = Character
+                        local BaseParts = filter(GetChildren(GetCharacter(v[1], v[2])), function(i, v)
                             return IsA(v, "BasePart");
                         end)
                         forEach(BaseParts, Hit);
@@ -3167,7 +3181,7 @@ AddCommand("freeze", {}, "freezes your character", {3}, function(Caller, Args)
     return "freeze enabled (client)"
 end)
 
-AddCommand("unfreeze", {}, "unfreezes your character", {3}, function(Caller, Args)
+AddCommand("unfreeze", {"thaw"}, "unfreezes your character", {3}, function(Caller, Args)
     local BaseParts = filter(GetChildren(GetCharacter(v)), function(i, v)
         return IsA(v, "BasePart");
     end)
@@ -4288,6 +4302,34 @@ AddCommand("chat", {}, "sends a message", {"1"}, function(Caller, Args)
     return "chatted " .. toChat
 end)
 
+AddCommand("spam", {"spamchat", "spamc"}, "spams the chat with a message", {"1"}, function(Caller, Args, CEnv)
+    local WaitTime = CEnv.WaitTime or tonumber(Args[#Args]);
+    if (tonumber(Args[#Args])) then
+        Args = pack(unpack(Args, 1, #Args - 1));
+        Args.n = nil
+    end
+    local Message = concat(Args, " ");
+    CEnv.Spamming = true
+    CEnv.WaitTime = WaitTime or 1
+    local ChatRemote = Services.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest
+    CThread(function()
+        while (CEnv.Spamming) do
+            ChatRemote.FireServer(ChatRemote, Message, "All");
+            wait(CEnv.WaitTime);
+        end
+    end)()
+    return format("spamming %s with a delay of %d", Message, CEnv.WaitTime);
+end)
+
+AddCommand("spamspeed", {"sspeed"}, "sets your spam speed", {"1"}, function(Caller, Args)
+    local Speed = tonumber(Args[1]);
+    if (not Speed) then
+        return "number expected"
+    end
+    LoadCommand("spam").CmdEnv.WaitTime = Speed
+    return "spamspeed set at " .. Speed
+end)
+
 AddCommand("silentchat", {"chatsilent"}, "sends a message but will not show in the chat (fires .Chatted signals)", {"1"}, function(Caller, Args)
     local toChat = concat(Args, " ");
     Services.Players.Chat(Services.Players, toChat);
@@ -4308,13 +4350,15 @@ AddCommand("spamsilentchat", {"spamchatlogs"}, "spams sending messages with what
     return "spamming chat sliently"
 end)
 
-AddCommand("unspamsilentchat", {"nospamsilentchat", "unspamchatlogs", "nospamchatlogs"}, "stops the spam of chat", {}, function()
+AddCommand("unspamsilentchat", {"nospamsilentchat", "unspamchatlogs", "nospamchatlogs", "unspamchat", "unspam"}, "stops the spam of chat", {}, function()
     local Spamming = LoadCommand("spamsilentchat").CmdEnv
-    if (not next(Spamming)) then
-        return "you are not spamming slient chat"
+    local Spamming1 = LoadCommand("spam").CmdEnv
+    if (not next(Spamming) and not next(Spamming1)) then
+        return "you are not spamming chat"
     end
     DisableAllCmdConnections("spamsilentchat");
-    return "stopped spamming slient chat"
+    Spamming1.Spamming = false
+    return "stopped spamming chat"
 end)
 
 AddCommand("advertise", {}, "advertises the script", {}, function()
@@ -5318,13 +5362,95 @@ AddCommand("snipe", {"streamsnipe"}, "stream snipes a user", {"2"}, function(Cal
     return format("joining %s on game %s (%d/%d)", UserInfo.username, GameInfo.gamename, GameInfo.playing, GameInfo.capacity);
 end)
 
+AddCommand("loop", {"loopcommand"}, "loops a command", {"1"}, function(Caller, Args, CEnv)
+    local Command = Args[1]
+    local LoadedCommand = LoadCommand(Command);
+    if (not LoadedCommand) then
+        return format("command %s not found", Command);
+    end
+    local LoopSpeed = 3
+    Args = shift(Args);
+    CEnv.Looping = true
+    CThread(function()
+        while (CEnv.Looping) do
+            ExecuteCommand(Command, Args, Caller);
+        end
+    end)();
+    return format("now looping the %s command", Command);
+end)
+
+AddCommand("disablesit", {"neversit", "nosit"}, "disables you from being sat", {}, function(Caller, Args, CEnv)
+    local Humanoid = GetHumanoid();
+    AddConnection(CConnect(GetPropertyChangedSignal(Humanoid, "Sit"), function()
+        CWait(Heartbeat);
+        Humanoid.Sit = false
+    end), CEnv);
+    AddConnection(CConnect(LocalPlayer.CharacterAdded, function(Char)
+        Humanoid = WaitForChild(Char, "Humanoid");
+        AddConnection(CConnect(GetPropertyChangedSignal(Humanoid, "Sit"), function()
+            CWait(RunService.Heartbeat);
+            Humanoid.Sit = false
+        end), CEnv);
+    end), CEnv)
+    return "disabled sit"
+end)
+
+AddCommand("enablesit", {"undisablesit"}, "enables disablesit", {}, function()
+    DisableAllCmdConnections("disablesit");
+    return "enabled sit"
+end)
+
+AddCommand("massplay", {}, "massplays all of your boomboxes", {3,1,"1"}, function(Caller, Args)
+    local Audio = tonumber(Args[1]);
+    if (not Audio and not match(Audio, "rbxassetid://%d+")) then
+        return "number expected for audio"
+    end
+    Audio = Audio or Args[1]
+    local Character = GetCharacter();
+    local Humanoid = GetHumanoid();
+    UnequipTools(Humanoid);
+    local Boomboxes = filter(GetChildren(LocalPlayer.Backpack), function(i, v)
+        if (Sfind(lower(v.Name), "boombox") or FindFirstChildOfClass(v.Handle, "Sound", true)) then
+           v.Parent = Character
+           return true 
+        end
+        return false
+    end)
+    for i = 1, #Boomboxes do
+        local Boombox = Boomboxes[i]
+        local RemoteEvent = FindFirstChildWhichIsA(Boombox, "RemoteEvent")
+        RemoteEvent.FireServer(RemoteEvent, "PlaySong", Audio);
+    end
+    delay(2, function()
+        ExecuteCommand("sync", {}, Caller);
+    end)
+    return "now massplaying"
+end)
+
+AddCommand("sync", {"syncaudios"}, "syncs audios playing", {}, function()
+    local Humanoid = GetHumanoid();
+    local Playing = filter(GetChildren(GetCharacter()), function(i,v)
+        return IsA(v, "Tool") and FindFirstChildOfClass(v.Handle, "Sound");
+    end)
+    Playing = map(Playing, function(i, v)
+        return FindFirstChildOfClass(v.Handle, "Sound");
+    end)
+    local Sound = Playing[1]
+    Services.SoundService.RespectFilteringEnabled = false
+    for i = 1, #Playing do
+        Playing[i].TimePosition = Sound.TimePosition
+    end
+    Services.SoundService.RespectFilteringEnabled = true
+    return format("synced %d sounds", #Playing);
+end)
+
+
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
         Connections.Players[plr.Name] = {}
         Connections.Players[plr.Name].Connections = {}
     end
     Connections.Players[plr.Name].ChatCon = CConnect(plr.Chatted, function(raw)
-
         local message = raw
 
         if (ChatLogsEnabled) then
