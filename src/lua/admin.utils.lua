@@ -540,3 +540,61 @@ Utils.TextFont = function(Text, RGB)
         return format('<font color="rgb(%s)">%s</font>', RGB, letter)
     end)) .. " "
 end
+
+Utils.Thing = function(Object)
+    local Container = InstanceNew("Frame")
+    local Hitbox = InstanceNew("ImageButton")
+    
+    Container.Name = "Container"
+    Container.Parent = Object.Parent
+    Container.BackgroundTransparency = 1.000
+    Container.BorderSizePixel = 0
+    Container.Position = Object.Position
+    Container.ClipsDescendants = true
+    Container.Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+    Container.ZIndex = Object
+    
+    Object.AutomaticSize = Enum.AutomaticSize.X
+    Object.Size = UDim2.fromScale(1, 1)
+    Object.Position = UDim2.fromScale(0, 0)
+    Object.Parent = Container
+    Object.TextTruncate = Enum.TextTruncate.None
+    Object.ZIndex = Object.ZIndex + 2
+    
+    Hitbox.Name = "Hitbox"
+    Hitbox.Parent = Container.Parent
+    Hitbox.BackgroundTransparency = 1.000
+    Hitbox.Size = Container.Size
+    Hitbox.Position = Container.Position
+    Hitbox.ZIndex = Object.ZIndex + 2
+    
+    MouseOut = true
+    
+    AddConnection(CConnect(Hitbox.MouseEnter, function()
+        print(true)
+        if Object.AbsoluteSize.X > Container.AbsoluteSize.X then
+            MouseOut = false
+            repeat
+                local Tween1 = Utils.Tween(Object, "Quad", "Out", .5, {
+                    Position = UDim2.fromOffset(Container.AbsoluteSize.X - Object.AbsoluteSize.X, 0);
+                })
+                CWait(Tween1.Completed);
+                wait(.5);
+                local Tween2 = Utils.Tween(Object, "Quad", "Out", .5, {
+                    Position = UDim2.fromOffset(0, 0);
+                })
+                CWait(Tween2.Completed);
+                wait(.5);
+            until MouseOut
+        end
+    end))
+
+    AddConnection(CConnect(Hitbox.MouseLeave, function()
+        MouseOut = true
+        Utils.Tween(Object, "Quad", "Out", .25, {
+            Position = UDim2.fromOffset(0, 0);
+        })
+    end))
+    
+    return Object
+end

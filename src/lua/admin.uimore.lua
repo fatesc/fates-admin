@@ -604,6 +604,10 @@ do
                     NewMacro.Macro.Text = MacroName
                     NewMacro.Parent = CurrentMacros
                     NewMacro.Visible = true
+
+                    Utils.Thing(NewMacro.Bind);
+                    Utils.Thing(NewMacro.Macro);
+
                     FindFirstChild(NewMacro, "Remove").Name = "Delete"
                     AddConnection(CConnect(NewMacro.Delete.MouseButton1Click, function()
                         CWait(Utils.TweenAllTrans(NewMacro, .25).Completed);
@@ -633,7 +637,7 @@ do
                 else
                     Formatted = KeyName
                 end
-                MacroSection.AddMacro(v.Command, Formatted);
+                MacroSection.AddMacro(v.Command .. " " .. concat(v.Args, " "), Formatted);
             end
 
             return MacroSection
@@ -694,6 +698,7 @@ do
                 Toggle.Visible = true
                 Toggle.Title.Text = Title
                 Toggle.Parent = Section.Options
+                Utils.Thing(Toggle.Title);
 
                 UpdateClone()
 
@@ -731,6 +736,12 @@ do
                 Frame.Visible = true
                 Frame.Title.Text = Title
                 Frame.Parent = Section.Options
+
+                for _, NewToggle in next, GetChildren(Frame.Container) do
+                    if (IsA(NewToggle, "GuiObject")) then
+                        Utils.Thing(NewToggle.Title);
+                    end
+                end
 
                 UpdateClone()
             end
@@ -786,6 +797,7 @@ do
                 Utils.Click(Container, "BackgroundColor3");
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
+                Utils.Thing(Container);
                 UpdateClone();
             end
             
@@ -806,6 +818,7 @@ do
                 
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
+                Utils.Thing(Container);
                 UpdateClone();
             end
 

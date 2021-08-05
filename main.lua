@@ -1540,6 +1540,64 @@ Utils.TextFont = function(Text, RGB)
         return format('<font color="rgb(%s)">%s</font>', RGB, letter)
     end)) .. " "
 end
+
+Utils.Thing = function(Object)
+    local Container = InstanceNew("Frame")
+    local Hitbox = InstanceNew("ImageButton")
+    
+    Container.Name = "Container"
+    Container.Parent = Object.Parent
+    Container.BackgroundTransparency = 1.000
+    Container.BorderSizePixel = 0
+    Container.Position = Object.Position
+    Container.ClipsDescendants = true
+    Container.Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+    Container.ZIndex = Object
+    
+    Object.AutomaticSize = Enum.AutomaticSize.X
+    Object.Size = UDim2.fromScale(1, 1)
+    Object.Position = UDim2.fromScale(0, 0)
+    Object.Parent = Container
+    Object.TextTruncate = Enum.TextTruncate.None
+    Object.ZIndex = Object.ZIndex + 2
+    
+    Hitbox.Name = "Hitbox"
+    Hitbox.Parent = Container.Parent
+    Hitbox.BackgroundTransparency = 1.000
+    Hitbox.Size = Container.Size
+    Hitbox.Position = Container.Position
+    Hitbox.ZIndex = Object.ZIndex + 2
+    
+    MouseOut = true
+    
+    AddConnection(CConnect(Hitbox.MouseEnter, function()
+        print(true)
+        if Object.AbsoluteSize.X > Container.AbsoluteSize.X then
+            MouseOut = false
+            repeat
+                local Tween1 = Utils.Tween(Object, "Quad", "Out", .5, {
+                    Position = UDim2.fromOffset(Container.AbsoluteSize.X - Object.AbsoluteSize.X, 0);
+                })
+                CWait(Tween1.Completed);
+                wait(.5);
+                local Tween2 = Utils.Tween(Object, "Quad", "Out", .5, {
+                    Position = UDim2.fromOffset(0, 0);
+                })
+                CWait(Tween2.Completed);
+                wait(.5);
+            until MouseOut
+        end
+    end))
+
+    AddConnection(CConnect(Hitbox.MouseLeave, function()
+        MouseOut = true
+        Utils.Tween(Object, "Quad", "Out", .25, {
+            Position = UDim2.fromOffset(0, 0);
+        })
+    end))
+    
+    return Object
+end
 --END IMPORT [utils]
 
 
@@ -6107,6 +6165,10 @@ do
                     NewMacro.Macro.Text = MacroName
                     NewMacro.Parent = CurrentMacros
                     NewMacro.Visible = true
+
+                    Utils.Thing(NewMacro.Bind);
+                    Utils.Thing(NewMacro.Macro);
+
                     FindFirstChild(NewMacro, "Remove").Name = "Delete"
                     AddConnection(CConnect(NewMacro.Delete.MouseButton1Click, function()
                         CWait(Utils.TweenAllTrans(NewMacro, .25).Completed);
@@ -6136,7 +6198,7 @@ do
                 else
                     Formatted = KeyName
                 end
-                MacroSection.AddMacro(v.Command, Formatted);
+                MacroSection.AddMacro(v.Command .. " " .. concat(v.Args, " "), Formatted);
             end
 
             return MacroSection
@@ -6197,6 +6259,7 @@ do
                 Toggle.Visible = true
                 Toggle.Title.Text = Title
                 Toggle.Parent = Section.Options
+                Utils.Thing(Toggle.Title);
 
                 UpdateClone()
 
@@ -6234,6 +6297,12 @@ do
                 Frame.Visible = true
                 Frame.Title.Text = Title
                 Frame.Parent = Section.Options
+
+                for _, NewToggle in next, GetChildren(Frame.Container) do
+                    if (IsA(NewToggle, "GuiObject")) then
+                        Utils.Thing(NewToggle.Title);
+                    end
+                end
 
                 UpdateClone()
             end
@@ -6289,6 +6358,7 @@ do
                 Utils.Click(Container, "BackgroundColor3");
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
+                Utils.Thing(Container);
                 UpdateClone();
             end
             
@@ -6309,6 +6379,7 @@ do
                 
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
+                Utils.Thing(Container);
                 UpdateClone();
             end
 
