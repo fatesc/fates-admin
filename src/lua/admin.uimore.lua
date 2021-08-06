@@ -797,7 +797,6 @@ do
                 Utils.Click(Container, "BackgroundColor3");
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
-                Utils.Thing(Container);
                 UpdateClone();
             end
             
@@ -818,7 +817,6 @@ do
                 
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
-                Utils.Thing(Container);
                 UpdateClone();
             end
 

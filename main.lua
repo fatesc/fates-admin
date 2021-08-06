@@ -2418,10 +2418,10 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
 
     CEnv[1] = true
     local AmountDuped = 0
-    local Timer = Players.RespawnTime * Amount
+    local Timer = (Players.RespawnTime * Amount) + (Amount * .4) + 1
     local Notification = Utils.Notify(Caller, "Duping Tools", format("%d/%d tools duped. %d seconds left", AmountDuped, Amount, Timer), Timer);
     CThread(function()
-        for i = 1, (Players.RespawnTime * Amount) do
+        for i = 1, Timer do
             if (not LoadCommand("dupetools").CmdEnv[1]) then
                 do break end;
             end
@@ -6357,7 +6357,6 @@ do
                 Utils.Click(Container, "BackgroundColor3");
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
-                Utils.Thing(Container);
                 UpdateClone();
             end
             
@@ -6378,7 +6377,6 @@ do
                 
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
-                Utils.Thing(Container);
                 UpdateClone();
             end
 
@@ -6574,6 +6572,15 @@ do
         return (not IsEnum and _) and Stringed or split(tostring(KeyCode), ".")[3], (IsEnum and not _);
     end
 
+    local SortKeys = function(Key1, Key2)
+        local KeyName, IsEnum = GetKeyName(Key1);
+        if (Key2) then
+            local KeyName2, IsEnum2 = GetKeyName(Key2);
+            return format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
+        end
+        return KeyName
+    end
+
     LoadConfig = function()
         local Script = ConfigUILib.NewPage("Script");
         local Settings = Script.NewSection("Settings");
@@ -6675,14 +6682,6 @@ do
         local MacrosPage = ConfigUILib.NewPage("Macros");
         local MacroSection;
         MacroSection = MacrosPage.CreateMacroSection(Macros, function(Bind, Command, Args)
-            local KeyName, IsEnum = GetKeyName(Bind[1]);
-            local Formatted;
-            if (Bind[2]) then
-                local KeyName2, IsEnum2 = GetKeyName(Bind[2]); 
-                Formatted = format("%s + %s", IsEnum2 and KeyName2 or KeyName, IsEnum2 and KeyName2 or KeyName2);
-            else
-                Formatted = KeyName
-            end
             local AlreadyAdded = false
             for i = 1, #Macros do
                 if (Macros[i].Command == Command) then
@@ -6690,13 +6689,22 @@ do
                 end
             end
             if (CommandsTable[Command] and not AlreadyAdded) then
-                MacroSection.AddMacro(Command .. " " .. Args, Formatted);
+                MacroSection.AddMacro(Command .. " " .. Args, SortKeys(Bind[1], Bind[2]));
                 Args = split(Args, " ");
-                Macros[#Macros + 1] = {
-                    Command = Command,
-                    Args = Args,
-                    Keys = Bind
-                }
+                if (sub(Command, 1, 2) == "un" or CommandsTable["un" .. Command]) then
+                    local Shifted = {Command, unpack(Args)}
+                    Macros[#Macros + 1] = {
+                        Command = "toggle",
+                        Args = Shifted,
+                        Keys = Bind
+                    }
+                else
+                    Macros[#Macros + 1] = {
+                        Command = Command,
+                        Args = Args,
+                        Keys = Bind
+                    }
+                end
                 local TempMacros = clone(Macros);
                 for i, v in next, TempMacros do
                     for i2, v2 in next, v.Keys do

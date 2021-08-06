@@ -1033,10 +1033,10 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
 
     CEnv[1] = true
     local AmountDuped = 0
-    local Timer = Players.RespawnTime * Amount
+    local Timer = (Players.RespawnTime * Amount) + (Amount * .4) + 1
     local Notification = Utils.Notify(Caller, "Duping Tools", format("%d/%d tools duped. %d seconds left", AmountDuped, Amount, Timer), Timer);
     CThread(function()
-        for i = 1, (Players.RespawnTime * Amount) do
+        for i = 1, Timer do
             if (not LoadCommand("dupetools").CmdEnv[1]) then
                 do break end;
             end
