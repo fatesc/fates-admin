@@ -1,7 +1,6 @@
 local game = game
 local GetService = game.GetService
 if (not game.IsLoaded(game)) then
-    print("fates admin: waiting for game to load...");
     local Loaded = game.Loaded
     Loaded.Wait(Loaded);
 end

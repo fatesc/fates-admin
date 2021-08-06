@@ -1,11 +1,10 @@
 --[[
-	fates admin - 5/8/2021
+	fates admin - 6/8/2021
 ]]
 
 local game = game
 local GetService = game.GetService
 if (not game.IsLoaded(game)) then
-    print("fates admin: waiting for game to load...");
     local Loaded = game.Loaded
     Loaded.Wait(Loaded);
 end
