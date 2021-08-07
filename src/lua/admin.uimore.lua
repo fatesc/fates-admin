@@ -1,4 +1,3 @@
--- make all elements not visible
 Notification.Visible = false
 Stats.Visible = false
 Utils.SetAllTrans(CommandBar)
@@ -10,17 +9,15 @@ ChatLogs.Visible = false
 GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
--- make the ui draggable
 Utils.Draggable(Commands);
 Utils.Draggable(ChatLogs);
 Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
 Utils.Draggable(ConfigUI);
 
--- parent ui
 ParentGui(UI);
 Connections.UI = {}
--- tweencommand bar on prefix
+
 local Times = #LastCommand
 AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, GameProccesed)
     if (Input.KeyCode == CommandBarPrefix and (not GameProccesed)) then
@@ -29,11 +26,10 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
         local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
         local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
 
-        -- tween position
         if (CommandBarOpen) then
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110) -- tween -110
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110)
                 })
             end
 
@@ -58,7 +54,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
         else
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5)
                 })
             end
         end
@@ -99,7 +95,6 @@ Utils.Click(HttpLogs.Save, "BackgroundColor3")
 Utils.Click(HttpLogs.Toggle, "BackgroundColor3")
 Utils.Click(HttpLogs.Close, "TextColor3")
 
--- close tween commands
 AddConnection(CConnect(Commands.Close.MouseButton1Click, function()
     local Tween = Utils.TweenAllTrans(Commands, .25)
 
@@ -107,24 +102,22 @@ AddConnection(CConnect(Commands.Close.MouseButton1Click, function()
     Commands.Visible = false
 end), Connections.UI, true);
 
--- command search
 AddConnection(CConnect(GetPropertyChangedSignal(Commands.Search, "Text"), function()
     local Text = Commands.Search.Text
-    for _, v in next, GetChildren(Commands.Frame.List) do
+    local Children = GetChildren(Commands.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (IsA(v, "Frame")) then
             local Command = v.CommandText.Text
-
             v.Visible = Sfind(lower(Command), Text, 1, true)
         end
     end
-
     Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
 end), Connections.UI, true);
 
--- close chatlogs
 AddConnection(CConnect(ChatLogs.Close.MouseButton1Click, function()
     local Tween = Utils.TweenAllTrans(ChatLogs, .25)
-    
+
     CWait(Tween.Completed);
     ChatLogs.Visible = false
 end), Connections.UI, true);
@@ -145,8 +138,6 @@ ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 
-
--- enable chat logs
 AddConnection(CConnect(ChatLogs.Toggle.MouseButton1Click, function()
     ChatLogsEnabled = not ChatLogsEnabled
     ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
@@ -160,7 +151,6 @@ AddConnection(CConnect(HttpLogs.Toggle.MouseButton1Click, function()
     HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 
--- clear chat logs
 AddConnection(CConnect(ChatLogs.Clear.MouseButton1Click, function()
     Utils.ClearAllObjects(ChatLogs.Frame.List)
     ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
@@ -174,11 +164,11 @@ AddConnection(CConnect(HttpLogs.Clear.MouseButton1Click, function()
     HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end), Connections.UI, true);
 
--- chat logs search
 AddConnection(CConnect(GetPropertyChangedSignal(ChatLogs.Search, "Text"), function()
     local Text = ChatLogs.Search.Text
-
-    for _, v in next, GetChildren(ChatLogs.Frame.List) do
+    local Children = GetChildren(ChatLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             local Message = split(v.Text, ": ")[2]
             v.Visible = Sfind(lower(Message), Text, 1, true)
@@ -191,7 +181,9 @@ end), Connections.UI, true);
 AddConnection(CConnect(GetPropertyChangedSignal(GlobalChatLogs.Search, "Text"), function()
     local Text = GlobalChatLogs.Search.Text
 
-    for _, v in next, GetChildren(GlobalChatLogs.Frame.List) do
+    local Children = GetChildren(GlobalChatLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             local Message = v.Text
 
@@ -203,7 +195,9 @@ end), Connections.UI, true);
 AddConnection(CConnect(GetPropertyChangedSignal(HttpLogs.Search, "Text"), function()
     local Text = HttpLogs.Search.Text
 
-    for _, v in next, GetChildren(HttpLogs.Frame.List) do
+    local Children = GetChildren(HttpLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             local Message = v.Text
             v.Visible = Sfind(lower(Message), Text, 1, true)
@@ -216,7 +210,9 @@ AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
     local String =  format("Fates Admin Chatlogs for %s (%s)\n\n", GameName, os.date());
     local TimeSaved = gsub(tostring(os.date("%x")), "/", "-") .. " " .. gsub(tostring(os.date("%X")), ":", "-");
     local Name = format("fates-admin/chatlogs/%s (%s).txt", GameName, TimeSaved);
-    for i, v in next, GetChildren(ChatLogs.Frame.List) do
+    local Children = GetChildren(ChatLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             String = format("%s%s\n", String, v.Text);
         end
@@ -226,7 +222,18 @@ AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
 end), Connections.UI, true);
 
 AddConnection(CConnect(HttpLogs.Save.MouseButton1Click, function()
-    print("saved");
+    local Children = GetChildren(HttpLogs.Frame.List);
+    local Logs =  format("Fates Admin HttpLogs for %s\n\n", os.date());
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            Logs = format("%s%s\n", Logs, v.Text);
+        end
+    end
+    if (not isfolder("fates-admin/httplogs")) then
+        makefolder("fates-admin/httplogs");
+    end
+    writefile(format("HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")), Logs);
 end), Connections.UI, true);
 
 -- auto correct
@@ -656,9 +663,9 @@ do
             
             
             SectionOptions.CanvasSize = UDim2.fromOffset(0,0) --// change
-            CConnect(GetPropertyChangedSignal(SectionUIListLayout, "AbsoluteContentSize"), function()
-                SectionOptions.CanvasSize = UDim2.fromOffset(0, SectionUIListLayout.AbsoluteContentSize.Y + 5)
-            end)
+            AddConnection(CConnect(GetPropertyChangedSignal(SectionUIListLayout, "AbsoluteContentSize"), function()
+                SectionOptions.CanvasSize = UDim2.fromOffset(0, SectionUIListLayout.AbsoluteContentSize.Y + 5);
+            end));
             
             UpdateClone();
 
@@ -693,7 +700,7 @@ do
                     end
                 end
 
-                CConnect(Hitbox.MouseButton1Click, OnClick);
+                AddConnection(CConnect(Hitbox.MouseButton1Click, OnClick));
                 
                 Toggle.Visible = true
                 Toggle.Title.Text = Title
@@ -723,12 +730,12 @@ do
 
                     Utils.Click(NewToggle.Plugins, "BackgroundColor3")
 
-                    CConnect(NewToggle.Plugins.MouseButton1Click, function()
+                    AddConnection(CConnect(NewToggle.Plugins.MouseButton1Click, function()
                         Enabled = not Enabled
                         NewToggle.Plugins.Text = Enabled and (Toggles and Toggles[1] or "Enabled") or (Toggles and Toggles[2] or "Disabled");
 
                         Callback(ElementTitle, Enabled);
-                    end)
+                    end));
 
                     NewToggle.Parent = Frame.Container
                 end

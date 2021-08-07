@@ -209,32 +209,7 @@ do
         PluginSettings.Toggle("Safe Plugins", CurrentPluginConf.SafePlugins, function(Callback)
             SetPluginConfig({SafePlugins = Callback});
         end)
-    
-    
-        -- NewPlugins.Toggle("show health", nil, function(Callback)
-        --     print(Callback);
-        -- end)
-        
-        -- NewPlugins.Toggle("not show health", nil, function(Callback)
-        --     print(Callback);
-        -- end)
-        
-        -- NewPlugins.ScrollingFrame("plugins", function(Option, Enabled)
-        --     print(Option, Enabled);
-        -- end, {
-        --     ["lol.lua"] = true;
-        --     ["stdio.h"] = false;
-        --     ["a.lua"] = false;
-        --     af = true;
-        --     bsrd = false;
-        --     egsgf = false;
-        --     gewg = false;
-        --     dsgkw = false;
-        -- })
-        
-        -- NewPlugins.Keybind("test", function(Callback)
-        --     print(Callback)
-        -- end)
+
     end
 
     delay(1, function()

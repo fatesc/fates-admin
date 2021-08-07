@@ -1,5 +1,6 @@
 const { readFileSync, writeFileSync } = require("fs");
 const { join } = require("path");
+const { exec } = require("child_process");
 
 const option = process.argv.slice(2)[0]
 
@@ -24,3 +25,8 @@ for (const match of matches) {
 }
 writeFileSync(out, `--[[\n\tfates admin - ${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear()}\n]]\n\n` + output.trim());
 console.log(`script built: ${out}`);
+
+if (option == "clip") {
+    exec(`type ${out} | clip`);
+    console.log("copied script to clipboard");
+}

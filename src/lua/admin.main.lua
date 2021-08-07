@@ -184,6 +184,34 @@ GetPlayer = function(str, noerror)
         ["random"] = function()
             return {CurrentPlayers[random(2, #CurrentPlayers)]}
         end,
+        ["allies"] = function()
+            local LTeam = LocalPlayer.Team
+            return filter(CurrentPlayers, function(i, v)
+                return v.Team == LTeam
+            end)
+        end,
+        ["enemies"] = function()
+            local LTeam = LocalPlayer.Team
+            return filter(CurrentPlayers, function(i, v)
+                return v.Team ~= LTeam
+            end)
+        end,
+        ["npcs"] = function()
+            local NPCs = {}
+            local Descendants = GetDescendants(Workspace);
+            local GetPlayerFromCharacter = Players.GetPlayerFromCharacter
+            for i = 1, #Descendants do
+                local Descendant = Descendants[i]
+                local DParent = Descendant.Parent
+                if (IsA(Descendant, "Humanoid") and IsA(DParent, "Model") and (FindFirstChild(DParent, "HumanoidRootPart") or FindFirstChild(DParent, "Head")) and GetPlayerFromCharacter(Players, DParent) == nil) then
+                    local FakePlr = InstanceNew("Player"); -- so it can be compatible with commands
+                    FakePlr.Character = DParent
+                    FakePlr.Name = format("%s %s", DParent.Name, "- " .. Descendant.DisplayName);
+                    NPCs[#NPCs + 1] = FakePlr
+                end
+            end
+            return NPCs
+        end,
         ["me"] = function()
             return {LocalPlayer}
         end
@@ -439,7 +467,7 @@ local AddPlayerConnection = function(Player, Connection, CEnv)
     return Connection
 end
 
-AddConnection = function(Connection, CEnv, TblOnly)
+local AddConnection = function(Connection, CEnv, TblOnly)
     if (CEnv) then
         CEnv[#CEnv + 1] = Connection
         if (TblOnly) then
@@ -3194,16 +3222,11 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = false
             end
         end);
-        for i, v in next, SpoofedProperties do
+        for i, v in next, Hooks.SpoofedProperties do
             for i2, v2 in next, v do
                 i[v2.Property] = v2.SpoofedProperty[v2.Property]
             end
         end
-        for i, v in next, SpoofedInstances do
-            Destroy(v);
-        end
-        SpoofedInstances = {}
-        SpoofedProperties = {}
         Destroy(UI);
         getgenv().F_A = nil
         setreadonly(mt, false);
@@ -4099,7 +4122,7 @@ AddCommand("massplay", {}, "massplays all of your boomboxes", {3,1,"1"}, functio
     return "now massplaying"
 end)
 
-AddCommand("sync", {"syncaudios"}, "syncs audios playing", {}, function()
+AddCommand("sync", {"syncaudios"}, "syncs audios playing", {3}, function()
     local Humanoid = GetHumanoid();
     local Playing = filter(GetChildren(GetCharacter()), function(i,v)
         return IsA(v, "Tool") and FindFirstChildOfClass(v.Handle, "Sound");
@@ -4114,6 +4137,49 @@ AddCommand("sync", {"syncaudios"}, "syncs audios playing", {}, function()
     end
     Services.SoundService.RespectFilteringEnabled = true
     return format("synced %d sounds", #Playing);
+end)
+
+AddCommand("pathfind", {"follow2"}, "finds a user with pathfinding", {"1",3}, function(Caller, Args)
+    local PathfindingService = Services.PathfindingService
+    local CreatePath = PathfindingService.CreatePath
+    local Target = GetPlayer(Args[1]);
+    local LRoot = GetRoot();
+    local LHumanoid = GetHumanoid();
+    local PSSuccess = Enum.PathStatus.Success
+    local Delay = tonumber(Args[2]);
+    for i, v in next, Target do
+        local TRoot = GetRoot(v);
+        if (not TRoot) then
+            continue;
+        end
+        local Path = CreatePath(PathfindingService);
+        Path.ComputeAsync(Path, LRoot.Position, TRoot.Position);
+        if (LHumanoid.Sit) then
+            ChangeState(LHumanoid, 3);
+        end
+        LHumanoid.WalkSpeed = 16
+        LHumanoid.MoveTo(LHumanoid, TRoot.Position);
+        wait(2);
+        local WayPoints = Path.GetWaypoints(Path);
+        for i = 1, #WayPoints do
+            local WayPoint = WayPoints[i]
+            if (Path.Status == PSSuccess) then
+                LHumanoid.WalkToPoint = WayPoint.Position
+                if (WayPoint.Action == Enum.PathWaypointAction.Jump) then
+                    LHumanoid.WalkSpeed = 0
+                    wait();
+                    LHumanoid.WalkSpeed = 16
+                    ChangeState(LHumanoid, 3);
+                end
+                CWait(LHumanoid.MoveToFinished);
+            else
+                repeat Path.ComputeAsync(Path, LRoot.Position, TRoot.Position) until Path.Status == PSSuccess;
+            end
+        end
+        if (Delay) then
+            wait(Delay);
+        end
+    end
 end)
 
 
@@ -4219,9 +4285,9 @@ local CurrentPlayers = GetPlayers(Players);
 
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
-    CConnect(plr.CharacterAdded, function()
+    AddConnection(CConnect(plr.CharacterAdded, function()
         RespawnTimes[plr.Name] = tick();
-    end)
+    end));
     local Tag = Utils.CheckTag(plr);
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr

@@ -1,9 +1,10 @@
 local Debug = true
 
-local firetouchinterest;
+local firetouchinterest, hookfunction;
 do
+    local GEnv = getgenv();
     local touched = {}
-    firetouchinterest = getgenv().firetouchinterest or function(part1, part2, toggle)
+    firetouchinterest = GEnv.firetouchinterest or function(part1, part2, toggle)
         if (part1 and part2) then
             if (toggle == 0) then
                 touched[1] = part1.CFrame
@@ -14,16 +15,18 @@ do
             end
         end
     end
-end
-
-local hookfunction = hookfunction or function(func, newfunc)
-    if (replaceclosure) then
-        replaceclosure(func, newfunc);
-        return func
+    local newcclosure = newcclosure or function(f)
+        return f
     end
 
-    func = newcclosure and newcclosure(newfunc) or newfunc
-    return func
+    hookfunction = GEnv.hookfunction or function(func, newfunc, applycclosure)
+        if (replaceclosure) then
+            replaceclosure(func, newfunc);
+            return func
+        end
+        func = applycclosure and newcclosure or newfunc
+        return func
+    end
 end
 
 local getconnections = function(...)
@@ -58,8 +61,7 @@ end
 
 local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
     setreadonly(metatable, false);
-    local Old = metatable.metamethod
-    metatable.metamethod = newcclosure(func);
+    Old = hookfunction(metatable[metamethod], func, true);
     setreadonly(metatable, true);
     return Old
 end
@@ -77,28 +79,11 @@ local GetAllParents = function(Instance_)
     end
     return {}
 end
-
-local ProtectedInstances = {}
-local SpoofedInstances = {}
-local SpoofedProperties = {}
-local Methods = {
-    "FindFirstChild",
-    "FindFirstChildWhichIsA",
-    "FindFirstChildOfClass",
-    "IsA"
+local Hooks = {
+    AntiKick = false,
+    AntiTeleport = false,
+    NoJumpCooldown = false
 }
-local AllowedIndexes = {
-    "RootPart",
-    "Parent"
-}
-local AllowedNewIndexes = {
-    "Jump"
-}
-local Hooks = {}
-
-Hooks.AntiKick = false
-Hooks.AntiTeleport = false
-Hooks.NoJumpCooldown = false
 
 local mt = getrawmetatable(game);
 local OldMetaMethods = {}
@@ -109,184 +94,240 @@ end
 setreadonly(mt, true);
 local MetaMethodHooks = {}
 
-MetaMethodHooks.Namecall = function(...)
-    local __Namecall = OldMetaMethods.__namecall;
-    local Args = {...}
-    local self = Args[1]
+local ProtectInstance, SpoofInstance, SpoofProperty;
+do
+    local ProtectedInstances = {}
+    local SpoofedInstances = {}
+    local SpoofedProperties = {}
+    Hooks.SpoofedProperties = SpoofedProperties
 
-    if (checkcaller()) then
-        return __Namecall(...);
-    end
-
-    local Method = getnamecallmethod();
-    local Protected = Tfind(ProtectedInstances, self);
-
-    if (Protected) then
-        if (Tfind(Methods, Method)) then
-            return Method == "IsA" and false or nil
-        end
-    end
-
-    if (Method == "GetChildren" or Method == "GetDescendants") then
-        return filter(__Namecall(...), function(i, v)
-            return not Tfind(ProtectedInstances, v);
-        end)
-    end
-
-    if (Method == "GetFocusedTextBox") then
-        if (Tfind(ProtectedInstances, __Namecall(...))) then
-            return nil
-        end
-    end
-
-    if (Hooks.AntiKick and lower(Method) == "kick") then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
-        return
-    end
-
-    if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
-        return
-    end
-
-    if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
-        local State = __Namecall(...);
-        if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
-            return Enum.HumanoidStateType.RunningNoPhysics
-        end
-        if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
-            return false
-        end
-    end
-    
-    return __Namecall(...);
-end
-
-MetaMethodHooks.Index = function(...)
-    local __Index = OldMetaMethods.__index;
-
-    if (checkcaller()) then
-        return __Index(...);
-    end
-    local Instance_, Index = ...
-
-    local SanitisedIndex = Index
-    if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-        SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
-    end
-    local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
-    local SpoofedInstance = SpoofedInstances[Instance_]
-    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
-
-    if (SpoofedInstance) then
-        if (Tfind(AllowedIndexes, SanitisedIndex)) then
-            return __Index(Instance_, Index);
-        end
-        return __Index(SpoofedInstance, Index);
-    end
-
-    if (SpoofedPropertiesForInstance) then
-        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
-            if (SanitisedIndex == SpoofedProperty.Property) then
-                return __Index(SpoofedProperty.SpoofedProperty, Index);
+    ProtectInstance = function(Instance_, disallow)
+        if (not Tfind(ProtectedInstances, Instance_)) then
+            ProtectedInstances[#ProtectedInstances + 1] = Instance_
+            if (syn and syn.protect_gui and not disallow) then
+                syn.protect_gui(Instance_);
             end
         end
     end
-
-    if (Tfind(ProtectedInstances, __Index(...))) then
-        return nil
-    end
-
-    if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
-        if (IsA(Instance_, "Humanoid")) then
-            return false
+    
+    SpoofInstance = function(Instance_, Instance2)
+        if (not SpoofedInstances[Instance_]) then
+            SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
         end
     end
     
-    return __Index(...);
-end
+    SpoofProperty = function(Instance_, Property, NoClone)
+        if (SpoofedProperties[Instance_]) then
+            local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+            local Properties = map(SpoofedPropertiesForInstance, function(i, v)
+                return v.Property
+            end)
+            if (not Tfind(Properties, Property)) then
+                SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
+                    SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
+                    Property = Property,
+                };
+            end
+        else
+            SpoofedProperties[Instance_] = {{
+                SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
+                Property = Property,
+            }}
+        end
+    end
 
-MetaMethodHooks.NewIndex = function(...)
-    local __NewIndex = OldMetaMethods.__newindex;
-    local __Index = OldMetaMethods.__index;
-    local Instance_, Index, Value = ...
+    local Methods = {
+        "FindFirstChild",
+        "FindFirstChildWhichIsA",
+        "FindFirstChildOfClass",
+        "IsA"
+    }
+    MetaMethodHooks.Namecall = function(...)
+        local __Namecall = OldMetaMethods.__namecall;
+        local Args = {...}
+        local self = Args[1]
 
-    local SpoofedInstance = SpoofedInstances[Instance_]
-    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+        if (checkcaller()) then
+            return __Namecall(...);
+        end
 
-    if (checkcaller()) then
-        if (Index == "Parent" and false) then
-            local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
-            if (ProtectedInstance) then
-                local Parents = GetAllParents(Value);
-                for i, v in next, getconnections(Parents[1].ChildAdded) do
-                    v.Disable(v);
+        local Method = getnamecallmethod();
+        local Protected = Tfind(ProtectedInstances, self);
+
+        if (Protected) then
+            if (Tfind(Methods, Method)) then
+                return Method == "IsA" and false or nil
+            end
+        end
+
+        if (Method == "GetChildren" or Method == "GetDescendants") then
+            return filter(__Namecall(...), function(i, v)
+                return not Tfind(ProtectedInstances, v);
+            end)
+        end
+
+        if (Method == "GetFocusedTextBox") then
+            if (Tfind(ProtectedInstances, __Namecall(...))) then
+                return nil
+            end
+        end
+
+        if (Hooks.AntiKick and lower(Method) == "kick") then
+            getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
+            return
+        end
+
+        if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+            getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
+            return
+        end
+
+        if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
+            local State = __Namecall(...);
+            if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
+                return Enum.HumanoidStateType.RunningNoPhysics
+            end
+            if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
+                return false
+            end
+        end
+        
+        return __Namecall(...);
+    end
+
+    local AllowedIndexes = {
+        "RootPart",
+        "Parent"
+    }
+    local AllowedNewIndexes = {
+        "Jump"
+    }
+    MetaMethodHooks.Index = function(...)
+        local __Index = OldMetaMethods.__index;
+
+        if (checkcaller()) then
+            return __Index(...);
+        end
+        local Instance_, Index = ...
+
+        local SanitisedIndex = Index
+        if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
+            SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
+        end
+        local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
+        local SpoofedInstance = SpoofedInstances[Instance_]
+        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+        if (SpoofedInstance) then
+            if (Tfind(AllowedIndexes, SanitisedIndex)) then
+                return __Index(Instance_, Index);
+            end
+            return __Index(SpoofedInstance, Index);
+        end
+
+        if (SpoofedPropertiesForInstance) then
+            for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                if (SanitisedIndex == SpoofedProperty.Property) then
+                    return __Index(SpoofedProperty.SpoofedProperty, Index);
                 end
-                for i = 1, #Parents do
-                    local Parent = Parents[i]
-                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+            end
+        end
+
+        if (Tfind(ProtectedInstances, __Index(...))) then
+            return nil
+        end
+
+        if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
+            if (IsA(Instance_, "Humanoid")) then
+                return false
+            end
+        end
+        
+        return __Index(...);
+    end
+
+    MetaMethodHooks.NewIndex = function(...)
+        local __NewIndex = OldMetaMethods.__newindex;
+        local __Index = OldMetaMethods.__index;
+        local Instance_, Index, Value = ...
+
+        local SpoofedInstance = SpoofedInstances[Instance_]
+        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+        if (checkcaller()) then
+            if (Index == "Parent" and false) then
+                local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
+                if (ProtectedInstance) then
+                    local Parents = GetAllParents(Value);
+                    for i, v in next, getconnections(Parents[1].ChildAdded) do
                         v.Disable(v);
                     end
-                end
-                local Ret = __NewIndex(...);
-                for i = 1, #Parents do
-                    local Parent = Parents[i]
-                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+                    for i = 1, #Parents do
+                        local Parent = Parents[i]
+                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                            v.Disable(v);
+                        end
+                    end
+                    local Ret = __NewIndex(...);
+                    for i = 1, #Parents do
+                        local Parent = Parents[i]
+                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                            v.Enable(v);
+                        end
+                    end
+                    for i, v in next, getconnections(Parents[1].ChildAdded) do
                         v.Enable(v);
                     end
+                    return Ret
                 end
-                for i, v in next, getconnections(Parents[1].ChildAdded) do
+            end
+            if (SpoofedInstance or SpoofedPropertiesForInstance) then
+                local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
+                local Connections2 = getconnections(Instance_.Changed);
+
+                if (not next(Connections) and not next(Connections2)) then
+                    return __NewIndex(Instance_, Index, Value);
+                end
+                for i, v in next, Connections do
+                    v.Disable(v);
+                end
+                for i, v in next, Connections2 do
+                    v.Disable(v);
+                end
+                local Ret = __NewIndex(Instance_, Index, Value);
+                for i, v in next, Connections do
+                    v.Enable(v);
+                end
+                for i, v in next, Connections2 do
                     v.Enable(v);
                 end
                 return Ret
             end
-        end
-        if (SpoofedInstance or SpoofedPropertiesForInstance) then
-            local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
-            local Connections2 = getconnections(Instance_.Changed);
-
-            if (not next(Connections) and not next(Connections2)) then
-                return __NewIndex(Instance_, Index, Value);
-            end
-            for i, v in next, Connections do
-                v.Disable(v);
-            end
-            for i, v in next, Connections2 do
-                v.Disable(v);
-            end
-            local Ret = __NewIndex(Instance_, Index, Value);
-            for i, v in next, Connections do
-                v.Enable(v);
-            end
-            for i, v in next, Connections2 do
-                v.Enable(v);
-            end
-            return Ret
-        end
-        return __NewIndex(...);
-    end
-
-    local SanitisedIndex = Index
-    if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-        SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
-    end
-
-    if (SpoofedInstance) then
-        if (Tfind(AllowedNewIndexes, SanitisedIndex)) then
             return __NewIndex(...);
         end
-        return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
-    end
 
-    if (SpoofedPropertiesForInstance) then
-        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
-            if (SpoofedProperty.Property == SanitisedIndex and not Tfind(AllowedIndexes, SanitisedIndex)) then
-                return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
+        local SanitisedIndex = Index
+        if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
+            SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
+        end
+
+        if (SpoofedInstance) then
+            if (Tfind(AllowedNewIndexes, SanitisedIndex)) then
+                return __NewIndex(...);
+            end
+            return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
+        end
+
+        if (SpoofedPropertiesForInstance) then
+            for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                if (SpoofedProperty.Property == SanitisedIndex and not Tfind(AllowedIndexes, SanitisedIndex)) then
+                    return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
+                end
             end
         end
-    end
 
-    return __NewIndex(...);
+        return __NewIndex(...);
+    end
 end
 
 OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
@@ -361,41 +402,6 @@ Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     end
     return Hooks.GetStateEnabled(...);
 end)
-
-local ProtectInstance = function(Instance_, disallow)
-    if (not Tfind(ProtectedInstances, Instance_)) then
-        ProtectedInstances[#ProtectedInstances + 1] = Instance_
-        if (syn and syn.protect_gui and not disallow) then
-            syn.protect_gui(Instance_);
-        end
-    end
-end
-
-local SpoofInstance = function(Instance_, Instance2)
-    if (not SpoofedInstances[Instance_]) then
-        SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
-    end
-end
-
-local SpoofProperty = function(Instance_, Property, NoClone)
-    if (SpoofedProperties[Instance_]) then
-        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
-        local Properties = map(SpoofedPropertiesForInstance, function(i, v)
-            return v.Property
-        end)
-        if (not Tfind(Properties, Property)) then
-            SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
-                SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
-                Property = Property,
-            };
-        end
-    else
-        SpoofedProperties[Instance_] = {{
-            SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
-            Property = Property,
-        }}
-    end
-end
 
 -- local UnProtectInstance = function(Instance_)
 --     for i, v in next, ProtectedInstances do

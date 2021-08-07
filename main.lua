@@ -1,5 +1,5 @@
 --[[
-	fates admin - 6/8/2021
+	fates admin - 7/8/2021
 ]]
 
 local game = game
@@ -307,10 +307,11 @@ end
 --IMPORT [extend]
 local Debug = true
 
-local firetouchinterest;
+local firetouchinterest, hookfunction;
 do
+    local GEnv = getgenv();
     local touched = {}
-    firetouchinterest = getgenv().firetouchinterest or function(part1, part2, toggle)
+    firetouchinterest = GEnv.firetouchinterest or function(part1, part2, toggle)
         if (part1 and part2) then
             if (toggle == 0) then
                 touched[1] = part1.CFrame
@@ -321,16 +322,18 @@ do
             end
         end
     end
-end
-
-local hookfunction = hookfunction or function(func, newfunc)
-    if (replaceclosure) then
-        replaceclosure(func, newfunc);
-        return func
+    local newcclosure = newcclosure or function(f)
+        return f
     end
 
-    func = newcclosure and newcclosure(newfunc) or newfunc
-    return func
+    hookfunction = GEnv.hookfunction or function(func, newfunc, applycclosure)
+        if (replaceclosure) then
+            replaceclosure(func, newfunc);
+            return func
+        end
+        func = applycclosure and newcclosure or newfunc
+        return func
+    end
 end
 
 local getconnections = function(...)
@@ -365,8 +368,7 @@ end
 
 local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
     setreadonly(metatable, false);
-    local Old = metatable.metamethod
-    metatable.metamethod = newcclosure(func);
+    Old = hookfunction(metatable[metamethod], func, true);
     setreadonly(metatable, true);
     return Old
 end
@@ -384,28 +386,11 @@ local GetAllParents = function(Instance_)
     end
     return {}
 end
-
-local ProtectedInstances = {}
-local SpoofedInstances = {}
-local SpoofedProperties = {}
-local Methods = {
-    "FindFirstChild",
-    "FindFirstChildWhichIsA",
-    "FindFirstChildOfClass",
-    "IsA"
+local Hooks = {
+    AntiKick = false,
+    AntiTeleport = false,
+    NoJumpCooldown = false
 }
-local AllowedIndexes = {
-    "RootPart",
-    "Parent"
-}
-local AllowedNewIndexes = {
-    "Jump"
-}
-local Hooks = {}
-
-Hooks.AntiKick = false
-Hooks.AntiTeleport = false
-Hooks.NoJumpCooldown = false
 
 local mt = getrawmetatable(game);
 local OldMetaMethods = {}
@@ -416,184 +401,240 @@ end
 setreadonly(mt, true);
 local MetaMethodHooks = {}
 
-MetaMethodHooks.Namecall = function(...)
-    local __Namecall = OldMetaMethods.__namecall;
-    local Args = {...}
-    local self = Args[1]
+local ProtectInstance, SpoofInstance, SpoofProperty;
+do
+    local ProtectedInstances = {}
+    local SpoofedInstances = {}
+    local SpoofedProperties = {}
+    Hooks.SpoofedProperties = SpoofedProperties
 
-    if (checkcaller()) then
-        return __Namecall(...);
-    end
-
-    local Method = getnamecallmethod();
-    local Protected = Tfind(ProtectedInstances, self);
-
-    if (Protected) then
-        if (Tfind(Methods, Method)) then
-            return Method == "IsA" and false or nil
-        end
-    end
-
-    if (Method == "GetChildren" or Method == "GetDescendants") then
-        return filter(__Namecall(...), function(i, v)
-            return not Tfind(ProtectedInstances, v);
-        end)
-    end
-
-    if (Method == "GetFocusedTextBox") then
-        if (Tfind(ProtectedInstances, __Namecall(...))) then
-            return nil
-        end
-    end
-
-    if (Hooks.AntiKick and lower(Method) == "kick") then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
-        return
-    end
-
-    if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
-        return
-    end
-
-    if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
-        local State = __Namecall(...);
-        if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
-            return Enum.HumanoidStateType.RunningNoPhysics
-        end
-        if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
-            return false
-        end
-    end
-    
-    return __Namecall(...);
-end
-
-MetaMethodHooks.Index = function(...)
-    local __Index = OldMetaMethods.__index;
-
-    if (checkcaller()) then
-        return __Index(...);
-    end
-    local Instance_, Index = ...
-
-    local SanitisedIndex = Index
-    if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-        SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
-    end
-    local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
-    local SpoofedInstance = SpoofedInstances[Instance_]
-    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
-
-    if (SpoofedInstance) then
-        if (Tfind(AllowedIndexes, SanitisedIndex)) then
-            return __Index(Instance_, Index);
-        end
-        return __Index(SpoofedInstance, Index);
-    end
-
-    if (SpoofedPropertiesForInstance) then
-        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
-            if (SanitisedIndex == SpoofedProperty.Property) then
-                return __Index(SpoofedProperty.SpoofedProperty, Index);
+    ProtectInstance = function(Instance_, disallow)
+        if (not Tfind(ProtectedInstances, Instance_)) then
+            ProtectedInstances[#ProtectedInstances + 1] = Instance_
+            if (syn and syn.protect_gui and not disallow) then
+                syn.protect_gui(Instance_);
             end
         end
     end
-
-    if (Tfind(ProtectedInstances, __Index(...))) then
-        return nil
-    end
-
-    if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
-        if (IsA(Instance_, "Humanoid")) then
-            return false
+    
+    SpoofInstance = function(Instance_, Instance2)
+        if (not SpoofedInstances[Instance_]) then
+            SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
         end
     end
     
-    return __Index(...);
-end
+    SpoofProperty = function(Instance_, Property, NoClone)
+        if (SpoofedProperties[Instance_]) then
+            local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+            local Properties = map(SpoofedPropertiesForInstance, function(i, v)
+                return v.Property
+            end)
+            if (not Tfind(Properties, Property)) then
+                SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
+                    SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
+                    Property = Property,
+                };
+            end
+        else
+            SpoofedProperties[Instance_] = {{
+                SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
+                Property = Property,
+            }}
+        end
+    end
 
-MetaMethodHooks.NewIndex = function(...)
-    local __NewIndex = OldMetaMethods.__newindex;
-    local __Index = OldMetaMethods.__index;
-    local Instance_, Index, Value = ...
+    local Methods = {
+        "FindFirstChild",
+        "FindFirstChildWhichIsA",
+        "FindFirstChildOfClass",
+        "IsA"
+    }
+    MetaMethodHooks.Namecall = function(...)
+        local __Namecall = OldMetaMethods.__namecall;
+        local Args = {...}
+        local self = Args[1]
 
-    local SpoofedInstance = SpoofedInstances[Instance_]
-    local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+        if (checkcaller()) then
+            return __Namecall(...);
+        end
 
-    if (checkcaller()) then
-        if (Index == "Parent" and false) then
-            local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
-            if (ProtectedInstance) then
-                local Parents = GetAllParents(Value);
-                for i, v in next, getconnections(Parents[1].ChildAdded) do
-                    v.Disable(v);
+        local Method = getnamecallmethod();
+        local Protected = Tfind(ProtectedInstances, self);
+
+        if (Protected) then
+            if (Tfind(Methods, Method)) then
+                return Method == "IsA" and false or nil
+            end
+        end
+
+        if (Method == "GetChildren" or Method == "GetDescendants") then
+            return filter(__Namecall(...), function(i, v)
+                return not Tfind(ProtectedInstances, v);
+            end)
+        end
+
+        if (Method == "GetFocusedTextBox") then
+            if (Tfind(ProtectedInstances, __Namecall(...))) then
+                return nil
+            end
+        end
+
+        if (Hooks.AntiKick and lower(Method) == "kick") then
+            getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
+            return
+        end
+
+        if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+            getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
+            return
+        end
+
+        if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
+            local State = __Namecall(...);
+            if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
+                return Enum.HumanoidStateType.RunningNoPhysics
+            end
+            if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
+                return false
+            end
+        end
+        
+        return __Namecall(...);
+    end
+
+    local AllowedIndexes = {
+        "RootPart",
+        "Parent"
+    }
+    local AllowedNewIndexes = {
+        "Jump"
+    }
+    MetaMethodHooks.Index = function(...)
+        local __Index = OldMetaMethods.__index;
+
+        if (checkcaller()) then
+            return __Index(...);
+        end
+        local Instance_, Index = ...
+
+        local SanitisedIndex = Index
+        if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
+            SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
+        end
+        local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
+        local SpoofedInstance = SpoofedInstances[Instance_]
+        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+        if (SpoofedInstance) then
+            if (Tfind(AllowedIndexes, SanitisedIndex)) then
+                return __Index(Instance_, Index);
+            end
+            return __Index(SpoofedInstance, Index);
+        end
+
+        if (SpoofedPropertiesForInstance) then
+            for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                if (SanitisedIndex == SpoofedProperty.Property) then
+                    return __Index(SpoofedProperty.SpoofedProperty, Index);
                 end
-                for i = 1, #Parents do
-                    local Parent = Parents[i]
-                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+            end
+        end
+
+        if (Tfind(ProtectedInstances, __Index(...))) then
+            return nil
+        end
+
+        if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
+            if (IsA(Instance_, "Humanoid")) then
+                return false
+            end
+        end
+        
+        return __Index(...);
+    end
+
+    MetaMethodHooks.NewIndex = function(...)
+        local __NewIndex = OldMetaMethods.__newindex;
+        local __Index = OldMetaMethods.__index;
+        local Instance_, Index, Value = ...
+
+        local SpoofedInstance = SpoofedInstances[Instance_]
+        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
+
+        if (checkcaller()) then
+            if (Index == "Parent" and false) then
+                local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
+                if (ProtectedInstance) then
+                    local Parents = GetAllParents(Value);
+                    for i, v in next, getconnections(Parents[1].ChildAdded) do
                         v.Disable(v);
                     end
-                end
-                local Ret = __NewIndex(...);
-                for i = 1, #Parents do
-                    local Parent = Parents[i]
-                    for i2, v in next, getconnections(Parent.DescendantAdded) do
+                    for i = 1, #Parents do
+                        local Parent = Parents[i]
+                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                            v.Disable(v);
+                        end
+                    end
+                    local Ret = __NewIndex(...);
+                    for i = 1, #Parents do
+                        local Parent = Parents[i]
+                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                            v.Enable(v);
+                        end
+                    end
+                    for i, v in next, getconnections(Parents[1].ChildAdded) do
                         v.Enable(v);
                     end
+                    return Ret
                 end
-                for i, v in next, getconnections(Parents[1].ChildAdded) do
+            end
+            if (SpoofedInstance or SpoofedPropertiesForInstance) then
+                local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
+                local Connections2 = getconnections(Instance_.Changed);
+
+                if (not next(Connections) and not next(Connections2)) then
+                    return __NewIndex(Instance_, Index, Value);
+                end
+                for i, v in next, Connections do
+                    v.Disable(v);
+                end
+                for i, v in next, Connections2 do
+                    v.Disable(v);
+                end
+                local Ret = __NewIndex(Instance_, Index, Value);
+                for i, v in next, Connections do
+                    v.Enable(v);
+                end
+                for i, v in next, Connections2 do
                     v.Enable(v);
                 end
                 return Ret
             end
-        end
-        if (SpoofedInstance or SpoofedPropertiesForInstance) then
-            local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
-            local Connections2 = getconnections(Instance_.Changed);
-
-            if (not next(Connections) and not next(Connections2)) then
-                return __NewIndex(Instance_, Index, Value);
-            end
-            for i, v in next, Connections do
-                v.Disable(v);
-            end
-            for i, v in next, Connections2 do
-                v.Disable(v);
-            end
-            local Ret = __NewIndex(Instance_, Index, Value);
-            for i, v in next, Connections do
-                v.Enable(v);
-            end
-            for i, v in next, Connections2 do
-                v.Enable(v);
-            end
-            return Ret
-        end
-        return __NewIndex(...);
-    end
-
-    local SanitisedIndex = Index
-    if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-        SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
-    end
-
-    if (SpoofedInstance) then
-        if (Tfind(AllowedNewIndexes, SanitisedIndex)) then
             return __NewIndex(...);
         end
-        return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
-    end
 
-    if (SpoofedPropertiesForInstance) then
-        for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
-            if (SpoofedProperty.Property == SanitisedIndex and not Tfind(AllowedIndexes, SanitisedIndex)) then
-                return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
+        local SanitisedIndex = Index
+        if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
+            SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
+        end
+
+        if (SpoofedInstance) then
+            if (Tfind(AllowedNewIndexes, SanitisedIndex)) then
+                return __NewIndex(...);
+            end
+            return __NewIndex(SpoofedInstance, Index, __Index(SpoofedInstance, Index));
+        end
+
+        if (SpoofedPropertiesForInstance) then
+            for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                if (SpoofedProperty.Property == SanitisedIndex and not Tfind(AllowedIndexes, SanitisedIndex)) then
+                    return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
+                end
             end
         end
-    end
 
-    return __NewIndex(...);
+        return __NewIndex(...);
+    end
 end
 
 OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
@@ -668,41 +709,6 @@ Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     end
     return Hooks.GetStateEnabled(...);
 end)
-
-local ProtectInstance = function(Instance_, disallow)
-    if (not Tfind(ProtectedInstances, Instance_)) then
-        ProtectedInstances[#ProtectedInstances + 1] = Instance_
-        if (syn and syn.protect_gui and not disallow) then
-            syn.protect_gui(Instance_);
-        end
-    end
-end
-
-local SpoofInstance = function(Instance_, Instance2)
-    if (not SpoofedInstances[Instance_]) then
-        SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
-    end
-end
-
-local SpoofProperty = function(Instance_, Property, NoClone)
-    if (SpoofedProperties[Instance_]) then
-        local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
-        local Properties = map(SpoofedPropertiesForInstance, function(i, v)
-            return v.Property
-        end)
-        if (not Tfind(Properties, Property)) then
-            SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
-                SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
-                Property = Property,
-            };
-        end
-    else
-        SpoofedProperties[Instance_] = {{
-            SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
-            Property = Property,
-        }}
-    end
-end
 
 -- local UnProtectInstance = function(Instance_)
 --     for i, v in next, ProtectedInstances do
@@ -885,6 +891,34 @@ GetPlayer = function(str, noerror)
         ["random"] = function()
             return {CurrentPlayers[random(2, #CurrentPlayers)]}
         end,
+        ["allies"] = function()
+            local LTeam = LocalPlayer.Team
+            return filter(CurrentPlayers, function(i, v)
+                return v.Team == LTeam
+            end)
+        end,
+        ["enemies"] = function()
+            local LTeam = LocalPlayer.Team
+            return filter(CurrentPlayers, function(i, v)
+                return v.Team ~= LTeam
+            end)
+        end,
+        ["npcs"] = function()
+            local NPCs = {}
+            local Descendants = GetDescendants(Workspace);
+            local GetPlayerFromCharacter = Players.GetPlayerFromCharacter
+            for i = 1, #Descendants do
+                local Descendant = Descendants[i]
+                local DParent = Descendant.Parent
+                if (IsA(Descendant, "Humanoid") and IsA(DParent, "Model") and (FindFirstChild(DParent, "HumanoidRootPart") or FindFirstChild(DParent, "Head")) and GetPlayerFromCharacter(Players, DParent) == nil) then
+                    local FakePlr = InstanceNew("Player"); -- so it can be compatible with commands
+                    FakePlr.Character = DParent
+                    FakePlr.Name = format("%s %s", DParent.Name, "- " .. Descendant.DisplayName);
+                    NPCs[#NPCs + 1] = FakePlr
+                end
+            end
+            return NPCs
+        end,
         ["me"] = function()
             return {LocalPlayer}
         end
@@ -1000,8 +1034,9 @@ PlayerTags = {
 local Utils = {}
 
 Utils.Tween = function(Object, Style, Direction, Time, Goal)
+    local TweenService = Services.TweenService
     local TInfo = TweenInfo.new(Time, Enum.EasingStyle[Style], Enum.EasingDirection[Direction])
-    local Tween = Services.TweenService.Create(Services.TweenService, Object, TInfo, Goal)
+    local Tween = TweenService.Create(TweenService, Object, TInfo, Goal)
 
     Tween.Play(Tween)
 
@@ -1009,7 +1044,8 @@ Utils.Tween = function(Object, Style, Direction, Time, Goal)
 end
 
 Utils.MultColor3 = function(Color, Delta)
-    return Color3.new(math.clamp(Color.R * Delta, 0, 1), math.clamp(Color.G * Delta, 0, 1), math.clamp(Color.B * Delta, 0, 1))
+    local clamp = math.clamp
+    return Color3.new(clamp(Color.R * Delta, 0, 1), clamp(Color.G * Delta, 0, 1), clamp(Color.B * Delta, 0, 1));
 end
 
 Utils.Click = function(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
@@ -1025,21 +1061,21 @@ Utils.Click = function(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
         [Goal] = Object[Goal]
     }
 
-    Connections["ObjectMouseEnter" .. #Connections] = CConnect(Object.MouseEnter, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Hover)
-    end)
+    AddConnection(CConnect(Object.MouseEnter, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Hover);
+    end));
 
-    Connections["ObjectMouseLeave" .. #Connections] = CConnect(Object.MouseLeave, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Origin)
-    end)
+    AddConnection(CConnect(Object.MouseLeave, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Origin);
+    end));
 
-    Connections["ObjectMouseButton1Down" .. #Connections] = CConnect(Object.MouseButton1Down, function()
-        Utils.Tween(Object, "Sine", "Out", .3, Press)
-    end)
+    AddConnection(CConnect(Object.MouseButton1Down, function()
+        Utils.Tween(Object, "Sine", "Out", .3, Press);
+    end));
 
-    Connections["ObjectMouseButton1Up" .. #Connections] = CConnect(Object.MouseButton1Up, function()
-        Utils.Tween(Object, "Sine", "Out", .4, Hover)
-    end)
+    AddConnection(CConnect(Object.MouseButton1Up, function()
+        Utils.Tween(Object, "Sine", "Out", .4, Hover);
+    end));
 end
 
 Utils.Blink = function(Object, Goal, Color1, Color2) -- Utils.Click(Object, "BackgroundColor3", NormalColor, OtherColor)
@@ -1054,7 +1090,7 @@ Utils.Blink = function(Object, Goal, Color1, Color2) -- Utils.Click(Object, "Bac
     local Tween = Utils.Tween(Object, "Sine", "Out", .5, Blink)
     CWait(Tween.Completed);
 
-    local Tween = Utils.Tween(Object, "Sine", "Out", .5, Normal)
+    Tween = Utils.Tween(Object, "Sine", "Out", .5, Normal)
     CWait(Tween.Completed);
 end
 
@@ -1067,13 +1103,13 @@ Utils.Hover = function(Object, Goal)
         [Goal] = Object[Goal]
     }
 
-    Connections["ObjectMouseEnter" .. #Connections] = CConnect(Object.MouseEnter, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Hover)
-    end)
+    AddConnection(CConnect(Object.MouseEnter, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Hover);
+    end));
 
-    Connections["ObjectMouseLeave" .. #Connections] = CConnect(Object.MouseLeave, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Origin)
-    end)
+    AddConnection(CConnect(Object.MouseLeave, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Origin);
+    end));
 end
 
 Utils.Draggable = function(Ui, DragUi)
@@ -1081,7 +1117,8 @@ Utils.Draggable = function(Ui, DragUi)
     local StartPos
     local DragToggle, DragInput, DragStart, DragPos
 
-    if not DragUi then DragUi = Ui end
+    DragUi = Dragui or Ui
+    local TweenService = Services.TweenService
 
     local function UpdateInput(Input)
         local Delta = Input.Position - DragStart
@@ -1089,36 +1126,36 @@ Utils.Draggable = function(Ui, DragUi)
 
         Utils.Tween(Ui, "Linear", "Out", .25, {
             Position = Position
-        })
-        local Tween = Services.TweenService.Create(Services.TweenService, Ui, TweenInfo.new(0.25), {Position = Position});
+        });
+        local Tween = TweenService.Create(TweenService, Ui, TweenInfo.new(0.25), {Position = Position});
         Tween.Play(Tween);
     end
 
-    Connections["UIInputBegan" .. #Connections] = CConnect(Ui.InputBegan, function(Input)
+    AddConnection(CConnect(Ui.InputBegan, function(Input)
         if ((Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and Services.UserInputService.GetFocusedTextBox(Services.UserInputService) == nil) then
             DragToggle = true
             DragStart = Input.Position
             StartPos = Ui.Position
 
-            Connections["InputChanged" .. #Connections] = CConnect(Input.Changed, function()
+            AddConncetion(CConnect(Input.Changed, function()
                 if (Input.UserInputState == Enum.UserInputState.End) then
                     DragToggle = false
                 end
-            end)
+            end));
         end
-    end)
+    end));
 
-    Connections["UiInputChanged" .. #Connections] = CConnect(Ui.InputChanged, function(Input)
+    AddConnection(CConnect(Ui.InputChanged, function(Input)
         if (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
             DragInput = Input
         end
-    end)
+    end));
 
-    Connections["Services.UserInputServiceInputChanged" .. #Connections] = CConnect(Services.UserInputService.InputChanged, function(Input)
+    AddConnection(CConnect(Services.UserInputService.InputChanged, function(Input)
         if (Input == DragInput and DragToggle) then
             UpdateInput(Input)
         end
-    end)
+    end));
 end
 
 Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
@@ -1140,14 +1177,14 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
 
     -- keep input frame in sync with content frame
     local function syncProperty(prop)
-        Connections["content" .. #Connections] = CConnect(GetPropertyChangedSignal(content, prop), function()
+        AddConnection(CConnect(GetPropertyChangedSignal(content, prop), function()
             if prop == "ZIndex" then
                 -- keep the input frame on top!
                 input[prop] = content[prop] + 1
             else
                 input[prop] = content[prop]
             end
-        end)
+        end));
     end
 
     syncProperty "CanvasSize"
@@ -1165,24 +1202,21 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
     syncProperty "Visible"
 
     -- create a render stepped connection to interpolate the content frame position to the input frame position
-    local smoothConnection = CConnect(RenderStepped, function()
+    local smoothConnection = AddConnection(CConnect(RenderStepped, function()
         local a = content.CanvasPosition
         local b = input.CanvasPosition
         local c = SmoothingFactor
         local d = (b - a) * c + a
 
         content.CanvasPosition = d
-    end)
+    end));
 
-    Connections["smoothConnection" .. #Connections] = smoothConnection
-
-    -- destroy everything when the frame is destroyed
-    Connections["contentAncestryChanged" .. #Connections] = CConnect(content.AncestryChanged, function()
+    AddConnection(CConnect(content.AncestryChanged, function()
         if content.Parent == nil then
             Destroy(input);
             Disconnect(smoothConnection);
         end
-    end)
+    end));
 end
 
 Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transparency is max object transparency, swutched args bc easier command
@@ -1194,7 +1228,8 @@ Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transp
         BackgroundTransparency = BeforeObject.BackgroundTransparency
     })
 
-    for i, v in next, Descendants do
+    for i = 1, #Descendants do
+        local v = Descendants[i]
         local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
@@ -1230,7 +1265,9 @@ end
 Utils.SetAllTrans = function(Object)
     Object.BackgroundTransparency = 1
 
-    for _, v in ipairs(GetDescendants(Object)) do
+    local Descendants = GetDescendants(Object);
+    for i = 1, #Descendants do
+        local v = Descendants[i]
         local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
@@ -1256,7 +1293,9 @@ Utils.TweenAllTrans = function(Object, Time)
         BackgroundTransparency = 1
     })
 
-    for _, v in ipairs(GetDescendants(Object)) do
+    local Descendants = GetDescendants(Object);
+    for i = 1, #Descendants do
+        local v = Descendants[i]
         local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
@@ -1296,7 +1335,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         local Clone = Clone(Notification)
 
         local function TweenDestroy()
-            if (Utils and Clone) then -- fix error when the script is killed and there is still notifications out
+            if (Utils and Clone) then
                 local Tween = Utils.TweenAllTrans(Clone, .25)
 
                 CWait(Tween.Completed)
@@ -1308,7 +1347,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         Clone.Title.Text = Title or "Notification"
         Utils.SetAllTrans(Clone)
         Utils.Click(Clone.Close, "TextColor3")
-        Clone.Visible = true -- tween
+        Clone.Visible = true
 
         if (len(Message) >= 35) then
             Clone.AutomaticSize = Enum.AutomaticSize.Y
@@ -1332,9 +1371,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
             end
         end)()
 
-        Connections["CloneClose" .. #Connections] = CConnect(Clone.Close.MouseButton1Click, function()
-            TweenDestroy()
-        end)
+        AddConnection(CConnect(Clone.Close.MouseButton1Click, TweenDestroy));
 
         return Clone
     else
@@ -1343,7 +1380,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
     end
 end
 
-Utils.MatchSearch = function(String1, String2) -- Utils.MatchSearch("pog", "poggers") - true; Utils.MatchSearch("poz", "poggers") - false
+Utils.MatchSearch = function(String1, String2)
     return String1 == sub(String2, 1, #String1);
 end
 
@@ -1357,28 +1394,30 @@ end
 
 Utils.GetPlayerArgs = function(Arg)
     Arg = lower(Arg);
-    local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
+    local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest", "npcs", "allies", "enemies"}
     if (Utils.StringFind(SpecialCases, Arg)) then
         return Utils.StringFind(SpecialCases, Arg);
     end
 
     local CurrentPlayers = GetPlayers(Players);
     for i, v in next, CurrentPlayers do
-        if (v.Name ~= v.DisplayName and Utils.MatchSearch(Arg, lower(v.DisplayName))) then
-            return lower(v.DisplayName);
+        local Name, DisplayName = v.Name, v.DisplayName
+        if (Name ~= DisplayName and Utils.MatchSearch(Arg, lower(DisplayName))) then
+            return lower(DisplayName);
         end
-        if (Utils.MatchSearch(Arg, lower(v.Name))) then
-            return lower(v.Name);
+        if (Utils.MatchSearch(Arg, lower(Name))) then
+            return lower(Name);
         end
     end
 end
 
 Utils.ToolTip = function(Object, Message)
     local CloneToolTip
+    local TextService
 
-    CConnect(Object.MouseEnter, function()
+    AddConnection(CConnect(Object.MouseEnter, function()
         if (Object.BackgroundTransparency < 1 and not CloneToolTip) then
-            local TextSize = Services.TextService.GetTextSize(Services.TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24 and true or false
+            local TextSize = TextService.GetTextSize(TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24
 
             CloneToolTip = Clone(UI.ToolTip)
             CloneToolTip.Text = Message
@@ -1386,37 +1425,39 @@ Utils.ToolTip = function(Object, Message)
             CloneToolTip.Visible = true
             CloneToolTip.Parent = UI
         end
-    end)
+    end))
 
-    CConnect(Object.MouseLeave, function()
+    AddConnection(CConnect(Object.MouseLeave, function()
         if (CloneToolTip) then
             Destroy(CloneToolTip);
             CloneToolTip = nil
         end
-    end)
+    end))
 
     if (LocalPlayer) then
-        CConnect(Mouse.Move, function()
+        AddConnection(CConnect(Mouse.Move, function()
             if (CloneToolTip) then
                 CloneToolTip.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
             end
-        end)
+        end))
     else
         delay(3, function()
             LocalPlayer = Players.LocalPlayer
-            CConnect(Mouse.Move, function()
+            AddConnection(CConnect(Mouse.Move, function()
                 if (CloneToolTip) then
                     CloneToolTip.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
                 end
-            end)
+            end))
         end)
     end
 end
 
 Utils.ClearAllObjects = function(Object)
-    for _, v in ipairs(GetChildren(Object)) do
-        if (IsA(v, "GuiObject")) then
-            Destroy(v);
+    local Children = GetChildren(Object);
+    for i = 1, #Children do
+        local Child = Children[i]
+        if (IsA(Child, "GuiObject")) then
+            Destroy(Child);
         end
     end
 end
@@ -1438,7 +1479,7 @@ Utils.Rainbow = function(TextObject)
         end
     end
 
-    pcall(function() -- no idea why this shit is erroring
+    pcall(function()
         local Connection = AddConnection(CConnect(Heartbeat, function()
             local String = ""
             local Counter = TotalCharacters
@@ -1456,7 +1497,7 @@ Utils.Rainbow = function(TextObject)
                 String = String .. CharacterTable
             end
     
-            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+            TextObject.Text = String .. " "
         end));
         delay(150, function()
             Disconnect(Connection);
@@ -1466,7 +1507,7 @@ end
 
 Utils.Vector3toVector2 = function(Vector)
     local Tuple = WorldToViewportPoint(Camera, Vector);
-    return Vector2.new(Tuple.X, Tuple.Y);
+    return Vector2New(Tuple.X, Tuple.Y);
 end
 
 Utils.CheckTag = function(Plr)
@@ -1515,11 +1556,9 @@ Utils.AddTag = function(Tag)
         TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
     end
 
-    local Added = CConnect(Tag.Player.CharacterAdded, function()
+    local Added = AddConnection(CConnect(Tag.Player.CharacterAdded, function()
         Billboard.Adornee = WaitForChild(Tag.Player.Character, "Head");
-    end)
-
-    AddConnection(Added)
+    end));
 
     AddConnection(CConnect(Players.PlayerRemoving, function(plr)
         if (plr == Tag.Player) then
@@ -1570,7 +1609,6 @@ Utils.Thing = function(Object)
     MouseOut = true
     
     AddConnection(CConnect(Hitbox.MouseEnter, function()
-        print(true)
         if Object.AbsoluteSize.X > Container.AbsoluteSize.X then
             MouseOut = false
             repeat
@@ -1824,7 +1862,7 @@ local AddPlayerConnection = function(Player, Connection, CEnv)
     return Connection
 end
 
-AddConnection = function(Connection, CEnv, TblOnly)
+local AddConnection = function(Connection, CEnv, TblOnly)
     if (CEnv) then
         CEnv[#CEnv + 1] = Connection
         if (TblOnly) then
@@ -4579,16 +4617,11 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
                 v = false
             end
         end);
-        for i, v in next, SpoofedProperties do
+        for i, v in next, Hooks.SpoofedProperties do
             for i2, v2 in next, v do
                 i[v2.Property] = v2.SpoofedProperty[v2.Property]
             end
         end
-        for i, v in next, SpoofedInstances do
-            Destroy(v);
-        end
-        SpoofedInstances = {}
-        SpoofedProperties = {}
         Destroy(UI);
         getgenv().F_A = nil
         setreadonly(mt, false);
@@ -5484,7 +5517,7 @@ AddCommand("massplay", {}, "massplays all of your boomboxes", {3,1,"1"}, functio
     return "now massplaying"
 end)
 
-AddCommand("sync", {"syncaudios"}, "syncs audios playing", {}, function()
+AddCommand("sync", {"syncaudios"}, "syncs audios playing", {3}, function()
     local Humanoid = GetHumanoid();
     local Playing = filter(GetChildren(GetCharacter()), function(i,v)
         return IsA(v, "Tool") and FindFirstChildOfClass(v.Handle, "Sound");
@@ -5499,6 +5532,49 @@ AddCommand("sync", {"syncaudios"}, "syncs audios playing", {}, function()
     end
     Services.SoundService.RespectFilteringEnabled = true
     return format("synced %d sounds", #Playing);
+end)
+
+AddCommand("pathfind", {"follow2"}, "finds a user with pathfinding", {"1",3}, function(Caller, Args)
+    local PathfindingService = Services.PathfindingService
+    local CreatePath = PathfindingService.CreatePath
+    local Target = GetPlayer(Args[1]);
+    local LRoot = GetRoot();
+    local LHumanoid = GetHumanoid();
+    local PSSuccess = Enum.PathStatus.Success
+    local Delay = tonumber(Args[2]);
+    for i, v in next, Target do
+        local TRoot = GetRoot(v);
+        if (not TRoot) then
+            continue;
+        end
+        local Path = CreatePath(PathfindingService);
+        Path.ComputeAsync(Path, LRoot.Position, TRoot.Position);
+        if (LHumanoid.Sit) then
+            ChangeState(LHumanoid, 3);
+        end
+        LHumanoid.WalkSpeed = 16
+        LHumanoid.MoveTo(LHumanoid, TRoot.Position);
+        wait(2);
+        local WayPoints = Path.GetWaypoints(Path);
+        for i = 1, #WayPoints do
+            local WayPoint = WayPoints[i]
+            if (Path.Status == PSSuccess) then
+                LHumanoid.WalkToPoint = WayPoint.Position
+                if (WayPoint.Action == Enum.PathWaypointAction.Jump) then
+                    LHumanoid.WalkSpeed = 0
+                    wait();
+                    LHumanoid.WalkSpeed = 16
+                    ChangeState(LHumanoid, 3);
+                end
+                CWait(LHumanoid.MoveToFinished);
+            else
+                repeat Path.ComputeAsync(Path, LRoot.Position, TRoot.Position) until Path.Status == PSSuccess;
+            end
+        end
+        if (Delay) then
+            wait(Delay);
+        end
+    end
 end)
 
 
@@ -5558,7 +5634,6 @@ local PlrChat = function(i, plr)
 end
 
 --IMPORT [uimore]
--- make all elements not visible
 Notification.Visible = false
 Stats.Visible = false
 Utils.SetAllTrans(CommandBar)
@@ -5570,17 +5645,15 @@ ChatLogs.Visible = false
 GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
--- make the ui draggable
 Utils.Draggable(Commands);
 Utils.Draggable(ChatLogs);
 Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
 Utils.Draggable(ConfigUI);
 
--- parent ui
 ParentGui(UI);
 Connections.UI = {}
--- tweencommand bar on prefix
+
 local Times = #LastCommand
 AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, GameProccesed)
     if (Input.KeyCode == CommandBarPrefix and (not GameProccesed)) then
@@ -5589,11 +5662,10 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
         local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
         local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
 
-        -- tween position
         if (CommandBarOpen) then
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110) -- tween -110
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, -110)
                 })
             end
 
@@ -5618,7 +5690,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
         else
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {
-                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5) -- tween 5
+                    Position = UDim2.new(0.5, WideBar and -200 or -100, 1, 5)
                 })
             end
         end
@@ -5659,7 +5731,6 @@ Utils.Click(HttpLogs.Save, "BackgroundColor3")
 Utils.Click(HttpLogs.Toggle, "BackgroundColor3")
 Utils.Click(HttpLogs.Close, "TextColor3")
 
--- close tween commands
 AddConnection(CConnect(Commands.Close.MouseButton1Click, function()
     local Tween = Utils.TweenAllTrans(Commands, .25)
 
@@ -5667,24 +5738,22 @@ AddConnection(CConnect(Commands.Close.MouseButton1Click, function()
     Commands.Visible = false
 end), Connections.UI, true);
 
--- command search
 AddConnection(CConnect(GetPropertyChangedSignal(Commands.Search, "Text"), function()
     local Text = Commands.Search.Text
-    for _, v in next, GetChildren(Commands.Frame.List) do
+    local Children = GetChildren(Commands.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (IsA(v, "Frame")) then
             local Command = v.CommandText.Text
-
             v.Visible = Sfind(lower(Command), Text, 1, true)
         end
     end
-
     Commands.Frame.List.CanvasSize = UDim2.fromOffset(0, Commands.Frame.List.UIListLayout.AbsoluteContentSize.Y)
 end), Connections.UI, true);
 
--- close chatlogs
 AddConnection(CConnect(ChatLogs.Close.MouseButton1Click, function()
     local Tween = Utils.TweenAllTrans(ChatLogs, .25)
-    
+
     CWait(Tween.Completed);
     ChatLogs.Visible = false
 end), Connections.UI, true);
@@ -5705,8 +5774,6 @@ ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 
-
--- enable chat logs
 AddConnection(CConnect(ChatLogs.Toggle.MouseButton1Click, function()
     ChatLogsEnabled = not ChatLogsEnabled
     ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
@@ -5720,7 +5787,6 @@ AddConnection(CConnect(HttpLogs.Toggle.MouseButton1Click, function()
     HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 
--- clear chat logs
 AddConnection(CConnect(ChatLogs.Clear.MouseButton1Click, function()
     Utils.ClearAllObjects(ChatLogs.Frame.List)
     ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
@@ -5734,11 +5800,11 @@ AddConnection(CConnect(HttpLogs.Clear.MouseButton1Click, function()
     HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end), Connections.UI, true);
 
--- chat logs search
 AddConnection(CConnect(GetPropertyChangedSignal(ChatLogs.Search, "Text"), function()
     local Text = ChatLogs.Search.Text
-
-    for _, v in next, GetChildren(ChatLogs.Frame.List) do
+    local Children = GetChildren(ChatLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             local Message = split(v.Text, ": ")[2]
             v.Visible = Sfind(lower(Message), Text, 1, true)
@@ -5751,7 +5817,9 @@ end), Connections.UI, true);
 AddConnection(CConnect(GetPropertyChangedSignal(GlobalChatLogs.Search, "Text"), function()
     local Text = GlobalChatLogs.Search.Text
 
-    for _, v in next, GetChildren(GlobalChatLogs.Frame.List) do
+    local Children = GetChildren(GlobalChatLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             local Message = v.Text
 
@@ -5763,7 +5831,9 @@ end), Connections.UI, true);
 AddConnection(CConnect(GetPropertyChangedSignal(HttpLogs.Search, "Text"), function()
     local Text = HttpLogs.Search.Text
 
-    for _, v in next, GetChildren(HttpLogs.Frame.List) do
+    local Children = GetChildren(HttpLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             local Message = v.Text
             v.Visible = Sfind(lower(Message), Text, 1, true)
@@ -5776,7 +5846,9 @@ AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
     local String =  format("Fates Admin Chatlogs for %s (%s)\n\n", GameName, os.date());
     local TimeSaved = gsub(tostring(os.date("%x")), "/", "-") .. " " .. gsub(tostring(os.date("%X")), ":", "-");
     local Name = format("fates-admin/chatlogs/%s (%s).txt", GameName, TimeSaved);
-    for i, v in next, GetChildren(ChatLogs.Frame.List) do
+    local Children = GetChildren(ChatLogs.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
             String = format("%s%s\n", String, v.Text);
         end
@@ -5786,7 +5858,18 @@ AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
 end), Connections.UI, true);
 
 AddConnection(CConnect(HttpLogs.Save.MouseButton1Click, function()
-    print("saved");
+    local Children = GetChildren(HttpLogs.Frame.List);
+    local Logs =  format("Fates Admin HttpLogs for %s\n\n", os.date());
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            Logs = format("%s%s\n", Logs, v.Text);
+        end
+    end
+    if (not isfolder("fates-admin/httplogs")) then
+        makefolder("fates-admin/httplogs");
+    end
+    writefile(format("HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")), Logs);
 end), Connections.UI, true);
 
 -- auto correct
@@ -6216,9 +6299,9 @@ do
             
             
             SectionOptions.CanvasSize = UDim2.fromOffset(0,0) --// change
-            CConnect(GetPropertyChangedSignal(SectionUIListLayout, "AbsoluteContentSize"), function()
-                SectionOptions.CanvasSize = UDim2.fromOffset(0, SectionUIListLayout.AbsoluteContentSize.Y + 5)
-            end)
+            AddConnection(CConnect(GetPropertyChangedSignal(SectionUIListLayout, "AbsoluteContentSize"), function()
+                SectionOptions.CanvasSize = UDim2.fromOffset(0, SectionUIListLayout.AbsoluteContentSize.Y + 5);
+            end));
             
             UpdateClone();
 
@@ -6253,7 +6336,7 @@ do
                     end
                 end
 
-                CConnect(Hitbox.MouseButton1Click, OnClick);
+                AddConnection(CConnect(Hitbox.MouseButton1Click, OnClick));
                 
                 Toggle.Visible = true
                 Toggle.Title.Text = Title
@@ -6283,12 +6366,12 @@ do
 
                     Utils.Click(NewToggle.Plugins, "BackgroundColor3")
 
-                    CConnect(NewToggle.Plugins.MouseButton1Click, function()
+                    AddConnection(CConnect(NewToggle.Plugins.MouseButton1Click, function()
                         Enabled = not Enabled
                         NewToggle.Plugins.Text = Enabled and (Toggles and Toggles[1] or "Enabled") or (Toggles and Toggles[2] or "Disabled");
 
                         Callback(ElementTitle, Enabled);
-                    end)
+                    end));
 
                     NewToggle.Parent = Frame.Container
                 end
@@ -6774,32 +6857,7 @@ do
         PluginSettings.Toggle("Safe Plugins", CurrentPluginConf.SafePlugins, function(Callback)
             SetPluginConfig({SafePlugins = Callback});
         end)
-    
-    
-        -- NewPlugins.Toggle("show health", nil, function(Callback)
-        --     print(Callback);
-        -- end)
-        
-        -- NewPlugins.Toggle("not show health", nil, function(Callback)
-        --     print(Callback);
-        -- end)
-        
-        -- NewPlugins.ScrollingFrame("plugins", function(Option, Enabled)
-        --     print(Option, Enabled);
-        -- end, {
-        --     ["lol.lua"] = true;
-        --     ["stdio.h"] = false;
-        --     ["a.lua"] = false;
-        --     af = true;
-        --     bsrd = false;
-        --     egsgf = false;
-        --     gewg = false;
-        --     dsgkw = false;
-        -- })
-        
-        -- NewPlugins.Keybind("test", function(Callback)
-        --     print(Callback)
-        -- end)
+
     end
 
     delay(1, function()
@@ -6852,9 +6910,9 @@ local CurrentPlayers = GetPlayers(Players);
 
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
-    CConnect(plr.CharacterAdded, function()
+    AddConnection(CConnect(plr.CharacterAdded, function()
         RespawnTimes[plr.Name] = tick();
-    end)
+    end));
     local Tag = Utils.CheckTag(plr);
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr

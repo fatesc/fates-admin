@@ -1,8 +1,9 @@
 local Utils = {}
 
 Utils.Tween = function(Object, Style, Direction, Time, Goal)
+    local TweenService = Services.TweenService
     local TInfo = TweenInfo.new(Time, Enum.EasingStyle[Style], Enum.EasingDirection[Direction])
-    local Tween = Services.TweenService.Create(Services.TweenService, Object, TInfo, Goal)
+    local Tween = TweenService.Create(TweenService, Object, TInfo, Goal)
 
     Tween.Play(Tween)
 
@@ -10,7 +11,8 @@ Utils.Tween = function(Object, Style, Direction, Time, Goal)
 end
 
 Utils.MultColor3 = function(Color, Delta)
-    return Color3.new(math.clamp(Color.R * Delta, 0, 1), math.clamp(Color.G * Delta, 0, 1), math.clamp(Color.B * Delta, 0, 1))
+    local clamp = math.clamp
+    return Color3.new(clamp(Color.R * Delta, 0, 1), clamp(Color.G * Delta, 0, 1), clamp(Color.B * Delta, 0, 1));
 end
 
 Utils.Click = function(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
@@ -26,21 +28,21 @@ Utils.Click = function(Object, Goal) -- Utils.Click(Object, "BackgroundColor3")
         [Goal] = Object[Goal]
     }
 
-    Connections["ObjectMouseEnter" .. #Connections] = CConnect(Object.MouseEnter, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Hover)
-    end)
+    AddConnection(CConnect(Object.MouseEnter, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Hover);
+    end));
 
-    Connections["ObjectMouseLeave" .. #Connections] = CConnect(Object.MouseLeave, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Origin)
-    end)
+    AddConnection(CConnect(Object.MouseLeave, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Origin);
+    end));
 
-    Connections["ObjectMouseButton1Down" .. #Connections] = CConnect(Object.MouseButton1Down, function()
-        Utils.Tween(Object, "Sine", "Out", .3, Press)
-    end)
+    AddConnection(CConnect(Object.MouseButton1Down, function()
+        Utils.Tween(Object, "Sine", "Out", .3, Press);
+    end));
 
-    Connections["ObjectMouseButton1Up" .. #Connections] = CConnect(Object.MouseButton1Up, function()
-        Utils.Tween(Object, "Sine", "Out", .4, Hover)
-    end)
+    AddConnection(CConnect(Object.MouseButton1Up, function()
+        Utils.Tween(Object, "Sine", "Out", .4, Hover);
+    end));
 end
 
 Utils.Blink = function(Object, Goal, Color1, Color2) -- Utils.Click(Object, "BackgroundColor3", NormalColor, OtherColor)
@@ -55,7 +57,7 @@ Utils.Blink = function(Object, Goal, Color1, Color2) -- Utils.Click(Object, "Bac
     local Tween = Utils.Tween(Object, "Sine", "Out", .5, Blink)
     CWait(Tween.Completed);
 
-    local Tween = Utils.Tween(Object, "Sine", "Out", .5, Normal)
+    Tween = Utils.Tween(Object, "Sine", "Out", .5, Normal)
     CWait(Tween.Completed);
 end
 
@@ -68,13 +70,13 @@ Utils.Hover = function(Object, Goal)
         [Goal] = Object[Goal]
     }
 
-    Connections["ObjectMouseEnter" .. #Connections] = CConnect(Object.MouseEnter, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Hover)
-    end)
+    AddConnection(CConnect(Object.MouseEnter, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Hover);
+    end));
 
-    Connections["ObjectMouseLeave" .. #Connections] = CConnect(Object.MouseLeave, function()
-        Utils.Tween(Object, "Sine", "Out", .5, Origin)
-    end)
+    AddConnection(CConnect(Object.MouseLeave, function()
+        Utils.Tween(Object, "Sine", "Out", .5, Origin);
+    end));
 end
 
 Utils.Draggable = function(Ui, DragUi)
@@ -82,7 +84,8 @@ Utils.Draggable = function(Ui, DragUi)
     local StartPos
     local DragToggle, DragInput, DragStart, DragPos
 
-    if not DragUi then DragUi = Ui end
+    DragUi = Dragui or Ui
+    local TweenService = Services.TweenService
 
     local function UpdateInput(Input)
         local Delta = Input.Position - DragStart
@@ -90,36 +93,36 @@ Utils.Draggable = function(Ui, DragUi)
 
         Utils.Tween(Ui, "Linear", "Out", .25, {
             Position = Position
-        })
-        local Tween = Services.TweenService.Create(Services.TweenService, Ui, TweenInfo.new(0.25), {Position = Position});
+        });
+        local Tween = TweenService.Create(TweenService, Ui, TweenInfo.new(0.25), {Position = Position});
         Tween.Play(Tween);
     end
 
-    Connections["UIInputBegan" .. #Connections] = CConnect(Ui.InputBegan, function(Input)
+    AddConnection(CConnect(Ui.InputBegan, function(Input)
         if ((Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and Services.UserInputService.GetFocusedTextBox(Services.UserInputService) == nil) then
             DragToggle = true
             DragStart = Input.Position
             StartPos = Ui.Position
 
-            Connections["InputChanged" .. #Connections] = CConnect(Input.Changed, function()
+            AddConncetion(CConnect(Input.Changed, function()
                 if (Input.UserInputState == Enum.UserInputState.End) then
                     DragToggle = false
                 end
-            end)
+            end));
         end
-    end)
+    end));
 
-    Connections["UiInputChanged" .. #Connections] = CConnect(Ui.InputChanged, function(Input)
+    AddConnection(CConnect(Ui.InputChanged, function(Input)
         if (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
             DragInput = Input
         end
-    end)
+    end));
 
-    Connections["Services.UserInputServiceInputChanged" .. #Connections] = CConnect(Services.UserInputService.InputChanged, function(Input)
+    AddConnection(CConnect(Services.UserInputService.InputChanged, function(Input)
         if (Input == DragInput and DragToggle) then
             UpdateInput(Input)
         end
-    end)
+    end));
 end
 
 Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
@@ -141,14 +144,14 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
 
     -- keep input frame in sync with content frame
     local function syncProperty(prop)
-        Connections["content" .. #Connections] = CConnect(GetPropertyChangedSignal(content, prop), function()
+        AddConnection(CConnect(GetPropertyChangedSignal(content, prop), function()
             if prop == "ZIndex" then
                 -- keep the input frame on top!
                 input[prop] = content[prop] + 1
             else
                 input[prop] = content[prop]
             end
-        end)
+        end));
     end
 
     syncProperty "CanvasSize"
@@ -166,24 +169,21 @@ Utils.SmoothScroll = function(content, SmoothingFactor) -- by Elttob
     syncProperty "Visible"
 
     -- create a render stepped connection to interpolate the content frame position to the input frame position
-    local smoothConnection = CConnect(RenderStepped, function()
+    local smoothConnection = AddConnection(CConnect(RenderStepped, function()
         local a = content.CanvasPosition
         local b = input.CanvasPosition
         local c = SmoothingFactor
         local d = (b - a) * c + a
 
         content.CanvasPosition = d
-    end)
+    end));
 
-    Connections["smoothConnection" .. #Connections] = smoothConnection
-
-    -- destroy everything when the frame is destroyed
-    Connections["contentAncestryChanged" .. #Connections] = CConnect(content.AncestryChanged, function()
+    AddConnection(CConnect(content.AncestryChanged, function()
         if content.Parent == nil then
             Destroy(input);
             Disconnect(smoothConnection);
         end
-    end)
+    end));
 end
 
 Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transparency is max object transparency, swutched args bc easier command
@@ -195,7 +195,8 @@ Utils.TweenAllTransToObject = function(Object, Time, BeforeObject) -- max transp
         BackgroundTransparency = BeforeObject.BackgroundTransparency
     })
 
-    for i, v in next, Descendants do
+    for i = 1, #Descendants do
+        local v = Descendants[i]
         local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
@@ -231,7 +232,9 @@ end
 Utils.SetAllTrans = function(Object)
     Object.BackgroundTransparency = 1
 
-    for _, v in ipairs(GetDescendants(Object)) do
+    local Descendants = GetDescendants(Object);
+    for i = 1, #Descendants do
+        local v = Descendants[i]
         local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
@@ -257,7 +260,9 @@ Utils.TweenAllTrans = function(Object, Time)
         BackgroundTransparency = 1
     })
 
-    for _, v in ipairs(GetDescendants(Object)) do
+    local Descendants = GetDescendants(Object);
+    for i = 1, #Descendants do
+        local v = Descendants[i]
         local IsText = IsA(v, "TextBox") or IsA(v, "TextLabel") or IsA(v, "TextButton")
         local IsImage = IsA(v, "ImageLabel") or IsA(v, "ImageButton")
         local IsScrollingFrame = IsA(v, "ScrollingFrame")
@@ -297,7 +302,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         local Clone = Clone(Notification)
 
         local function TweenDestroy()
-            if (Utils and Clone) then -- fix error when the script is killed and there is still notifications out
+            if (Utils and Clone) then
                 local Tween = Utils.TweenAllTrans(Clone, .25)
 
                 CWait(Tween.Completed)
@@ -309,7 +314,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         Clone.Title.Text = Title or "Notification"
         Utils.SetAllTrans(Clone)
         Utils.Click(Clone.Close, "TextColor3")
-        Clone.Visible = true -- tween
+        Clone.Visible = true
 
         if (len(Message) >= 35) then
             Clone.AutomaticSize = Enum.AutomaticSize.Y
@@ -333,9 +338,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
             end
         end)()
 
-        Connections["CloneClose" .. #Connections] = CConnect(Clone.Close.MouseButton1Click, function()
-            TweenDestroy()
-        end)
+        AddConnection(CConnect(Clone.Close.MouseButton1Click, TweenDestroy));
 
         return Clone
     else
@@ -344,7 +347,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
     end
 end
 
-Utils.MatchSearch = function(String1, String2) -- Utils.MatchSearch("pog", "poggers") - true; Utils.MatchSearch("poz", "poggers") - false
+Utils.MatchSearch = function(String1, String2)
     return String1 == sub(String2, 1, #String1);
 end
 
@@ -358,28 +361,30 @@ end
 
 Utils.GetPlayerArgs = function(Arg)
     Arg = lower(Arg);
-    local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest"}
+    local SpecialCases = {"all", "others", "random", "me", "nearest", "farthest", "npcs", "allies", "enemies"}
     if (Utils.StringFind(SpecialCases, Arg)) then
         return Utils.StringFind(SpecialCases, Arg);
     end
 
     local CurrentPlayers = GetPlayers(Players);
     for i, v in next, CurrentPlayers do
-        if (v.Name ~= v.DisplayName and Utils.MatchSearch(Arg, lower(v.DisplayName))) then
-            return lower(v.DisplayName);
+        local Name, DisplayName = v.Name, v.DisplayName
+        if (Name ~= DisplayName and Utils.MatchSearch(Arg, lower(DisplayName))) then
+            return lower(DisplayName);
         end
-        if (Utils.MatchSearch(Arg, lower(v.Name))) then
-            return lower(v.Name);
+        if (Utils.MatchSearch(Arg, lower(Name))) then
+            return lower(Name);
         end
     end
 end
 
 Utils.ToolTip = function(Object, Message)
     local CloneToolTip
+    local TextService
 
-    CConnect(Object.MouseEnter, function()
+    AddConnection(CConnect(Object.MouseEnter, function()
         if (Object.BackgroundTransparency < 1 and not CloneToolTip) then
-            local TextSize = Services.TextService.GetTextSize(Services.TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24 and true or false
+            local TextSize = TextService.GetTextSize(TextService, Message, 12, Enum.Font.Gotham, Vector2.new(200, math.huge)).Y > 24
 
             CloneToolTip = Clone(UI.ToolTip)
             CloneToolTip.Text = Message
@@ -387,37 +392,39 @@ Utils.ToolTip = function(Object, Message)
             CloneToolTip.Visible = true
             CloneToolTip.Parent = UI
         end
-    end)
+    end))
 
-    CConnect(Object.MouseLeave, function()
+    AddConnection(CConnect(Object.MouseLeave, function()
         if (CloneToolTip) then
             Destroy(CloneToolTip);
             CloneToolTip = nil
         end
-    end)
+    end))
 
     if (LocalPlayer) then
-        CConnect(Mouse.Move, function()
+        AddConnection(CConnect(Mouse.Move, function()
             if (CloneToolTip) then
                 CloneToolTip.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
             end
-        end)
+        end))
     else
         delay(3, function()
             LocalPlayer = Players.LocalPlayer
-            CConnect(Mouse.Move, function()
+            AddConnection(CConnect(Mouse.Move, function()
                 if (CloneToolTip) then
                     CloneToolTip.Position = UDim2.fromOffset(Mouse.X + 10, Mouse.Y + 10)
                 end
-            end)
+            end))
         end)
     end
 end
 
 Utils.ClearAllObjects = function(Object)
-    for _, v in ipairs(GetChildren(Object)) do
-        if (IsA(v, "GuiObject")) then
-            Destroy(v);
+    local Children = GetChildren(Object);
+    for i = 1, #Children do
+        local Child = Children[i]
+        if (IsA(Child, "GuiObject")) then
+            Destroy(Child);
         end
     end
 end
@@ -439,7 +446,7 @@ Utils.Rainbow = function(TextObject)
         end
     end
 
-    pcall(function() -- no idea why this shit is erroring
+    pcall(function()
         local Connection = AddConnection(CConnect(Heartbeat, function()
             local String = ""
             local Counter = TotalCharacters
@@ -457,7 +464,7 @@ Utils.Rainbow = function(TextObject)
                 String = String .. CharacterTable
             end
     
-            TextObject.Text = String .. " " -- roblox bug w (textobjects in billboardguis wont render richtext without space)
+            TextObject.Text = String .. " "
         end));
         delay(150, function()
             Disconnect(Connection);
@@ -467,7 +474,7 @@ end
 
 Utils.Vector3toVector2 = function(Vector)
     local Tuple = WorldToViewportPoint(Camera, Vector);
-    return Vector2.new(Tuple.X, Tuple.Y);
+    return Vector2New(Tuple.X, Tuple.Y);
 end
 
 Utils.CheckTag = function(Plr)
@@ -516,11 +523,9 @@ Utils.AddTag = function(Tag)
         TextLabel.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
     end
 
-    local Added = CConnect(Tag.Player.CharacterAdded, function()
+    local Added = AddConnection(CConnect(Tag.Player.CharacterAdded, function()
         Billboard.Adornee = WaitForChild(Tag.Player.Character, "Head");
-    end)
-
-    AddConnection(Added)
+    end));
 
     AddConnection(CConnect(Players.PlayerRemoving, function(plr)
         if (plr == Tag.Player) then
@@ -571,7 +576,6 @@ Utils.Thing = function(Object)
     MouseOut = true
     
     AddConnection(CConnect(Hitbox.MouseEnter, function()
-        print(true)
         if Object.AbsoluteSize.X > Container.AbsoluteSize.X then
             MouseOut = false
             repeat
