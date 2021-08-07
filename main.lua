@@ -1862,7 +1862,7 @@ local AddPlayerConnection = function(Player, Connection, CEnv)
     return Connection
 end
 
-local AddConnection = function(Connection, CEnv, TblOnly)
+AddConnection = function(Connection, CEnv, TblOnly)
     if (CEnv) then
         CEnv[#CEnv + 1] = Connection
         if (TblOnly) then
