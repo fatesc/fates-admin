@@ -12,7 +12,8 @@ end
 local start = start or tick();
 
 if (getgenv().F_A and getgenv().F_A.Loaded) then
-    return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil);
+     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil),
+     getgenv().F_A.Utils.Notify(nil, "Your prefix for Fates Admin is", "; (Semicolon)", nil);
 end
 
 --IMPORT [var]
