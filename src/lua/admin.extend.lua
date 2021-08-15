@@ -95,6 +95,7 @@ setreadonly(mt, true);
 local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
+local UnSpoofInstance;
 do
     local ProtectedInstances = {}
     local SpoofedInstances = {}
@@ -113,6 +114,12 @@ do
     SpoofInstance = function(Instance_, Instance2)
         if (not SpoofedInstances[Instance_]) then
             SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
+        end
+    end
+
+    UnSpoofInstance = function(Instance_)
+        if (SpoofedInstances[Instance_]) then
+            SpoofedInstances[Instance_] = nil
         end
     end
     
@@ -416,11 +423,6 @@ end)
 --     end
 -- end
 
-local UnSpoofInstance = function(Instance_)
-    if (SpoofedInstances[Instance_]) then
-        SpoofedInstances[Instance_] = nil
-    end
-end
 -- local UnSpoofProperty = function(Instance_, Property)
 --     local SpoofedProperty = SpoofedProperties[Instance_]
 --     if (SpoofedProperty and SpoofedProperty.Property == Property) then

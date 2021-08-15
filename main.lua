@@ -1,5 +1,5 @@
 --[[
-	fates admin - 7/8/2021
+	fates admin - 15/8/2021
 ]]
 
 local game = game
@@ -11,9 +11,16 @@ end
 
 local start = start or tick();
 
-if (getgenv().F_A and getgenv().F_A.Loaded) then
-     return getgenv().F_A.Utils.Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil),
-     getgenv().F_A.Utils.Notify(nil, "Your prefix for Fates Admin is", "; (Semicolon)", nil);
+do
+    local F_A = getgenv().F_A
+    if (F_A) then
+        local Notify, GetConfig = F_A.Utils.Notify, F_A.GetConfig
+        local UserInputService = GetService(game, "UserInputService");    
+        local CommandBarPrefix = GetConfig().CommandBarPrefix
+        local StringKeyCode = UserInputService.GetStringForKeyCode(UserInputService, Enum.KeyCode[CommandBarPrefix]);
+        return Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil),
+        Notify(nil, "Your Prefix is", string.format("%s (%s)", StringKeyCode, CommandBarPrefix));
+    end
 end
 
 --IMPORT [var]
@@ -403,6 +410,7 @@ setreadonly(mt, true);
 local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
+local UnSpoofInstance;
 do
     local ProtectedInstances = {}
     local SpoofedInstances = {}
@@ -421,6 +429,12 @@ do
     SpoofInstance = function(Instance_, Instance2)
         if (not SpoofedInstances[Instance_]) then
             SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
+        end
+    end
+
+    UnSpoofInstance = function(Instance_)
+        if (SpoofedInstances[Instance_]) then
+            SpoofedInstances[Instance_] = nil
         end
     end
     
@@ -724,11 +738,6 @@ end)
 --     end
 -- end
 
-local UnSpoofInstance = function(Instance_)
-    if (SpoofedInstances[Instance_]) then
-        SpoofedInstances[Instance_] = nil
-    end
-end
 -- local UnSpoofProperty = function(Instance_, Property)
 --     local SpoofedProperty = SpoofedProperties[Instance_]
 --     if (SpoofedProperty and SpoofedProperty.Property == Property) then
@@ -937,6 +946,18 @@ GetPlayer = function(str, noerror)
     end
     return Players
 end
+
+local AddConnection = function(Connection, CEnv, TblOnly)
+    if (CEnv) then
+        CEnv[#CEnv + 1] = Connection
+        if (TblOnly) then
+            return Connection
+        end
+    end
+    Connections[#Connections + 1] = Connection
+    return Connection
+end
+
 local LastCommand = {}
 
 --IMPORT [ui]
@@ -1863,16 +1884,6 @@ local AddPlayerConnection = function(Player, Connection, CEnv)
     return Connection
 end
 
-AddConnection = function(Connection, CEnv, TblOnly)
-    if (CEnv) then
-        CEnv[#CEnv + 1] = Connection
-        if (TblOnly) then
-            return Connection
-        end
-    end
-    Connections[#Connections + 1] = Connection
-    return Connection
-end
 
 local DisableAllCmdConnections = function(Cmd)
     local Command = LoadCommand(Cmd)
@@ -4262,12 +4273,14 @@ AddCommand("unfly", {}, "unflies your character", {3}, function()
     DisableAllCmdConnections("fly");
     LoadCommand("fly").CmdEnv = {}
     LoadCommand("fly2").CmdEnv = {}
-    for i, v in next, GetChildren(GetRoot()) do
-        if (IsA(v, "BodyPosition") or IsA(v, "BodyGyro") or IsA(v, "BodyVelocity")) then
+    local Root = GetRoot();
+    local Instances = { ["BodyPosition"] = true, ["BodyGyro"] = true, ["BodyVelocity"] = true }
+    for i, v in next, GetChildren(Root) do
+        if (Instances[v.ClassName]) then
             Destroy(v);
         end
     end
-    UnSpoofInstance(GetRoot());
+    UnSpoofInstance(Root);
     GetHumanoid().PlatformStand = false
     return "stopped flying"
 end)
@@ -6945,9 +6958,9 @@ AddConnection(CConnect(Players.PlayerRemoving, function(plr)
 end))
 
 getgenv().F_A = {
-    Loaded = true,
     Utils = Utils,
-    PluginLibrary = PluginLibrary
+    PluginLibrary = PluginLibrary,
+    GetConfig = GetConfig
 }
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
