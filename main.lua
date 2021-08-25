@@ -1804,10 +1804,12 @@ local ExecuteCommand = function(Name, Args, Caller)
         if (Command.ArgsNeeded > #Args) then
             return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
         end
+
         local Context;
-        if (Command.IsPlugin and syn and syn_context_set and PluginConf.SafePlugins) then
-            Context = syn_context_get();
-            syn_context_set(2);
+        local sett, gett = syn and syn_context_set or setidentity, syn and syn_context_get or getidentity
+        if (Command.IsPlugin and sett and gett and PluginConf.SafePlugins) then
+            Context = gett();
+            sett(2);
         end
         local Success, Ret = xpcall(function()
             local Func = Command.Function();
@@ -1828,8 +1830,8 @@ local ExecuteCommand = function(Name, Args, Caller)
                 Utils.Notify(Caller, "Error", Err);
             end
         end);
-        if (Command.IsPlugin and syn and syn_context_set and PluginConf.SafePlugins) then
-            syn_context_set(Context);
+        if (Command.IsPlugin and sett and PluginConf.SafePlugins and Context) then
+            sett(Context);
         end
     else
         warn("couldn't find the command ".. Name);
@@ -2544,7 +2546,8 @@ AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}
     if (not Amount) then
         return "amount must be a number"
     end
-    if (not syn) then
+    local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
+    if (not queue_on_teleport) then
         return "exploit not supported"
     end
     local Root, Humanoid = GetRoot(), GetHumanoid();
@@ -2600,12 +2603,14 @@ AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}
                 v.Parent = Workspace
             end
             writefile("fates-admin/tooldupe.txt", tostring(DupeAmount - 1));
-            syn.queue_on_teleport(readfile("fates-admin/tooldupe.lua"));
+            local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
+            queue_on_teleport(readfile("fates-admin/tooldupe.lua"));
             TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, game.JobId);
         end
     ]], tostring(OldPos)));
-    syn.queue_on_teleport(readfile("fates-admin/tooldupe.lua"));
-    Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId);
+    local TeleportService = Services.TeleportService
+    queue_on_teleport(readfile("fates-admin/tooldupe.lua"));
+    TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, game.JobId);
 end)
 
 AddCommand("stopdupe", {}, "stops the dupe", {}, function()
@@ -2844,13 +2849,14 @@ AddCommand("load", {"loadstring"}, "loads whatever you want", {"1"}, function(Ca
         local Func = loadstring(Code);
         setfenv(Func, getrenv());
         local Context;
-        if (syn) then
-            Context = syn_context_get();
-            syn_context_set(2);
+        local sett, gett = syn and syn_context_set or setidentity, syn and syn_context_get or getidentity
+        if (sett and gett) then
+            Context = gett();
+            sett(2);
         end
         Func();
-        if (syn) then
-            syn_context_set(Context);
+        if (Context and sett) then
+            sett(Context);
         end
     end)
     if (not Success and Err) then
@@ -3915,59 +3921,57 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
         ScrollBarImageTransparency = 0
     })
 
-    if (hookfunction and syn) then
-        local AddLog = function(reqType, url, body)
-            if (getgenv().F_A and UI) then
-                local Clone = Clone(ChatLogMessage);
-                Clone.Text = format("%s\nUrl: %s%s\n", Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
-                Clone.RichText = true
-                Clone.Visible = true
-                Clone.TextTransparency = 1
-                Clone.Parent = HttpLogs.Frame.List
-                Utils.Tween(Clone, "Sine", "Out", .25, {
-                    TextTransparency = 0
-                });
-                HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
-            end
+    local AddLog = function(reqType, url, body)
+        if (getgenv().F_A and UI) then
+            local Clone = Clone(ChatLogMessage);
+            Clone.Text = format("%s\nUrl: %s%s\n", Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
+            Clone.RichText = true
+            Clone.Visible = true
+            Clone.TextTransparency = 1
+            Clone.Parent = HttpLogs.Frame.List
+            Utils.Tween(Clone, "Sine", "Out", .25, {
+                TextTransparency = 0
+            });
+            HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
         end
-    
-        local Request;
-        Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
-            AddLog(syn and "syn.request" or "request", reqtbl.Url, JSONEncode(Services.HttpService, reqtbl));
-            return Request(reqtbl);
-        end));
-        local Httpget;
-        Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
-            AddLog("HttpGet", url);
-            return Httpget(self, url);
-        end));
-        local HttpgetAsync;
-        HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
-            AddLog("HttpGetAsync", url);
-            return HttpgetAsync(self, url);
-        end));
-        local Httppost;
-        Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
-            AddLog("HttpPost", url);
-            return Httppost(self, url);
-        end));
-        local HttppostAsync;
-        HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
-            AddLog("HttpPostAsync", url);
-            return HttppostAsync(self, url);
-        end));
-    
-        local Clone = Clone(ChatLogMessage);
-        Clone.Text = "httpspy loaded"
-        Clone.RichText = true
-        Clone.Visible = true
-        Clone.TextTransparency = 1
-        Clone.Parent = HttpLogs.Frame.List
-        Utils.Tween(Clone, "Sine", "Out", .25, {
-            TextTransparency = 0
-        });
-        HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
     end
+
+    local Request;
+    Request = hookfunction(syn and syn.request or request, newcclosure(function(reqtbl)
+        AddLog(syn and "syn.request" or "request", reqtbl.Url, JSONEncode(Services.HttpService, reqtbl));
+        return Request(reqtbl);
+    end));
+    local Httpget;
+    Httpget = hookfunction(game.HttpGet, newcclosure(function(self, url)
+        AddLog("HttpGet", url);
+        return Httpget(self, url);
+    end));
+    local HttpgetAsync;
+    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
+        AddLog("HttpGetAsync", url);
+        return HttpgetAsync(self, url);
+    end));
+    local Httppost;
+    Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
+        AddLog("HttpPost", url);
+        return Httppost(self, url);
+    end));
+    local HttppostAsync;
+    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
+        AddLog("HttpPostAsync", url);
+        return HttppostAsync(self, url);
+    end));
+
+    local Clone = Clone(ChatLogMessage);
+    Clone.Text = "httpspy loaded"
+    Clone.RichText = true
+    Clone.Visible = true
+    Clone.TextTransparency = 1
+    Clone.Parent = HttpLogs.Frame.List
+    Utils.Tween(Clone, "Sine", "Out", .25, {
+        TextTransparency = 0
+    });
+    HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, HttpLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
 end)
 
 AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
@@ -4477,6 +4481,7 @@ end)
 
 AddCommand("joinserver", {"discord"}, "joins the fates admin discord server", {}, function()
     local Request = syn and syn.request or request
+    local HttpService = Services.HttpService
     if (Request({
         Url = "http://127.0.0.1:6463/rpc?v=1",
         Method = "POST",
@@ -4484,12 +4489,12 @@ AddCommand("joinserver", {"discord"}, "joins the fates admin discord server", {}
             ["Content-Type"] = "application/json",
             ["Origin"] = "https://discord.com"
         },
-        Body = JSONEncode(Services.HttpService, {
+        Body = JSONEncode(HttpService, {
             cmd = "INVITE_BROWSER",
             args = {
                 code = "5epGRYR"
             },
-            nonce = GenerateGUID(Services.HttpService, false)
+            nonce = GenerateGUID(HttpService, false)
         }),
     }).StatusCode == 200) then
         return "joined fates admin discord server"
@@ -4500,10 +4505,11 @@ end)
 
 AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, function(Caller)
     if (Caller == LocalPlayer) then
+        local TeleportService = Services.TeleportService
         if (#GetPlayers(Players) == 1) then
-            Services.TeleportService.Teleport(Services.TeleportService, game.PlaceId);
+            TeleportService.Teleport(TeleportService, game.PlaceId);
         else
-            Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, game.JobId)
+            TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, game.JobId)
         end
         return "Rejoining..."
     end
@@ -4512,7 +4518,7 @@ end)
 AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
         Utils.Notify(Caller or LocalPlayer, nil, "Looking for servers...");
-
+        local TeleportService = Services.TeleportService
         local Servers = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId))).data
         if (#Servers > 1) then
             Servers = filter(Servers, function(i,v)
@@ -4527,10 +4533,11 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", 
             else
                 Server = Servers[random(1, #Servers)]
             end
-            if (syn) then
-                syn.queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+            local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
+            if (queue_on_teleport) then
+                queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
             end
-            Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, Server.id);
+            TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, Server.id);
             return format("joining server (%d/%d players)", Server.playing, Server.maxPlayers);
         else
             return "no servers found"
@@ -5408,7 +5415,10 @@ end)
 
 AddCommand("rejoinre", {"rje"}, "rejoins and tps you to your old position", {3}, function()
     local Pos = GetRoot().CFrame
-    syn.queue_on_teleport(format("game.Loaded:Wait();game:GetService('ReplicatedFirst'):SetDefaultLoadingGuiRemoved();local LocalPlayer = game:GetService('Players').LocalPlayer;LocalPlayer.CharacterAdded:Wait():WaitForChild('HumanoidRootPart').CFrame = CFrame.new(%s);loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()", tostring(Pos)));
+    local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
+    if (queue_on_teleport) then
+        queue_on_teleport(format("game.Loaded:Wait();game:GetService('ReplicatedFirst'):SetDefaultLoadingGuiRemoved();local LocalPlayer = game:GetService('Players').LocalPlayer;LocalPlayer.CharacterAdded:Wait():WaitForChild('HumanoidRootPart').CFrame = CFrame.new(%s);loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()", tostring(Pos)));        
+    end
     ExecuteCommand("rejoin", {}, LocalPlayer);
 end)
 
