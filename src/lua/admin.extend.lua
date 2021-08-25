@@ -361,8 +361,9 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     return Hooks.OldGetDescendants(...);
 end));
 
+local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
-    if (not checkcaller()) then
+    if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
         if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
             return nil

@@ -23,7 +23,7 @@ end
     require - var
 ]]
 
-if (getconnections) then
+do
     local ErrorConnections = getconnections(Services.ScriptContext.Error);
     if (next(ErrorConnections)) then
         getfenv().error = warn
@@ -4276,12 +4276,14 @@ Draggable = false
 ]]
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
-    CThread(function()
-        wait(.3);
-        for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-            v.Enable(v);
-        end
-    end)()
+    if (UndetectedCmdBar) then
+        CThread(function()
+            wait(.3);
+            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
+                v.Enable(v);
+            end
+        end)()
+    end
 
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");

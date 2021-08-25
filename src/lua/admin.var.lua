@@ -257,17 +257,15 @@ end
 
 local clone;
 clone = function(toClone)
-    if (type(toClone) == 'table') then
-        local new = {}
-        for i, v in next, toClone do
-            if (type(v) == 'table') then
-                cloned = clone(v);
-            end
-            new[i] = cloned
-        end
-        return new
-    end
     if (type(toClone) == 'function' and clonefunction) then
         return clonefunction(toClone);
     end
+    local new = {}
+    for i, v in next, toClone do
+        if (type(v) == 'table') then
+            cloned = clone(v);
+        end
+        new[i] = cloned
+    end
+    return new
 end

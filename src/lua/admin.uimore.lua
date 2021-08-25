@@ -24,7 +24,8 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
         CommandBarOpen = not CommandBarOpen
 
         local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
-        local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
+        local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone);
+        local UserInputService = Services.UserInputService
 
         if (CommandBarOpen) then
             if (not Draggable) then
@@ -33,23 +34,34 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 })
             end
 
-            local Connections = getconnections(Services.UserInputService.TextBoxFocused);
-            for i, v in next, Connections do
-                v.Disable(v);
-            end
-            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-                v.Disable(v);
+            if (UndetectedCmdBar) then
+                local Connections = getconnections(UserInputService.TextBoxFocused);
+                for i, v in next, Connections do
+                    v.Disable(v);
+                end
+                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
+                    v.Disable(v);
+                end
             end
 
             CommandBar.Input.CaptureFocus(CommandBar.Input);
             CThread(function()
                 wait()
                 CommandBar.Input.Text = ""
+                local FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
+                local TextBox = CommandBar.Input
+                while (FocusedTextBox ~= TextBox) do
+                    FocusedTextBox.ReleaseFocus(FocusedTextBox);
+                    CommandBar.Input.CaptureFocus(TextBox);
+                    FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
+                    CWait(Heartbeat);
+                end
             end)()
-
             
-            for i, v in next, Connections do
-                v.Enable(v);
+            if (UndetectedCmdBar) then
+                for i, v in next, Connections do
+                    v.Enable(v);
+                end
             end
         else
             if (not Draggable) then

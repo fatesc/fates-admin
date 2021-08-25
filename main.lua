@@ -283,24 +283,22 @@ end
 
 local clone;
 clone = function(toClone)
-    if (type(toClone) == 'table') then
-        local new = {}
-        for i, v in next, toClone do
-            if (type(v) == 'table') then
-                cloned = clone(v);
-            end
-            new[i] = cloned
-        end
-        return new
-    end
     if (type(toClone) == 'function' and clonefunction) then
         return clonefunction(toClone);
     end
+    local new = {}
+    for i, v in next, toClone do
+        if (type(v) == 'table') then
+            cloned = clone(v);
+        end
+        new[i] = cloned
+    end
+    return new
 end
 --END IMPORT [var]
 
 
-if (getconnections) then
+do
     local ErrorConnections = getconnections(Services.ScriptContext.Error);
     if (next(ErrorConnections)) then
         getfenv().error = warn
@@ -676,8 +674,9 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     return Hooks.OldGetDescendants(...);
 end));
 
+local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
-    if (not checkcaller()) then
+    if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
         if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
             return nil
@@ -1159,7 +1158,7 @@ Utils.Draggable = function(Ui, DragUi)
             DragStart = Input.Position
             StartPos = Ui.Position
 
-            AddConncetion(CConnect(Input.Changed, function()
+            AddConnection(CConnect(Input.Changed, function()
                 if (Input.UserInputState == Enum.UserInputState.End) then
                     DragToggle = false
                 end
@@ -1435,7 +1434,7 @@ end
 
 Utils.ToolTip = function(Object, Message)
     local CloneToolTip
-    local TextService
+    local TextService = Services.TextService
 
     AddConnection(CConnect(Object.MouseEnter, function()
         if (Object.BackgroundTransparency < 1 and not CloneToolTip) then
@@ -1628,7 +1627,7 @@ Utils.Thing = function(Object)
     Hitbox.Position = Container.Position
     Hitbox.ZIndex = Object.ZIndex + 2
     
-    MouseOut = true
+    local MouseOut = true
     
     AddConnection(CConnect(Hitbox.MouseEnter, function()
         if Object.AbsoluteSize.X > Container.AbsoluteSize.X then
@@ -5684,7 +5683,8 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
         CommandBarOpen = not CommandBarOpen
 
         local TransparencyTween = CommandBarOpen and Utils.TweenAllTransToObject or Utils.TweenAllTrans
-        local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone)
+        local Tween = TransparencyTween(CommandBar, .5, CommandBarTransparencyClone);
+        local UserInputService = Services.UserInputService
 
         if (CommandBarOpen) then
             if (not Draggable) then
@@ -5693,23 +5693,34 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 })
             end
 
-            local Connections = getconnections(Services.UserInputService.TextBoxFocused);
-            for i, v in next, Connections do
-                v.Disable(v);
-            end
-            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-                v.Disable(v);
+            if (UndetectedCmdBar) then
+                local Connections = getconnections(UserInputService.TextBoxFocused);
+                for i, v in next, Connections do
+                    v.Disable(v);
+                end
+                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
+                    v.Disable(v);
+                end
             end
 
             CommandBar.Input.CaptureFocus(CommandBar.Input);
             CThread(function()
                 wait()
                 CommandBar.Input.Text = ""
+                local FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
+                local TextBox = CommandBar.Input
+                while (FocusedTextBox ~= TextBox) do
+                    FocusedTextBox.ReleaseFocus(FocusedTextBox);
+                    CommandBar.Input.CaptureFocus(TextBox);
+                    FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
+                    CWait(Heartbeat);
+                end
             end)()
-
             
-            for i, v in next, Connections do
-                v.Enable(v);
+            if (UndetectedCmdBar) then
+                for i, v in next, Connections do
+                    v.Enable(v);
+                end
             end
         else
             if (not Draggable) then
@@ -6693,6 +6704,8 @@ do
         local Settings = Script.NewSection("Settings");
     
         local CurrentConf = GetConfig();
+        UndetectedCmdBar = CurrentConf.UndetectedCmdBar
+
 
         Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
             if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
@@ -6727,6 +6740,10 @@ do
             end
             SetConfig({ChatPrediction=Callback});
             Utils.Notify(nil, nil, format("ChatPrediction %s", Callback and "enabled" or "disabled"));
+        end)
+
+        Misc.Toggle("Undetected CommandBar", UndetectedCmdBar, function(Callback)
+            SetConfig({UndetectedCmdBar=Callback});
         end)
 
         Misc.Toggle("Anti Kick", AntiKick, function(Callback)
@@ -6903,12 +6920,14 @@ end
 
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
-    CThread(function()
-        wait(.3);
-        for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-            v.Enable(v);
-        end
-    end)()
+    if (UndetectedCmdBar) then
+        CThread(function()
+            wait(.3);
+            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
+                v.Enable(v);
+            end
+        end)()
+    end
 
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");

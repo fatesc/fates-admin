@@ -104,7 +104,7 @@ Utils.Draggable = function(Ui, DragUi)
             DragStart = Input.Position
             StartPos = Ui.Position
 
-            AddConncetion(CConnect(Input.Changed, function()
+            AddConnection(CConnect(Input.Changed, function()
                 if (Input.UserInputState == Enum.UserInputState.End) then
                     DragToggle = false
                 end
@@ -380,7 +380,7 @@ end
 
 Utils.ToolTip = function(Object, Message)
     local CloneToolTip
-    local TextService
+    local TextService = Services.TextService
 
     AddConnection(CConnect(Object.MouseEnter, function()
         if (Object.BackgroundTransparency < 1 and not CloneToolTip) then
@@ -573,7 +573,7 @@ Utils.Thing = function(Object)
     Hitbox.Position = Container.Position
     Hitbox.ZIndex = Object.ZIndex + 2
     
-    MouseOut = true
+    local MouseOut = true
     
     AddConnection(CConnect(Hitbox.MouseEnter, function()
         if Object.AbsoluteSize.X > Container.AbsoluteSize.X then
