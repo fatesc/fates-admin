@@ -261,9 +261,9 @@ clone = function(toClone)
         local new = {}
         for i, v in next, toClone do
             if (type(v) == 'table') then
-                v = clone(v);
+                cloned = clone(v);
             end
-            new[i] = v
+            new[i] = cloned
         end
         return new
     end

@@ -3112,12 +3112,12 @@ AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, functio
     end
 end)
 
-AddCommand("serverhop", {"sh"}, "switches servers (optional: min or max)", {{"min", "max"}}, function(Caller, Args)
+AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
         Utils.Notify(Caller or LocalPlayer, nil, "Looking for servers...");
 
         local Servers = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId))).data
-        if (#Servers >= 1) then
+        if (#Servers > 1) then
             Servers = filter(Servers, function(i,v)
                 return v.playing ~= v.maxPlayers and v.id ~= game.JobId
             end)
@@ -3136,7 +3136,7 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min or max)", {{"mi
             Services.TeleportService.TeleportToPlaceInstance(Services.TeleportService, game.PlaceId, Server.id);
             return format("joining server (%d/%d players)", Server.playing, Server.maxPlayers);
         else
-            return "no servers foudn"
+            return "no servers found"
         end
     end
 end)
