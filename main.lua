@@ -281,17 +281,16 @@ local keys = function(tbl)
     end
 end
 
-local clone;
-clone = function(toClone)
+local function clone(toClone)
     if (type(toClone) == 'function' and clonefunction) then
         return clonefunction(toClone);
     end
     local new = {}
-    for i, v in next, toClone do
+    for i, v in pairs(toClone) do
         if (type(v) == 'table') then
-            cloned = clone(v);
+            v = clone(v);
         end
-        new[i] = cloned
+        new[i] = v
     end
     return new
 end
@@ -971,7 +970,11 @@ end
 UI = Clone(game.GetObjects(game, "rbxassetid://6167929302")[1]);
 UI.Enabled = true
 
-local CommandBarPrefix = isfolder and (GetConfig().CommandBarPrefix and Enum.KeyCode[GetConfig().CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
+local CommandBarPrefix;
+do
+    local Config = GetConfig();
+    CommandBarPrefix = isfolder and (Config.CommandBarPrefix and Enum.KeyCode[Config.CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
+end
 
 local ConfigUI = UI.Config
 local ConfigElements = ConfigUI.GuiElements
@@ -1500,30 +1503,29 @@ Utils.Rainbow = function(TextObject)
         end
     end
 
-    pcall(function()
-        local Connection = AddConnection(CConnect(Heartbeat, function()
-            local String = ""
-            local Counter = TotalCharacters
-    
-            for _, CharacterTable in ipairs(Strings) do
-                local Concat = ""
-    
-                if (type(CharacterTable) == "table") then
-                    Counter = Counter - 1
-                    local Color = Color3.fromHSV(-atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
-    
-                    CharacterTable = format(CharacterTable[1], floor(Color.R * 255), floor(Color.G * 255), floor(Color.B * 255))
-                end
-    
-                String = String .. CharacterTable
+    local Connection = AddConnection(CConnect(Heartbeat, function()
+        local String = ""
+        local Counter = TotalCharacters
+
+        for _, CharacterTable in ipairs(Strings) do
+            local Concat = ""
+
+            if (type(CharacterTable) == "table") then
+                Counter = Counter - 1
+                local Color = Color3.fromHSV(-atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+
+                CharacterTable = format(CharacterTable[1], floor(Color.R * 255), floor(Color.G * 255), floor(Color.B * 255))
             end
-    
-            TextObject.Text = String .. " "
-        end));
-        delay(150, function()
-            Disconnect(Connection);
-        end)
+
+            String = String .. CharacterTable
+        end
+
+        TextObject.Text = String .. " "
+    end));
+    delay(150, function()
+        Disconnect(Connection);
     end)
+
 end
 
 Utils.Vector3toVector2 = function(Vector)
@@ -3724,6 +3726,11 @@ AddCommand("addalias", {}, "adds an alias to a command", {}, function(Caller, Ar
         local Add = CommandsTable[Command]
         Add.Name = Alias
         CommandsTable[Alias] = Add
+        local CurrentAliases = GetConfig().Aliases or {}
+        CurrentAliases[Command] = CurrentAliases[Command] or {}
+        local AliasesForCommand = CurrentAliases[Command]
+        AliasesForCommand[#AliasesForCommand + 1] = Alias
+        SetConfig({Aliases=CurrentAliases});
         return format("%s is now an alias of %s", Alias, Command);
     else
         return Command .. " is not a valid command"
@@ -4173,9 +4180,9 @@ AddCommand("enableanims", {"anims"}, "enables character animations", {3}, functi
 end)
 
 AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
-    CEnv[1] = tonumber(Args[1]) or 2
-    local Speed = LoadCommand("fly").CmdEnv[1]
-    local Root = GetRoot()
+    CEnv[1] = tonumber(Args[1]) or GetConfig().FlySpeed or 2
+    local Speed = CEnv[1]
+    local Root = GetRoot();
     local BodyGyro = InstanceNew("BodyGyro");
     local BodyVelocity = InstanceNew("BodyVelocity");
     SpoofInstance(Root, isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
@@ -4216,7 +4223,7 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
 end)
 
 AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, CEnv)
-    LoadCommand("fly").CmdEnv[1] = tonumber(Args[1]) or 3
+    LoadCommand("fly").CmdEnv[1] = tonumber(Args[1]) or GetConfig().FlySpeed or 3
     local Speed = LoadCommand("fly").CmdEnv[1]
     for i, v in next, GetChildren(GetRoot()) do
         if (IsA(v, "BodyPosition") or IsA(v, "BodyGyro")) then
@@ -4269,7 +4276,12 @@ end)
 AddCommand("flyspeed", {"fs"}, "changes the fly speed", {3, "1"}, function(Caller, Args)
     local Speed = tonumber(Args[1]);
     LoadCommand("fly").CmdEnv[1] = Speed or LoadCommand("fly2").CmdEnv[1]
-    return Speed and "your fly speed is now " .. Speed or "flyspeed must be a number"
+    if (Speed) then
+        SetConfig({FlySpeed=Speed});
+        return "your fly speed is now " .. Speed
+    else
+        return "flyspeed must be a number"
+    end
 end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
@@ -6307,6 +6319,12 @@ do
             }
 
             for i, v in next, MacrosToAdd do
+                local Suc, Err = pcall(concat, v.Args);
+                if (not Suc) then
+                    SetConfig({Macros={}});
+                    Utils.Notify(LocalPlayer, "Error", "Macros were reset due to corrupted data")
+                    break;
+                end
                 local KeyName, IsEnum = GetKeyName(v.Keys[1]);
                 local Formatted;
                 if (v.Keys[2]) then
@@ -6913,6 +6931,19 @@ do
             Utils.Tween(CommandBar, "Quint", "Out", .5, {
                 Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
             })
+        end
+        local Aliases = CurrentConfig.Aliases
+        if (Aliases) then
+            for i, v in next, Aliases do
+                if (CommandsTable[i]) then
+                    for i2 = 1, #v do
+                        local Alias = v[i2]
+                        local Add = CommandsTable[i]
+                        Add.Name = Alias
+                        CommandsTable[Alias] = Add
+                    end
+                end
+            end
         end
     end)    
 end

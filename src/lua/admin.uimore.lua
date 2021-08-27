@@ -648,6 +648,12 @@ do
             }
 
             for i, v in next, MacrosToAdd do
+                local Suc, Err = pcall(concat, v.Args);
+                if (not Suc) then
+                    SetConfig({Macros={}});
+                    Utils.Notify(LocalPlayer, "Error", "Macros were reset due to corrupted data")
+                    break;
+                end
                 local KeyName, IsEnum = GetKeyName(v.Keys[1]);
                 local Formatted;
                 if (v.Keys[2]) then

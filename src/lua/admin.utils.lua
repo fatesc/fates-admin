@@ -446,30 +446,29 @@ Utils.Rainbow = function(TextObject)
         end
     end
 
-    pcall(function()
-        local Connection = AddConnection(CConnect(Heartbeat, function()
-            local String = ""
-            local Counter = TotalCharacters
-    
-            for _, CharacterTable in ipairs(Strings) do
-                local Concat = ""
-    
-                if (type(CharacterTable) == "table") then
-                    Counter = Counter - 1
-                    local Color = Color3.fromHSV(-atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
-    
-                    CharacterTable = format(CharacterTable[1], floor(Color.R * 255), floor(Color.G * 255), floor(Color.B * 255))
-                end
-    
-                String = String .. CharacterTable
+    local Connection = AddConnection(CConnect(Heartbeat, function()
+        local String = ""
+        local Counter = TotalCharacters
+
+        for _, CharacterTable in ipairs(Strings) do
+            local Concat = ""
+
+            if (type(CharacterTable) == "table") then
+                Counter = Counter - 1
+                local Color = Color3.fromHSV(-atan(math.tan((tick() + Counter/math.pi)/Frequency))/math.pi + 0.5, 1, 1)
+
+                CharacterTable = format(CharacterTable[1], floor(Color.R * 255), floor(Color.G * 255), floor(Color.B * 255))
             end
-    
-            TextObject.Text = String .. " "
-        end));
-        delay(150, function()
-            Disconnect(Connection);
-        end)
+
+            String = String .. CharacterTable
+        end
+
+        TextObject.Text = String .. " "
+    end));
+    delay(150, function()
+        Disconnect(Connection);
     end)
+
 end
 
 Utils.Vector3toVector2 = function(Vector)

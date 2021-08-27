@@ -231,5 +231,18 @@ do
                 Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
             })
         end
+        local Aliases = CurrentConfig.Aliases
+        if (Aliases) then
+            for i, v in next, Aliases do
+                if (CommandsTable[i]) then
+                    for i2 = 1, #v do
+                        local Alias = v[i2]
+                        local Add = CommandsTable[i]
+                        Add.Name = Alias
+                        CommandsTable[Alias] = Add
+                    end
+                end
+            end
+        end
     end)    
 end

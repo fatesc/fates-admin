@@ -255,17 +255,16 @@ local keys = function(tbl)
     end
 end
 
-local clone;
-clone = function(toClone)
+local function clone(toClone)
     if (type(toClone) == 'function' and clonefunction) then
         return clonefunction(toClone);
     end
     local new = {}
-    for i, v in next, toClone do
+    for i, v in pairs(toClone) do
         if (type(v) == 'table') then
-            cloned = clone(v);
+            v = clone(v);
         end
-        new[i] = cloned
+        new[i] = v
     end
     return new
 end

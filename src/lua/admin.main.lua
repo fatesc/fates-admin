@@ -2328,6 +2328,11 @@ AddCommand("addalias", {}, "adds an alias to a command", {}, function(Caller, Ar
         local Add = CommandsTable[Command]
         Add.Name = Alias
         CommandsTable[Alias] = Add
+        local CurrentAliases = GetConfig().Aliases or {}
+        CurrentAliases[Command] = CurrentAliases[Command] or {}
+        local AliasesForCommand = CurrentAliases[Command]
+        AliasesForCommand[#AliasesForCommand + 1] = Alias
+        SetConfig({Aliases=CurrentAliases});
         return format("%s is now an alias of %s", Alias, Command);
     else
         return Command .. " is not a valid command"
@@ -2777,9 +2782,9 @@ AddCommand("enableanims", {"anims"}, "enables character animations", {3}, functi
 end)
 
 AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
-    CEnv[1] = tonumber(Args[1]) or 2
-    local Speed = LoadCommand("fly").CmdEnv[1]
-    local Root = GetRoot()
+    CEnv[1] = tonumber(Args[1]) or GetConfig().FlySpeed or 2
+    local Speed = CEnv[1]
+    local Root = GetRoot();
     local BodyGyro = InstanceNew("BodyGyro");
     local BodyVelocity = InstanceNew("BodyVelocity");
     SpoofInstance(Root, isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
@@ -2820,7 +2825,7 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
 end)
 
 AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, CEnv)
-    LoadCommand("fly").CmdEnv[1] = tonumber(Args[1]) or 3
+    LoadCommand("fly").CmdEnv[1] = tonumber(Args[1]) or GetConfig().FlySpeed or 3
     local Speed = LoadCommand("fly").CmdEnv[1]
     for i, v in next, GetChildren(GetRoot()) do
         if (IsA(v, "BodyPosition") or IsA(v, "BodyGyro")) then
@@ -2873,7 +2878,12 @@ end)
 AddCommand("flyspeed", {"fs"}, "changes the fly speed", {3, "1"}, function(Caller, Args)
     local Speed = tonumber(Args[1]);
     LoadCommand("fly").CmdEnv[1] = Speed or LoadCommand("fly2").CmdEnv[1]
-    return Speed and "your fly speed is now " .. Speed or "flyspeed must be a number"
+    if (Speed) then
+        SetConfig({FlySpeed=Speed});
+        return "your fly speed is now " .. Speed
+    else
+        return "flyspeed must be a number"
+    end
 end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
