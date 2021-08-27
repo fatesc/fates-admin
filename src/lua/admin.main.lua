@@ -90,7 +90,7 @@ local WriteConfig = function(Destroy)
 end
 
 local GetConfig = function()
-    if (isfolder("fates-admin")) then
+    if (isfolder("fates-admin") and isfile("fates-admin/config.json")) then
         return JSONDecode(Services.HttpService, readfile("fates-admin/config.json"));
     else
         WriteConfig();
