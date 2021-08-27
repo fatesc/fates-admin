@@ -4827,21 +4827,21 @@ AddCommand("unorbit", {"noorbit"}, "unorbits yourself from the other player", {}
     return "orbit stopped"
 end)
 
-AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
-    AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
-        WaitForChild(GetCharacter(), "Humanoid");
-        wait(.4);
-        SpoofInstance(GetHumanoid());
-        SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
-        ProtectInstance(GetRoot());
-        ProtectInstance(GetHumanoid());
-    end));
-    local Char = GetCharacter();
-    Char.BreakJoints(Char);
-    CommandsTable["goto"].Function = CommandsTable["tweento"].Function
-    CommandsTable["to"].Function = CommandsTable["tweento"].Function
-    return "clientsided bypass enabled"
-end)
+-- AddCommand("bypass", {"clientbypass"}, "client sided bypass", {3}, function()
+--     AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
+--         WaitForChild(GetCharacter(), "Humanoid");
+--         wait(.4);
+--         SpoofInstance(GetHumanoid());
+--         SpoofInstance(GetRoot(), isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
+--         ProtectInstance(GetRoot());
+--         ProtectInstance(GetHumanoid());
+--     end));
+--     local Char = GetCharacter();
+--     Char.BreakJoints(Char);
+--     CommandsTable["goto"].Function = CommandsTable["tweento"].Function
+--     CommandsTable["to"].Function = CommandsTable["tweento"].Function
+--     return "clientsided bypass enabled"
+-- end)
 
 AddCommand("shiftlock", {}, "enables shiftlock in your game (some games have it off)", {}, function()
     if (LocalPlayer.DevEnableMouseLock) then
