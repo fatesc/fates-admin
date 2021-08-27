@@ -1053,7 +1053,7 @@ AddCommand("unloopview", {}, "unloopviews a user", {3}, function(Caller, Args)
     end
 end)
 
-AddCommand("invisble", {"invis"}, "makes yourself invisible", {}, function()
+AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function()
     local OldPos = GetRoot().CFrame
     GetRoot().CFrame = CFrameNew(9e9, 9e9, 9e9);
     local Clone = Clone(GetRoot());
