@@ -3680,7 +3680,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    Services.CoreGui.PurchasePromptApp.PurchasePromptUI.Visible = false
+    Services.CoreGui.PurchasePromptApp.Enabled = false
     return "You'll no longer recive sale prompts"
 end)
 
