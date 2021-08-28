@@ -255,13 +255,13 @@ local keys = function(tbl)
     end
 end
 
-local function clone(toClone)
+local function clone(toClone, shallow)
     if (type(toClone) == 'function' and clonefunction) then
         return clonefunction(toClone);
     end
     local new = {}
     for i, v in pairs(toClone) do
-        if (type(v) == 'table') then
+        if (type(v) == 'table' and not shallow) then
             v = clone(v);
         end
         new[i] = v

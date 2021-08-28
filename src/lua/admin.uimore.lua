@@ -34,8 +34,9 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 })
             end
 
+            local TextConnections;
             if (UndetectedCmdBar) then
-                local Connections = getconnections(UserInputService.TextBoxFocused);
+                TextConnections = getconnections(UserInputService.TextBoxFocused);
                 for i, v in next, Connections do
                     v.Disable(v);
                 end
@@ -59,7 +60,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
             end)()
             
             if (UndetectedCmdBar) then
-                for i, v in next, Connections do
+                for i, v in next, TextConnections do
                     v.Enable(v);
                 end
             end

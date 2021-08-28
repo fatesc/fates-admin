@@ -43,7 +43,7 @@ do
         return {splitted[#splitted], loadfile(v)}
     end) or {}
 
-    local Renv = clone(getrenv());
+    local Renv = clone(getrenv(), true);
     for i, v in next, PluginLibrary do
         Renv[i] = v
     end
