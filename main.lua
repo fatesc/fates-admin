@@ -2016,7 +2016,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
             end
         end
     end)()
-    ChangeState(Humanoid, 15);
+    Character.HumanoidRootPart.CFrame = CFrame.new(9e9,5e5,9e9)
     wait(.3);
     Destroy(Character);
     Character = CWait(LocalPlayer.CharacterAdded);
@@ -2082,9 +2082,9 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
             end
         end
     end)()
-    ChangeState(Humanoid2, 15);
+    GetCharacter().HumanoidRootPart.CFrame = CFrame.new(9e9,5e5,9e9)
     if (Destroy_) then
-        wait(.2);
+        wait(1);
         ReplaceCharacter();
     end
     CWait(LocalPlayer.CharacterAdded);
