@@ -2016,7 +2016,8 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
             end
         end
     end)()
-    Character.HumanoidRootPart.CFrame = CFrame.new(99,workspace.FallenPartsDestroyHeight+50,0)
+    Humanoid = ReplaceHumanoid(Humanoid);
+    ChangeState(Humanoid, 15);
     wait(.3);
     Destroy(Character);
     Character = CWait(LocalPlayer.CharacterAdded);
@@ -2101,7 +2102,7 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         UnequipTools(Humanoid);
         DisableAnimate();
         Humanoid = ReplaceHumanoid(Humanoid);
-       Character.HumanoidRootPart.CFrame = CFrame.new(99,workspace.FallenPartsDestroyHeight+50,0)
+       ChangeState(Humanoid, 15);
         if (isR6(Target[1])) then
             Utils.Notify(LocalPlayer, "Loopkill", "the player is in r6 it will only kill every 2 respawns")
         end
