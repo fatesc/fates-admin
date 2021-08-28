@@ -64,8 +64,8 @@ do
         end)
 
         Misc.Toggle("Anti Kick", AntiKick, function(Callback)
-            AntiKick = Callback
-            Utils.Notify(nil, nil, format("AntiKick %s", AntiKick and "enabled" or "disabled"));
+            Hooks.AntiKick = Callback
+            Utils.Notify(nil, nil, format("AntiKick %s", Hooks.AntiKick and "enabled" or "disabled"));
         end)
 
         Misc.Toggle("Anti Teleport", AntiTeleport, function(Callback)

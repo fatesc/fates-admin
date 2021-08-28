@@ -1,5 +1,3 @@
-local Utils = {}
-
 Utils.Tween = function(Object, Style, Direction, Time, Goal)
     local TweenService = Services.TweenService
     local TInfo = TweenInfo.new(Time, Enum.EasingStyle[Style], Enum.EasingDirection[Direction])

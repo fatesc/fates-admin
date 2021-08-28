@@ -96,8 +96,8 @@ local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
+local ProtectedInstances = {}
 do
-    local ProtectedInstances = {}
     local SpoofedInstances = {}
     local SpoofedProperties = {}
     Hooks.SpoofedProperties = SpoofedProperties
@@ -153,12 +153,34 @@ do
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
         local self = Args[1]
+        local Method = getnamecallmethod();
+
+        if (Hooks.AntiKick and lower(Method) == "kick") then
+            local Player, Message = self, Args[2]
+            if (Hooks.AntiKick and Player == LocalPlayer) then
+                local Notify = Utils.Notify
+                if (Notify) then
+                    Notify(nil, "Attempt to kick", format("attempt to kick %s", Message and ": " .. Message or ""));
+                end
+                return
+            end
+        end
+
+        if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
+            local Player, PlaceId = self, Args[2]
+            if (Hooks.AntiTeleport and Player == LocalPlayer) then
+                local Notify = Utils.Notify
+                if (Notify) then
+                    Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
+                end
+                return
+            end
+        end
 
         if (checkcaller()) then
             return __Namecall(...);
         end
 
-        local Method = getnamecallmethod();
         local Protected = Tfind(ProtectedInstances, self);
 
         if (Protected) then
@@ -179,22 +201,12 @@ do
             end
         end
 
-        if (Hooks.AntiKick and lower(Method) == "kick") then
-            getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", Args[2]));
-            return
-        end
-
-        if (Hooks.AntiTeleport and Method == "Teleport" or Method == "TeleportToPlaceInstance") then
-            getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", Args[2]));
-            return
-        end
-
         if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
             local State = __Namecall(...);
             if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
                 return Enum.HumanoidStateType.RunningNoPhysics
             end
-            if (Method == "GetStateEnabled" and Args[1] == Enum.HumanoidStateType.Jumping) then
+            if (Method == "GetStateEnabled" and self == Enum.HumanoidStateType.Jumping) then
                 return false
             end
         end
@@ -373,28 +385,40 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
 end, Services.UserInputService.GetFocusedTextBox));
 
 Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
-    if (Hooks.AntiKick) then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to kick", format("attempt to kick with message \"%s\"", ({...})[2]));
+    local Player, Message = ...
+    if (Hooks.AntiKick and Player == LocalPlayer) then
+        local Notify = Utils.Notify
+        if (Notify) then
+            Notify(nil, "Attempt to kick", format("attempt to kick %s", Message and ": " .. Message or ""));
+        end
         return
     end
     return Hooks.OldKick(...);
 end, LocalPlayer.Kick))
 
 Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
-    if (Hooks.AntiTeleport) then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
+    local Player, PlaceId = ...
+    if (Hooks.AntiTeleport and Player == LocalPlayer) then
+        local Notify = Utils.Notify
+        if (Notify) then
+            Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
+        end
         return
     end
     return Hooks.OldTeleportToPlaceInstance(...);
 end))
-
 Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(function(...)
-    if (AntiTeleport) then
-        getgenv().F_A.Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", ({...})[2]));
+    local Player, PlaceId = ...
+    if (Hooks.AntiTeleport and Player == LocalPlayer) then
+        local Notify = Utils.Notify
+        if (Notify) then
+            Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", PlaceId and PlaceId or ""));
+        end
         return
     end
     return Hooks.OldTeleport(...);
 end))
+
 
 Hooks.GetState = hookfunction(GetState, function(...)
     local State = Hooks.GetState(...);
@@ -405,7 +429,8 @@ Hooks.GetState = hookfunction(GetState, function(...)
 end)
 
 Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
-    if (({...})[1] == Enum.HumanoidStateType.Jumping) then
+    local State = ...
+    if (State == Enum.HumanoidStateType.Jumping) then
         return false
     end
     return Hooks.GetStateEnabled(...);

@@ -35,6 +35,8 @@ local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
 end
 
+local Utils = {}
+
 --[[
     require - extend
 ]]
@@ -2272,8 +2274,8 @@ AddCommand("volume", {"vol"}, "changes your game volume", {}, function(Caller, A
 end)
 
 AddCommand("antikick", {}, "client sided bypasses to kicks", {}, function()
-    AntiKick = not AntiKick
-    return "client sided antikick " .. (AntiKick and "enabled" or "disabled")
+    Hooks.AntiKick = not Hooks.AntiKick
+    return "client sided antikick " .. (Hooks.AntiKick and "enabled" or "disabled")
 end)
 
 AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, function()
