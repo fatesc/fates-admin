@@ -3680,7 +3680,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    CoreGui.PurchasePromptApp.PurchasePromptUI.Visible = false
+    Services.CoreGui.PurchasePromptApp.PurchasePromptUI.Visible = false
     return "You'll no longer recive sale prompts"
 end)
 
@@ -6345,7 +6345,7 @@ do
             }
 
             for i, v in next, MacrosToAdd do
-                local Suc, Err = pcall(concat, v.Args);
+                local Suc, Err = pcall(concat, v.Args, " ");
                 if (not Suc) then
                     SetConfig({Macros={}});
                     Utils.Notify(LocalPlayer, "Error", "Macros were reset due to corrupted data")

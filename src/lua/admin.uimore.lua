@@ -649,7 +649,7 @@ do
             }
 
             for i, v in next, MacrosToAdd do
-                local Suc, Err = pcall(concat, v.Args);
+                local Suc, Err = pcall(concat, v.Args, " ");
                 if (not Suc) then
                     SetConfig({Macros={}});
                     Utils.Notify(LocalPlayer, "Error", "Macros were reset due to corrupted data")
