@@ -1,5 +1,5 @@
 --[[
-	fates admin - 28/8/2021
+	fates admin - 31/8/2021
 ]]
 
 local game = game
@@ -10,12 +10,13 @@ if (not game.IsLoaded(game)) then
 end
 
 local start = start or tick();
+local Debug = true
 
 do
     local F_A = getgenv().F_A
     if (F_A) then
         local Notify, GetConfig = F_A.Utils.Notify, F_A.GetConfig
-        local UserInputService = GetService(game, "UserInputService");    
+        local UserInputService = GetService(game, "UserInputService");
         local CommandBarPrefix = GetConfig().CommandBarPrefix
         local StringKeyCode = UserInputService.GetStringForKeyCode(UserInputService, Enum.KeyCode[CommandBarPrefix]);
         return Notify(nil, "Loaded", "fates admin is already loaded... use 'killscript' to kill", nil),
@@ -169,7 +170,19 @@ local CThread;
 do
     local wrap = coroutine.wrap
     CThread = function(Func, ...)
-        return wrap(Func);
+        if (type(Func) ~= 'function') then
+            return nil
+        end
+        local Varag = ...
+        return function()
+            local Success, Ret = pcall(wrap(Func, Varag));
+            if (Success) then
+                return Ret
+            end
+            if (Debug) then
+                warn("[FA Error]: " .. debug.traceback(Ret));
+            end
+        end
     end
 end
 
@@ -312,8 +325,6 @@ end
 local Utils = {}
 
 --IMPORT [extend]
-local Debug = true
-
 local firetouchinterest, hookfunction;
 do
     local GEnv = getgenv();
@@ -396,7 +407,8 @@ end
 local Hooks = {
     AntiKick = false,
     AntiTeleport = false,
-    NoJumpCooldown = false
+    NoJumpCooldown = false,
+    UndetectedMessageOut = true
 }
 
 local mt = getrawmetatable(game);
@@ -450,8 +462,15 @@ do
                 };
             end
         else
+            local Cloned;
+            if (not NoClone and IsA(Instance_, "Instance") and not Services[tostring(Instance_)]) then
+                local Success, Ret = pcall(Clone, Instance_);
+                if (Success) then
+                    Cloned = Ret
+                end
+            end
             SpoofedProperties[Instance_] = {{
-                SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
+                SpoofedProperty = Cloned and Cloned or Instance_,
                 Property = Property,
             }}
         end
@@ -467,7 +486,7 @@ do
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
         local self = Args[1]
-        local Method = getnamecallmethod();
+        local Method = getnamecallmethod() or "";
 
         if (Hooks.AntiKick and lower(Method) == "kick") then
             local Player, Message = self, Args[2]
@@ -515,12 +534,26 @@ do
             end
         end
 
+        if (Hooks.UndetectedMessageOut and Method == "GetLogHistory") then
+            if (self == Services.LogService) then
+                local LogHistory = __Namecall(...);
+                local MessagesOut = Hooks.MessagesOut
+                local FilteredLogHistory = {}
+                for i, v in next, LogHistory do
+                    if (not Tfind(MessagesOut, v.message)) then
+                        FilteredLogHistory[#FilteredLogHistory + 1] = v
+                    end
+                end
+                return FilteredLogHistory
+            end
+        end
+
         if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
             local State = __Namecall(...);
-            if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
+            if (Method == "GetState" and (State == Enum.HumanoidStateType.Jumping or State == "Jumping")) then
                 return Enum.HumanoidStateType.RunningNoPhysics
             end
-            if (Method == "GetStateEnabled" and self == Enum.HumanoidStateType.Jumping) then
+            if (Method == "GetStateEnabled" and (self == Enum.HumanoidStateType.Jumping or self == "Jumping")) then
                 return false
             end
         end
@@ -733,22 +766,80 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     return Hooks.OldTeleport(...);
 end))
 
-
 Hooks.GetState = hookfunction(GetState, function(...)
-    local State = Hooks.GetState(...);
-    if (State == Enum.HumanoidStateType.Jumping) then
+    local Humanoid, State = ..., Hooks.GetState(...);
+    local Parent, Character = Humanoid.Parent, LocalPlayer.Character
+    if (Hooks.NoJumpCooldown and (State == Enum.HumanoidStateType.Jumping or State == "Jumping") and Parent and Character and Parent == Character) then
         return Enum.HumanoidStateType.RunningNoPhysics
     end
     return State
 end)
 
 Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
-    local State = ...
-    if (State == Enum.HumanoidStateType.Jumping) then
+    local Humanoid, State = ...
+    local Parent, Character = Humanoid.Parent, LocalPlayer.Character
+    if (Hooks.NoJumpCooldown and (State == Enum.HumanoidStateType.Jumping or State == "Jumping") and Parent and Character and Parent == Character) then
         return false
     end
     return Hooks.GetStateEnabled(...);
 end)
+
+do
+    local LogService = Services.LogService
+    local MessageOut = LogService.MessageOut
+    Hooks.MessagesOut = {}
+    local MessagesOut = Hooks.MessagesOut
+
+    Hooks.Print = hookfunction(print, newcclosure(function(...)
+        if (Hooks.UndetectedMessageOut and checkcaller()) then
+            local MessageOutConnections = getconnections(MessageOut);
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Disable();
+            end
+            local Print = Hooks.Print(...);
+            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
+                return tostring(v);
+            end), " ") .. " ";
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Enable();
+            end
+            return Print
+        end
+        return Hooks.Print(...);
+    end));
+    
+    Hooks.Warn = hookfunction(warn, newcclosure(function(...)
+        if (Hooks.UndetectedMessageOut and checkcaller()) then
+            local MessageOutConnections = getconnections(MessageOut);
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Disable();
+            end
+            local Warn = Hooks.Warn(...);
+            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
+                return tostring(v);
+            end), " ") .. " ";
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Enable();
+            end
+            return Warn
+        end
+        return Hooks.Warn(...);
+    end))
+
+    Hooks.OldGetLogHistory = hookfunction(LogService.GetLogHistory, newcclosure(function(...)
+        if (Hooks.UndetectedMessageOut) then
+            local LogHistory = Hooks.OldGetLogHistory(...);
+            local FilteredLogHistory = {}
+            for i, v in next, LogHistory do
+                if (not Tfind(MessagesOut, v.message)) then
+                    FilteredLogHistory[#FilteredLogHistory + 1] = v
+                end
+            end
+            return FilteredLogHistory
+        end
+        return Hooks.OldGetLogHistory(...);
+    end))
+end
 
 -- local UnProtectInstance = function(Instance_)
 --     for i, v in next, ProtectedInstances do
@@ -1927,7 +2018,7 @@ end
 
 local Keys = {}
 
-do 
+do
     local UserInputService = Services.UserInputService
     local IsKeyDown = UserInputService.IsKeyDown
     AddConnection(CConnect(UserInputService.InputBegan, function(Input, GameProccesed)
@@ -1996,7 +2087,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     end
     local Character = GetCharacter();
     for i, v in next, Target do
-        if (#Target == 1 and TempRespawnTimes[v.Name]) then
+        if (#Target == 1 and TempRespawnTimes[v.Name] and isR6(v)) then
             Destroy(Character);
             Character = CWait(LocalPlayer.CharacterAdded);
             WaitForChild(Character, "Humanoid");
@@ -2205,7 +2296,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
                 if (not TargetRoot) then
                     continue
                 end
-                
+
                 local Tool = GetCorrectToolWithHandle();
                 if (not Tool) then
                     continue
@@ -2339,7 +2430,7 @@ AddCommand("void", {}, "voids a user", {1,"1"}, function(Caller, Args)
             if (not TargetRoot) then
                 continue
             end
-            
+
             local Tool = GetCorrectToolWithHandle();
             if (not Tool) then
                 continue
@@ -2408,7 +2499,7 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
             if (not TargetRoot) then
                 continue
             end
-            
+
             local Tool = GetCorrectToolWithHandle();
             if (not Tool) then
                 continue
@@ -2580,7 +2671,7 @@ AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}
     local OldPos = Root.CFrame
     Root.CFrame = CFrameNew(0, 2e5, 0);
     UnequipTools(Humanoid);
-    
+
     local Tools = filter(GetChildren(LocalPlayer.Backpack), function(i, v)
         return IsA(v, "Tool");
     end)
@@ -2787,7 +2878,7 @@ AddCommand("clearhats", {"ch"}, "clears all of the hats in workspace", {3}, func
             firetouchinterest(v.Handle, GetRoot(), 0);
             wait();
             firetouchinterest(v.Handle, GetRoot(), 1);
-            Destroy(WaitForChild(GetCharacter(), v.Name));            
+            Destroy(WaitForChild(GetCharacter(), v.Name));
             Amount = Amount + 1
         end
     end
@@ -3144,7 +3235,7 @@ AddCommand("fling2", {}, "another variant of fling", {}, function(Caller, Args)
     end
     local Running = CConnect(Stepped, function()
         Root.CFrame = OldPos
-        Root.Velocity = OldVelocity        
+        Root.Velocity = OldVelocity
     end)
     wait(2);
     Root.Anchored = true
@@ -3704,7 +3795,7 @@ AddCommand("antiteleport", {}, "client sided bypasses to teleports", {}, functio
     return "client sided antiteleport " .. (AntiTeleport and "enabled" or "disabled")
 end)
 
-AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, CEnv)    
+AddCommand("autorejoin", {}, "auto rejoins the game when you get kicked", {}, function(Caller, Args, CEnv)
     local GuiService = Services.GuiService
     CThread(function()
         CWait(GuiService.ErrorMessageChanged);
@@ -3819,7 +3910,7 @@ end)
 
 AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, function()
     do return "Command Disabled" end
-    
+
     local MessageClone = Clone(GlobalChatLogs.Frame.List);
 
     Utils.ClearAllObjects(GlobalChatLogs.Frame.List);
@@ -3858,7 +3949,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
     GlobalChatLogsEnabled = true
     if (not Socket) then
         Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
-        
+
         local MakeMessage = function(Message, Color)
             Clone.Text = Message
             if (Color) then
@@ -4232,7 +4323,7 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
     CThread(function()
         while (next(LoadCommand("fly").CmdEnv) and wait()) do
             Speed = LoadCommand("fly").CmdEnv[1]
-            
+
             Table1["W"] = Keys["W"] and Speed or 0
             Table1["A"] = Keys["A"] and -Speed or 0
             Table1["S"] = Keys["S"] and -Speed or 0
@@ -4262,7 +4353,7 @@ AddCommand("fly2", {}, "fly your character", {3}, function(Caller, Args, CEnv)
     SpoofProperty(GetHumanoid(), "FloorMaterial");
     SpoofProperty(GetHumanoid(), "PlatformStand");
     BodyPos.Parent = GetRoot();
-    BodyGyro.Parent = GetRoot();    
+    BodyGyro.Parent = GetRoot();
     BodyGyro.maxTorque = Vector3New(1, 1, 1) * 9e9
     BodyGyro.CFrame = GetRoot().CFrame
     BodyPos.maxForce = Vector3New(1, 1, 1) * math.huge
@@ -4325,7 +4416,7 @@ AddCommand("unfly", {}, "unflies your character", {3}, function()
     return "stopped flying"
 end)
 
-AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)", {}, function(Caller, Args, CEnv)
+AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv)
     if (not CEnv[1]) then
         local Part = InstanceNew("Part");
         Part.CFrame = CFrameNew(0, -10000, 0);
@@ -4334,15 +4425,14 @@ AddCommand("float", {}, "floats your character (uses grass to bypass some ac's)"
         ProtectInstance(Part);
         Part.Parent = Services.Workspace
         Part.Anchored = true
-
+        local R6 = isR6();
         AddConnection(CConnect(RenderStepped, function()
             if (LoadCommand("float").CmdEnv[1] and GetRoot()) then
-                Part.CFrame = GetRoot().CFrame * CFrameNew(0, -3.1, 0);
+                Part.CFrame = GetRoot().CFrame * CFrameNew(0, R6 and -3.1 or -2.8, 0);
             else
                 Part.CFrame = CFrameNew(0, -10000, 0);
             end
-        end))
-        CEnv[1] = true
+        end), CEnv)
     end
     return "now floating"
 end)
@@ -4350,7 +4440,7 @@ end)
 AddCommand("unfloat", {"nofloat"}, "stops float", {}, function(Caller, Args, CEnv)
     local Floating = LoadCommand("float").CmdEnv
     if (Floating[1]) then
-        Floating[1] = false
+        Disconnect(Floating[1]);
         return "stopped floating"
     end
     return "floating not on"
@@ -4936,7 +5026,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
         end
         function Spring.new(stiffness, dampingCoeff, dampingRatio, initialPos)
             local self = setmetatable({}, Spring);
-        
+
             dampingRatio = dampingRatio or 1
             local m = dampingCoeff * dampingCoeff / (4 * stiffness * dampingRatio * dampingRatio);
             self.k = stiffness / m
@@ -5017,7 +5107,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
         local stateRot = V2
         local panDeltaGamepad = V2
         local panDeltaMouse = V2
-        
+
         local velSpring = Spring.new(7 / 9, 1 / 3, 1, V3);
         local rotSpring = Spring.new(7 / 9, 1 / 3, 1, V2);
         local fovSpring = Spring.new(2, 1 / 3, 1, 0);
@@ -5048,7 +5138,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                 return x > 0 and (s > 1 and 1 or s) or (s > 1 and -1 or -s);
             end
             return 0
-        end        
+        end
 
         local function ProcessInput(input, processed)
             local userInputType = input.UserInputType
@@ -5102,7 +5192,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                     kx = kx * km
                     ky = ky * km
                     kz = kz * km
-                end                
+                end
 
                 local dx = kx + gp_x
                 local dy = ky + gp_r1 - gp_l1
@@ -5205,7 +5295,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
             CEnv.Enabled = false
             UserInputService.MouseIconEnabled = true
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            
+
             RunService.UnbindFromRenderStep(RunService, "Freecam")
             local hum, hrp = GetChar()
             if hum then
@@ -5252,7 +5342,7 @@ AddCommand("plastic", {"fpsboost"}, "changes everything to a plastic material", 
             Plasticc = Plasticc + 1
         end
     end
-    return format("%d items made plastic in %.3f (s)", Plasticc, (tick()) - time);    
+    return format("%d items made plastic in %.3f (s)", Plasticc, (tick()) - time);
 end)
 
 AddCommand("unplastic", {"unfpsboost"}, "changes everything back from a plastic material", {}, function(Caller, Args, CEnv)
@@ -5426,7 +5516,7 @@ AddCommand("config", {"conf"}, "shows fates admin config", {}, function(Caller, 
         Utils.TweenAllTransToObject(ConfigUI, .25, ConfigUIClone);
         ConfigLoaded = true
         CEnv[1] = true
-        return "config loaded" 
+        return "config loaded"
     end
 end)
 
@@ -5453,7 +5543,7 @@ AddCommand("rejoinre", {"rje"}, "rejoins and tps you to your old position", {3},
     local Pos = GetRoot().CFrame
     local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
     if (queue_on_teleport) then
-        queue_on_teleport(format("game.Loaded:Wait();game:GetService('ReplicatedFirst'):SetDefaultLoadingGuiRemoved();local LocalPlayer = game:GetService('Players').LocalPlayer;LocalPlayer.CharacterAdded:Wait():WaitForChild('HumanoidRootPart').CFrame = CFrame.new(%s);loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()", tostring(Pos)));        
+        queue_on_teleport(format("game.Loaded:Wait();game:GetService('ReplicatedFirst'):SetDefaultLoadingGuiRemoved();local LocalPlayer = game:GetService('Players').LocalPlayer;LocalPlayer.CharacterAdded:Wait():WaitForChild('HumanoidRootPart').CFrame = CFrame.new(%s);loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()", tostring(Pos)));
     end
     ExecuteCommand("rejoin", {}, LocalPlayer);
 end)
@@ -5562,7 +5652,7 @@ AddCommand("massplay", {}, "massplays all of your boomboxes", {3,1,"1"}, functio
     local Boomboxes = filter(GetChildren(LocalPlayer.Backpack), function(i, v)
         if (Sfind(lower(v.Name), "boombox") or FindFirstChildOfClass(v.Handle, "Sound", true)) then
            v.Parent = Character
-           return true 
+           return true
         end
         return false
     end)

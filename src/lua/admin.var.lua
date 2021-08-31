@@ -143,7 +143,19 @@ local CThread;
 do
     local wrap = coroutine.wrap
     CThread = function(Func, ...)
-        return wrap(Func);
+        if (type(Func) ~= 'function') then
+            return nil
+        end
+        local Varag = ...
+        return function()
+            local Success, Ret = pcall(wrap(Func, Varag));
+            if (Success) then
+                return Ret
+            end
+            if (Debug) then
+                warn("[FA Error]: " .. debug.traceback(Ret));
+            end
+        end
     end
 end
 

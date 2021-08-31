@@ -5,4 +5,7 @@
         "lowercase-global",
         "redundant-value"
     ],
+    "robloxLsp.diagnostics.disable": [
+        "undefined-global"
+    ],
 }

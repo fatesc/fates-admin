@@ -1,5 +1,3 @@
-local Debug = true
-
 local firetouchinterest, hookfunction;
 do
     local GEnv = getgenv();
@@ -82,7 +80,8 @@ end
 local Hooks = {
     AntiKick = false,
     AntiTeleport = false,
-    NoJumpCooldown = false
+    NoJumpCooldown = false,
+    UndetectedMessageOut = true
 }
 
 local mt = getrawmetatable(game);
@@ -136,8 +135,15 @@ do
                 };
             end
         else
+            local Cloned;
+            if (not NoClone and IsA(Instance_, "Instance") and not Services[tostring(Instance_)]) then
+                local Success, Ret = pcall(Clone, Instance_);
+                if (Success) then
+                    Cloned = Ret
+                end
+            end
             SpoofedProperties[Instance_] = {{
-                SpoofedProperty = NoClone and Instance_ or Clone(Instance_),
+                SpoofedProperty = Cloned and Cloned or Instance_,
                 Property = Property,
             }}
         end
@@ -153,7 +159,7 @@ do
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
         local self = Args[1]
-        local Method = getnamecallmethod();
+        local Method = getnamecallmethod() or "";
 
         if (Hooks.AntiKick and lower(Method) == "kick") then
             local Player, Message = self, Args[2]
@@ -201,12 +207,26 @@ do
             end
         end
 
+        if (Hooks.UndetectedMessageOut and Method == "GetLogHistory") then
+            if (self == Services.LogService) then
+                local LogHistory = __Namecall(...);
+                local MessagesOut = Hooks.MessagesOut
+                local FilteredLogHistory = {}
+                for i, v in next, LogHistory do
+                    if (not Tfind(MessagesOut, v.message)) then
+                        FilteredLogHistory[#FilteredLogHistory + 1] = v
+                    end
+                end
+                return FilteredLogHistory
+            end
+        end
+
         if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
             local State = __Namecall(...);
-            if (Method == "GetState" and State == Enum.HumanoidStateType.Jumping) then
+            if (Method == "GetState" and (State == Enum.HumanoidStateType.Jumping or State == "Jumping")) then
                 return Enum.HumanoidStateType.RunningNoPhysics
             end
-            if (Method == "GetStateEnabled" and self == Enum.HumanoidStateType.Jumping) then
+            if (Method == "GetStateEnabled" and (self == Enum.HumanoidStateType.Jumping or self == "Jumping")) then
                 return false
             end
         end
@@ -419,22 +439,80 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     return Hooks.OldTeleport(...);
 end))
 
-
 Hooks.GetState = hookfunction(GetState, function(...)
-    local State = Hooks.GetState(...);
-    if (State == Enum.HumanoidStateType.Jumping) then
+    local Humanoid, State = ..., Hooks.GetState(...);
+    local Parent, Character = Humanoid.Parent, LocalPlayer.Character
+    if (Hooks.NoJumpCooldown and (State == Enum.HumanoidStateType.Jumping or State == "Jumping") and Parent and Character and Parent == Character) then
         return Enum.HumanoidStateType.RunningNoPhysics
     end
     return State
 end)
 
 Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
-    local State = ...
-    if (State == Enum.HumanoidStateType.Jumping) then
+    local Humanoid, State = ...
+    local Parent, Character = Humanoid.Parent, LocalPlayer.Character
+    if (Hooks.NoJumpCooldown and (State == Enum.HumanoidStateType.Jumping or State == "Jumping") and Parent and Character and Parent == Character) then
         return false
     end
     return Hooks.GetStateEnabled(...);
 end)
+
+do
+    local LogService = Services.LogService
+    local MessageOut = LogService.MessageOut
+    Hooks.MessagesOut = {}
+    local MessagesOut = Hooks.MessagesOut
+
+    Hooks.Print = hookfunction(print, newcclosure(function(...)
+        if (Hooks.UndetectedMessageOut and checkcaller()) then
+            local MessageOutConnections = getconnections(MessageOut);
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Disable();
+            end
+            local Print = Hooks.Print(...);
+            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
+                return tostring(v);
+            end), " ") .. " ";
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Enable();
+            end
+            return Print
+        end
+        return Hooks.Print(...);
+    end));
+    
+    Hooks.Warn = hookfunction(warn, newcclosure(function(...)
+        if (Hooks.UndetectedMessageOut and checkcaller()) then
+            local MessageOutConnections = getconnections(MessageOut);
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Disable();
+            end
+            local Warn = Hooks.Warn(...);
+            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
+                return tostring(v);
+            end), " ") .. " ";
+            for i = 1, #MessageOutConnections do
+                MessageOutConnections[i]:Enable();
+            end
+            return Warn
+        end
+        return Hooks.Warn(...);
+    end))
+
+    Hooks.OldGetLogHistory = hookfunction(LogService.GetLogHistory, newcclosure(function(...)
+        if (Hooks.UndetectedMessageOut) then
+            local LogHistory = Hooks.OldGetLogHistory(...);
+            local FilteredLogHistory = {}
+            for i, v in next, LogHistory do
+                if (not Tfind(MessagesOut, v.message)) then
+                    FilteredLogHistory[#FilteredLogHistory + 1] = v
+                end
+            end
+            return FilteredLogHistory
+        end
+        return Hooks.OldGetLogHistory(...);
+    end))
+end
 
 -- local UnProtectInstance = function(Instance_)
 --     for i, v in next, ProtectedInstances do
