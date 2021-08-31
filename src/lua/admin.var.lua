@@ -21,8 +21,8 @@ local Services = {
 
 setmetatable(Services, {
     __index = function(Table, Property)
-        local Service = GetService(game, Property);
-        if (Service) then
+        local Ret, Service = pcall(GetService, game, Property);
+        if (Ret) then
             Services[Property] = Service
             return Service
         end

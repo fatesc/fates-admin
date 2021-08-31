@@ -424,10 +424,12 @@ local ExecuteCommand = function(Name, Args, Caller)
                 if (Executed) then
                     Utils.Notify(Caller, "Command", Executed);
                 end
-                if (#LastCommand == 3) then
-                    LastCommand = shift(LastCommand);
+                if (Command.Name ~= "lastcommand") then
+                    if (#LastCommand == 3) then
+                        LastCommand = shift(LastCommand);
+                    end
+                    LastCommand[#LastCommand + 1] = {Command.Name, Args, Caller, Command.CmdEnv}
                 end
-                LastCommand[#LastCommand + 1] = {Command, plr, Args, Command.CmdEnv}
             end
             Success = true
         end, function(Err)
@@ -1849,6 +1851,13 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, CEn
             firetouchinterest(Tool.HitBox, v, 0);
             wait();
             firetouchinterest(Tool.HitBox, v, 1);
+        else 
+            local Part = FindFirstChildOfClass(Tool, "Part"))
+            if (Part) then
+                firetouchinterest(Tool.HitBox, v, 0);
+                wait();
+                firetouchinterest(Tool.HitBox, v, 1);
+            end
         end
     end
     local Character = GetCharacter();
@@ -2598,12 +2607,16 @@ end)
 
 AddCommand("spin", {}, "spins your character (optional: speed)", {}, function(Caller, Args, CEnv)
     local Speed = Args[1] or 5
-    local Spin = InstanceNew("BodyAngularVelocity");
-    ProtectInstance(Spin);
-    Spin.Parent = GetRoot();
-    Spin.MaxTorque = Vector3New(0, math.huge, 0);
-    Spin.AngularVelocity = Vector3New(0, Speed, 0);
-    CEnv[#CEnv + 1] = Spin
+    if (not CEnv[1]) then
+        local Spin = InstanceNew("BodyAngularVelocity");
+        ProtectInstance(Spin);
+        Spin.Parent = GetRoot();
+        Spin.MaxTorque = Vector3New(0, math.huge, 0);
+        Spin.AngularVelocity = Vector3New(0, Speed, 0);
+        CEnv[#CEnv + 1] = Spin
+    else
+        CEnv[1].AngularVelocity = Vector3New(0, Speed, 0);
+    end
     return "started spinning"
 end)
 
@@ -3009,7 +3022,7 @@ end)
 
 AddCommand("lastcommand", {"lastcmd"}, "executes the last command", {}, function(Caller)
     local Command = LastCommand[#LastCommand]
-    LoadCommand(Command[1]).Function()(Command[2], Command[3], Command[4]);
+    ExecuteCommand(Command[1], Command[2], Command[3]);
     return format("command %s executed", Command[1]);
 end)
 
@@ -3256,6 +3269,14 @@ AddCommand("killscript", {}, "kills the script", {}, function(Caller)
         for i, v in next, Hooks.SpoofedProperties do
             for i2, v2 in next, v do
                 i[v2.Property] = v2.SpoofedProperty[v2.Property]
+            end
+        end
+        for i, v in next, Hooks do
+            if (type(v) == 'boolean') then
+                v = false
+            end
+            if (type(v) == 'function') then
+                
             end
         end
         Destroy(UI);
@@ -4103,6 +4124,7 @@ AddCommand("loop", {"loopcommand"}, "loops a command", {"1"}, function(Caller, A
     CThread(function()
         while (CEnv.Looping) do
             ExecuteCommand(Command, Args, Caller);
+            wait(Args[2] or 1);
         end
     end)();
     return format("now looping the %s command", Command);

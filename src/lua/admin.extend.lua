@@ -165,8 +165,15 @@ do
             local Player, Message = self, Args[2]
             if (Hooks.AntiKick and Player == LocalPlayer) then
                 local Notify = Utils.Notify
-                if (Notify) then
+                local Context;
+                local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+                if (sett) then
+                    Context = gett();
+                    sett(3);
+                end
+                if (Notify and Context) then
                     Notify(nil, "Attempt to kick", format("attempt to kick %s", Message and ": " .. Message or ""));
+                    sett(Context);
                 end
                 return
             end
@@ -176,8 +183,15 @@ do
             local Player, PlaceId = self, Args[2]
             if (Hooks.AntiTeleport and Player == LocalPlayer) then
                 local Notify = Utils.Notify
-                if (Notify) then
+                local Context;
+                local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+                if (sett) then
+                    Context = gett();
+                    sett(3);
+                end
+                if (Notify and Context) then
                     Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
+                    sett(Context);
                 end
                 return
             end
@@ -408,8 +422,15 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     local Player, Message = ...
     if (Hooks.AntiKick and Player == LocalPlayer) then
         local Notify = Utils.Notify
-        if (Notify) then
+        local Context;
+        local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+        if (sett) then
+            Context = gett();
+            sett(3);
+        end
+        if (Notify and Context) then
             Notify(nil, "Attempt to kick", format("attempt to kick %s", Message and ": " .. Message or ""));
+            sett(Context)
         end
         return
     end
@@ -420,8 +441,15 @@ Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.Telepor
     local Player, PlaceId = ...
     if (Hooks.AntiTeleport and Player == LocalPlayer) then
         local Notify = Utils.Notify
-        if (Notify) then
-            Utils.Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
+        local Context;
+        local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+        if (sett) then
+            Context = gett();
+            sett(3);
+        end
+        if (Notify and Context) then
+            Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
+            sett(Context)
         end
         return
     end
@@ -431,8 +459,15 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     local Player, PlaceId = ...
     if (Hooks.AntiTeleport and Player == LocalPlayer) then
         local Notify = Utils.Notify
-        if (Notify) then
+        local Context;
+        local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+        if (sett) then
+            Context = gett();
+            sett(3);
+        end
+        if (Notify and Context) then
             Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", PlaceId and PlaceId or ""));
+            sett(Context);
         end
         return
     end
