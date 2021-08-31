@@ -314,8 +314,8 @@ end
 
 local GetCorrectToolWithHandle = function()
     local Tools = filter(tbl_concat(GetChildren(LocalPlayer.Backpack), GetChildren(LocalPlayer.Character)), function(i, Tool)
-        local Correct = IsA(Tool, "Tool") and FindFirstChild(Tool, "Handle") ~= nil
-        if (Correct) then
+        local Correct = IsA(Tool, "Tool");
+        if (Correct and Correct.CanBeDropped) then
             local Descendants = GetDescendants(Tool);
             for i = 1, #Descendants do
                 local Descendant = Descendants[i]
@@ -1852,7 +1852,7 @@ AddCommand("swordaura", {"saura"}, "sword aura", {3}, function(Caller, Args, CEn
             wait();
             firetouchinterest(Tool.HitBox, v, 1);
         else 
-            local Part = FindFirstChildOfClass(Tool, "Part"))
+            local Part = FindFirstChildOfClass(Tool, "Part")
             if (Part) then
                 firetouchinterest(Tool.HitBox, v, 0);
                 wait();
