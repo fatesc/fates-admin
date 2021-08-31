@@ -315,7 +315,7 @@ end
 local GetCorrectToolWithHandle = function()
     local Tools = filter(tbl_concat(GetChildren(LocalPlayer.Backpack), GetChildren(LocalPlayer.Character)), function(i, Tool)
         local Correct = IsA(Tool, "Tool");
-        if (Correct and Correct.CanBeDropped) then
+        if (Correct and Tool.CanBeDropped) then
             local Descendants = GetDescendants(Tool);
             for i = 1, #Descendants do
                 local Descendant = Descendants[i]
