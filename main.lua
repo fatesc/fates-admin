@@ -1,5 +1,5 @@
 --[[
-	fates admin - 31/8/2021
+	fates admin - 1/9/2021
 ]]
 
 local game = game
@@ -1861,7 +1861,7 @@ end
 local GetCorrectToolWithHandle = function()
     local Tools = filter(tbl_concat(GetChildren(LocalPlayer.Backpack), GetChildren(LocalPlayer.Character)), function(i, Tool)
         local Correct = IsA(Tool, "Tool");
-        if (Correct and Tool.CanBeDropped) then
+        if (Correct and (Tool.RequiresHandle or FindFirstChild(Tool, "Handle"))) then
             local Descendants = GetDescendants(Tool);
             for i = 1, #Descendants do
                 local Descendant = Descendants[i]
@@ -5881,10 +5881,14 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
             if (UndetectedCmdBar) then
                 TextConnections = getconnections(UserInputService.TextBoxFocused);
                 for i, v in next, Connections do
-                    v.Disable(v);
+                    if (v.Disable) then
+                        v.Disable(v);
+                    end
                 end
                 for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
-                    v.Disable(v);
+                    if (v.Disable) then
+                        v.Disable(v);
+                    end
                 end
             end
 
