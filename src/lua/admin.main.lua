@@ -882,7 +882,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     WaitForChild(Character, "HumanoidRootPart").CFrame = OldPos
 end)
 
-AddCommand("void", {}, "voids a user", {1,"1"}, function(Caller, Args)
+AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Target2 = Args[2] and GetPlayer(Args[2]);
     local OldPos = GetRoot(Caller).CFrame
@@ -2624,6 +2624,7 @@ AddCommand("unspin", {}, "unspins your character", {}, function(Caller, Args)
     local Spinning = LoadCommand("spin").CmdEnv
     for i, v in next, Spinning do
         Destroy(v);
+        Spinning[1] = nil
     end
     return "stopped spinning"
 end)

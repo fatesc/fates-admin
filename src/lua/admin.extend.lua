@@ -29,7 +29,9 @@ end
 
 local getconnections;
 do
-    local CachedConnections = {}
+    local CachedConnections = setmetatable({}, {
+        mode = "v"
+    });
     getconnections = function(Connection, FromCache)
         local getconnections = getgenv().getconnections
         if (not getconnections) then
