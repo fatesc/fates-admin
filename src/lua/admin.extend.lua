@@ -95,10 +95,16 @@ local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
-local ProtectedInstances = {}
+local ProtectedInstances = setmetatable({}, {
+    mode = "v"
+});
 do
-    local SpoofedInstances = {}
-    local SpoofedProperties = {}
+    local SpoofedInstances = setmetatable({}, {
+        mode = "v"
+    });
+    local SpoofedProperties = setmetatable({}, {
+        mode = "v"
+    });
     Hooks.SpoofedProperties = SpoofedProperties
 
     ProtectInstance = function(Instance_, disallow)

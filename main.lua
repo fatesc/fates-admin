@@ -1,5 +1,5 @@
 --[[
-	fates admin - 1/9/2021
+	fates admin - 3/9/2021
 ]]
 
 local game = game
@@ -422,10 +422,16 @@ local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
-local ProtectedInstances = {}
+local ProtectedInstances = setmetatable({}, {
+    mode = "v"
+});
 do
-    local SpoofedInstances = {}
-    local SpoofedProperties = {}
+    local SpoofedInstances = setmetatable({}, {
+        mode = "v"
+    });
+    local SpoofedProperties = setmetatable({}, {
+        mode = "v"
+    });
     Hooks.SpoofedProperties = SpoofedProperties
 
     ProtectInstance = function(Instance_, disallow)
@@ -3295,7 +3301,7 @@ AddCommand("antiattach", {"anticlaim"}, "enables antiattach", {3}, function(Call
         end
     end
     AddConnection(CConnect(LocalPlayer.Character.ChildAdded, function(x)
-        if not (Tfind(Tools, x)) then
+        if (not Tfind(Tools, x) and IsA(x, "Tool")) then
             x.Parent = LocalPlayer.Backpack
         end
     end))
@@ -4470,15 +4476,23 @@ AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv
         Part.CFrame = CFrameNew(0, -10000, 0);
         Part.Size = Vector3New(2, .2, 1.5);
         Part.Material = "Grass"
+        Part.Anchored = true
+        Part.Transparency = 1
         ProtectInstance(Part);
         Part.Parent = Services.Workspace
-        Part.Anchored = true
         local R6 = isR6();
+        local Root = GetRoot();
         AddConnection(CConnect(RenderStepped, function()
-            if (LoadCommand("float").CmdEnv[1] and GetRoot()) then
-                Part.CFrame = GetRoot().CFrame * CFrameNew(0, R6 and -3.1 or -2.8, 0);
+            if (LoadCommand("float").CmdEnv[1] and Root) then
+                Part.CFrame = Root.CFrame * CFrameNew(0, -3.1, 0);
             else
                 Part.CFrame = CFrameNew(0, -10000, 0);
+                Root = GetRoot();
+            end
+            if (Keys["Q"]) then
+                Root.CFrame = Root.CFrame * CFrameNew(0, -1.5, 0);
+            elseif (Keys["E"]) then
+                Root.CFrame = Root.CFrame * CFrameNew(0, 1.5, 0);
             end
         end), CEnv)
     end
