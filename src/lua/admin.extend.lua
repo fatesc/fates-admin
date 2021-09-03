@@ -27,22 +27,30 @@ do
     end
 end
 
-local getconnections = function(...)
-    if (not getconnections) then
-        return {}
-    end
-    local Connections = getconnections(...);
-    do return Connections end
-    local ActualConnections = filter(Connections, function(i, Connection)
-        if (Connection.Function) then
-            if (syn and not is_synapse_function(Connection.Function)) then
-                return true
-            end
-            return true
+local getconnections;
+do
+    local CachedConnections = {}
+    getconnections = function(Connection, FromCache)
+        local getconnections = getgenv().getconnections
+        if (not getconnections) then
+            return {}
         end
-        return false
-    end);
-    return ActualConnections
+        
+        local CachedConnection;
+        for i, v in next, CachedConnections do
+            if (i == Connection) then
+                CachedConnection = v
+                break;
+            end
+        end
+        if (CachedConnection and FromCache) then
+            return CachedConnection
+        end
+
+        local Connections = getgenv().getconnections(Connection);
+        CachedConnections[Connection] = Connections
+        return Connections
+    end
 end
 
 local getrawmetatable = getrawmetatable or function()
@@ -314,27 +322,27 @@ do
         local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
         if (checkcaller()) then
-            if (Index == "Parent" and false) then
+            if (Index == "Parent") then
                 local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
                 if (ProtectedInstance) then
                     local Parents = GetAllParents(Value);
-                    for i, v in next, getconnections(Parents[1].ChildAdded) do
+                    for i, v in next, getconnections(Parents[1].ChildAdded, true) do
                         v.Disable(v);
                     end
                     for i = 1, #Parents do
                         local Parent = Parents[i]
-                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        for i2, v in next, getconnections(Parent.DescendantAdded, true) do
                             v.Disable(v);
                         end
                     end
                     local Ret = __NewIndex(...);
                     for i = 1, #Parents do
                         local Parent = Parents[i]
-                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        for i2, v in next, getconnections(Parent.DescendantAdded, true) do
                             v.Enable(v);
                         end
                     end
-                    for i, v in next, getconnections(Parents[1].ChildAdded) do
+                    for i, v in next, getconnections(Parents[1].ChildAdded, true) do
                         v.Enable(v);
                     end
                     return Ret
