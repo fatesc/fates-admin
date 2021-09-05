@@ -1,5 +1,5 @@
 --[[
-	fates admin - 3/9/2021
+	fates admin - 5/9/2021
 ]]
 
 local game = game
@@ -2009,9 +2009,12 @@ local ExecuteCommand = function(Name, Args, Caller)
     end
 end
 
-local ReplaceHumanoid = function(Hum)
+local ReplaceHumanoid = function(Hum, R)
     local Humanoid = Hum or GetHumanoid();
     local NewHumanoid = Clone(Humanoid);
+    if (R) then
+        NewHumanoid.Name = "1"
+    end
     NewHumanoid.Parent = Humanoid.Parent
     NewHumanoid.Name = Humanoid.Name
     Services.Workspace.Camera.CameraSubject = NewHumanoid
@@ -2826,9 +2829,10 @@ AddCommand("savetools", {"st"}, "saves your tools", {1,3}, function(Caller, Args
     return "tools recovered??"
 end)
 
-AddCommand("givetools", {}, "gives tools to a player", {"1", 3, 1}, function(Caller, Args) -- i am not re doing this
+AddCommand("givetools", {}, "gives all of your tools to a player", {3,1,"1"}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
-    local OldPos = GetRoot().CFrame
+    local Root = GetRoot();
+    local OldPos = Root.CFrame
     local Humanoid = FindFirstChildOfClass(LocalPlayer.Character, "Humanoid");
     Humanoid.Name = "1"
     local Humanoid2 = Clone(Humanoid);
@@ -2837,30 +2841,68 @@ AddCommand("givetools", {}, "gives tools to a player", {"1", 3, 1}, function(Cal
     Services.Workspace.Camera.CameraSubject = Humanoid2
     wait()
     Destroy(Humanoid);
-    for _, v in next, GetChildren(LocalPlayer) do
-        if (IsA(v, "Tool")) then
-            v.Parent = LocalPlayer.Backpack
-        end
-    end
-    ChangeState(Humanoid2, 15);
+    local Char = GetCharacter();
     for i, v in next, Target do
-        local THumanoidRootPart = GetRoot(v);
+        local TRoot = GetRoot(v);
         for i2, v2 in next, GetChildren(LocalPlayer.Backpack) do
             if (IsA(v2, "Tool")) then
                 v2.Parent = GetCharacter();
+                CFrameTool(v2, TRoot.CFrame);
+                local Handle = v2.Handle
                 for i3 = 1, 3 do
-                    if (THumanoidRootPart) then
-                        firetouchinterest(THumanoidRootPart, v2.Handle, 0);
-                        firetouchinterest(THumanoidRootPart, v2.Handle, 1);
+                    if (TRoot and Handle) then
+                        firetouchinterest(TRoot, Handle, 1);
+                        firetouchinterest(TRoot, Handle, 1);
                     end
                 end
             end
         end
     end
     wait(.2);
-    Destroy(LocalPlayer.Character);
-    CWait(LocalPlayer.CharacterAdded);
-    WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
+    Destroy(Char);
+    Char = CWait(LocalPlayer.CharacterAdded);
+    WaitForChild(Char, "HumanoidRootPart").CFrame = OldPos
+end)
+
+AddCommand("givetool", {}, "gives your tool(s) to a player", {3,1,"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local ToolAmount = tonumber(Args[2]) or 1
+    local Root = GetRoot();
+    local OldPos = Root.CFrame
+    local Humanoid = FindFirstChildOfClass(LocalPlayer.Character, "Humanoid");
+    Humanoid.Name = "1"
+    local Humanoid2 = Clone(Humanoid);
+    Humanoid2.Parent = LocalPlayer.Character
+    Humanoid2.Name = "Humanoid"
+    Services.Workspace.Camera.CameraSubject = Humanoid2
+    wait()
+    Destroy(Humanoid);
+    UnequipTools(Humanoid2);
+    local Char = GetCharacter();
+    for i, v in next, Target do
+        local TRoot = GetRoot(v);
+        local Tools = GetChildren(LocalPlayer.Backpack);
+        for i2, v2 in next, Tools do
+            if (IsA(v2, "Tool")) then
+                v2.Parent = GetCharacter();
+                CFrameTool(v2, TRoot.CFrame);
+                local Handle = v2.Handle
+                for i3 = 1, 3 do
+                    if (TRoot and Handle) then
+                        firetouchinterest(TRoot, Handle, 1);
+                        firetouchinterest(TRoot, Handle, 1);
+                    end
+                end
+            end
+            if (i2 == ToolAmount) then
+                break
+            end
+        end
+    end
+    wait(.2);
+    Destroy(Char);
+    Char = CWait(LocalPlayer.CharacterAdded);
+    WaitForChild(Char, "HumanoidRootPart").CFrame = OldPos
 end)
 
 AddCommand("grabtools", {"gt"}, "grabs tools in the workspace", {3}, function(Caller, Args)
