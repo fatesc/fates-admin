@@ -2978,7 +2978,7 @@ AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv
         Part.Transparency = 1
         ProtectInstance(Part);
         Part.Parent = Services.Workspace
-        CmdEnv[2] = Part
+        CEnv[2] = Part
         local R6 = isR6();
         local Root = GetRoot();
         AddConnection(CConnect(RenderStepped, function()
