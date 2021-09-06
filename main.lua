@@ -1,5 +1,5 @@
 --[[
-	fates admin - 5/9/2021
+	fates admin - 6/9/2021
 ]]
 
 local game = game
@@ -3410,11 +3410,13 @@ end)
 AddCommand("reach", {"swordreach"}, "changes handle size of your tool", {1, 3}, function(Caller, Args, CEnv)
     local Amount = Args[1] or 2
     local Tool = FindFirstChildWhichIsA(LocalPlayer.Character, "Tool") or FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
-    CEnv[Tool] = Tool.Size
-    SpoofProperty(Tool.Handle, "Size");
-    SpoofProperty(Tool.Handle, "Massless");
-    Tool.Handle.Size = Vector3New(Tool.Handle.Size.X, Tool.Handle.Size.Y, tonumber(Amount or 30));
-    Tool.Handle.Massless = true
+    local Handle = Tool.Handle
+    local Size = Handle.Size
+    CEnv[Tool] = Size
+    SpoofProperty(Handle, "Size");
+    SpoofProperty(Handle, "Massless");
+    Handle.Size = Vector3New(Size.X, Size.Y, tonumber(Amount or 30));
+    Handle.Massless = true
     return "reach on"
 end)
 
@@ -3775,7 +3777,7 @@ AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "
 end)
 
 local EspLib;
-AddCommand("trace", {"locate"}, "traces a player", {"1"}, function(Caller, Args)
+AddCommand("trace", {"locate"}, "traces a player", {"1"}, function(Caller, Args, CEnv)
     if (not EspLib) then
         EspLib = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/esp-lib/esplibmain.lua"))();
     end
@@ -3791,6 +3793,11 @@ AddCommand("trace", {"locate"}, "traces a player", {"1"}, function(Caller, Args)
             ShowDistance = true
         });
     end
+    AddConnection(CConnect(Services.Players.PlayerRemoving, function(Plr)
+        if (Tfind(Target, Plr)) then
+            EspLib.Remove(v);
+        end
+    end), CEnv);
     return format("now tracing %s", #Target == 1 and Target[1].Name or #Target .. " players");
 end)
 AddCommand("untrace", {"unlocate"}, "untraces a player", {"1"}, function(Caller, Args)
@@ -4533,10 +4540,11 @@ AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv
         Part.Transparency = 1
         ProtectInstance(Part);
         Part.Parent = Services.Workspace
+        CmdEnv[2] = Part
         local R6 = isR6();
         local Root = GetRoot();
         AddConnection(CConnect(RenderStepped, function()
-            if (LoadCommand("float").CmdEnv[1] and Root) then
+            if (CmdEnv[1] and Root) then
                 Part.CFrame = Root.CFrame * CFrameNew(0, -3.1, 0);
             else
                 Part.CFrame = CFrameNew(0, -10000, 0);
@@ -4556,6 +4564,7 @@ AddCommand("unfloat", {"nofloat"}, "stops float", {}, function(Caller, Args, CEn
     local Floating = LoadCommand("float").CmdEnv
     if (Floating[1]) then
         Disconnect(Floating[1]);
+        Destroy(Floating[2]);
         return "stopped floating"
     end
     return "floating not on"
@@ -5947,15 +5956,11 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
             local TextConnections;
             if (UndetectedCmdBar) then
                 TextConnections = getconnections(UserInputService.TextBoxFocused);
-                for i, v in next, Connections do
-                    if (v.Disable) then
-                        v.Disable(v);
-                    end
+                for i, v in next, TextConnections do
+                    v.Disable(v);
                 end
                 for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
-                    if (v.Disable) then
-                        v.Disable(v);
-                    end
+                    v.Disable(v);
                 end
             end
 
