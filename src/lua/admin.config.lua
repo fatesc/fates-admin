@@ -109,6 +109,11 @@ do
             Utils.Notify(nil, nil, format("draggable command bar %s", Draggable and "enabled" or "disabled"));
         end)
 
+        Misc.Toggle("KillCam when killing", CurrentConf.KillCam, function(Callback)
+            SetConfig({KillCam=Callback});
+            KillCam = Callback
+        end)
+
         local OldFireTouchInterest = firetouchinterest
         Misc.Toggle("cframe touchinterest", firetouchinterest == nil, function(Callback)
             firetouchinterest = Callback and function(part1, part2, toggle)
@@ -235,6 +240,7 @@ do
                 Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
             })
         end
+        KillCam = CurrentConfig.KillCam
         local Aliases = CurrentConfig.Aliases
         if (Aliases) then
             for i, v in next, Aliases do
@@ -248,5 +254,5 @@ do
                 end
             end
         end
-    end)    
+    end)
 end

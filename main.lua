@@ -937,7 +937,8 @@ local Settings = {
     Prefix = "!",
     CommandBarPrefix = "Semicolon",
     ChatPrediction = false,
-    Macros = {}
+    Macros = {},
+    Aliases = {},
 }
 local PluginSettings = {
     PluginsEnabled = true,
@@ -1995,7 +1996,10 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
+                local UndetectedMessageOut = Hooks.UndetectedMessageOut
+                Hooks.UndetectedMessageOut = true
                 warn("[FA Error]: " .. debug.traceback(Err));
+                Hooks.UndetectedMessageOut = UndetectedMessageOut
                 Utils.Notify(Caller, "Error", Err);
             end
         end);
@@ -2003,7 +2007,10 @@ local ExecuteCommand = function(Name, Args, Caller)
             sett(Context);
         end
     else
+        local UndetectedMessageOut = Hooks.UndetectedMessageOut
+        Hooks.UndetectedMessageOut = true
         warn("couldn't find the command ".. Name);
+        Hooks.UndetectedMessageOut = UndetectedMessageOut
         Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
     end
 end
@@ -2132,6 +2139,7 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
+local KillCam;
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local OldPos = GetRoot().CFrame
@@ -2155,10 +2163,12 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     end
     UnequipTools(Humanoid);
 
+    local TChar;
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (GetCharacter(v)) then
+            TChar = GetCharacter(v);
+            if (TChar) then
                 if (isSat(v)) then
                     if (#Target == 1) then
                         Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
@@ -2188,6 +2198,9 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         end
     end)()
     ChangeState(Humanoid, 15);
+    if (KillCam and #Target == 1 and TChar) then
+        Camera.CameraSubject = TChar
+    end
     wait(.3);
     Destroy(Character);
     Character = CWait(LocalPlayer.CharacterAdded);
@@ -7058,6 +7071,11 @@ do
             Utils.Notify(nil, nil, format("draggable command bar %s", Draggable and "enabled" or "disabled"));
         end)
 
+        Misc.Toggle("KillCam when killing", CurrentConf.KillCam, function(Callback)
+            SetConfig({KillCam=Callback});
+            KillCam = Callback
+        end)
+
         local OldFireTouchInterest = firetouchinterest
         Misc.Toggle("cframe touchinterest", firetouchinterest == nil, function(Callback)
             firetouchinterest = Callback and function(part1, part2, toggle)
@@ -7184,6 +7202,7 @@ do
                 Size = UDim2.new(0, WideBar and 400 or 200, 0, 35) -- tween -110
             })
         end
+        KillCam = CurrentConfig.KillCam
         local Aliases = CurrentConfig.Aliases
         if (Aliases) then
             for i, v in next, Aliases do
@@ -7197,7 +7216,7 @@ do
                 end
             end
         end
-    end)    
+    end)
 end
 --END IMPORT [config]
 
