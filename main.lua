@@ -1,5 +1,5 @@
 --[[
-	fates admin - 6/9/2021
+	fates admin - 11/9/2021
 ]]
 
 local game = game
@@ -4544,7 +4544,7 @@ AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv
         local R6 = isR6();
         local Root = GetRoot();
         AddConnection(CConnect(RenderStepped, function()
-            if (CmdEnv[1] and Root) then
+            if (CEnv[1] and Root) then
                 Part.CFrame = Root.CFrame * CFrameNew(0, -3.1, 0);
             else
                 Part.CFrame = CFrameNew(0, -10000, 0);
