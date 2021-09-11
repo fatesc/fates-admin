@@ -68,7 +68,7 @@ do
             end
             
             local Context;
-            local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+            local sett, gett = setthreadidentity, getthreadidentity
             if (sett and PluginConf.SafePlugins) then
                 Context = gett();
                 sett(2);

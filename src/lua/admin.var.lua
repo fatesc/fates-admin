@@ -280,3 +280,6 @@ local function clone(toClone, shallow)
     end
     return new
 end
+
+local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext
+local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext

@@ -152,7 +152,7 @@ do
             end
         else
             local Cloned;
-            if (not NoClone and IsA(Instance_, "Instance") and not Services[tostring(Instance_)]) then
+            if (not NoClone and IsA(Instance_, "Instance") and not Services[tostring(Instance_)] and Instance_.Archivable) then
                 local Success, Ret = pcall(Clone, Instance_);
                 if (Success) then
                     Cloned = Ret
@@ -182,13 +182,13 @@ do
             if (Hooks.AntiKick and Player == LocalPlayer) then
                 local Notify = Utils.Notify
                 local Context;
-                local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+                local sett, gett = setthreadidentity, getthreadidentity
                 if (sett) then
                     Context = gett();
                     sett(3);
                 end
                 if (Notify and Context) then
-                    Notify(nil, "Attempt to kick", format("attempt to kick %s", Message and ": " .. Message or ""));
+                    Notify(nil, "Attempt to kick", format("attempt to kick %s", (Message and type(Message) == 'number' or type(Message) == 'number') and ": " .. Message or ""));
                     sett(Context);
                 end
                 return
@@ -200,7 +200,7 @@ do
             if (Hooks.AntiTeleport and Player == LocalPlayer) then
                 local Notify = Utils.Notify
                 local Context;
-                local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+                local sett, gett = setthreadidentity, getthreadidentity
                 if (sett) then
                     Context = gett();
                     sett(3);
@@ -351,23 +351,19 @@ do
                 end
             end
             if (SpoofedInstance or SpoofedPropertiesForInstance) then
-                local Connections = getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index));
-                local Connections2 = getconnections(Instance_.Changed);
-
-                if (not next(Connections) and not next(Connections2)) then
+                local Connections = tbl_concat(
+                    getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index)),
+                    getconnections(Instance_.Changed)
+                )
+                
+                if (not next(Connections)) then
                     return __NewIndex(Instance_, Index, Value);
                 end
                 for i, v in next, Connections do
                     v.Disable(v);
                 end
-                for i, v in next, Connections2 do
-                    v.Disable(v);
-                end
                 local Ret = __NewIndex(Instance_, Index, Value);
                 for i, v in next, Connections do
-                    v.Enable(v);
-                end
-                for i, v in next, Connections2 do
                     v.Enable(v);
                 end
                 return Ret
@@ -439,13 +435,13 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     if (Hooks.AntiKick and Player == LocalPlayer) then
         local Notify = Utils.Notify
         local Context;
-        local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+        local sett, gett = setthreadidentity, getthreadidentity
         if (sett) then
             Context = gett();
             sett(3);
         end
         if (Notify and Context) then
-            Notify(nil, "Attempt to kick", format("attempt to kick %s", Message and ": " .. Message or ""));
+            Notify(nil, "Attempt to kick", format("attempt to kick %s", (Message and type(Message) == 'number' or type(Message) == 'string') and ": " .. Message or ""));
             sett(Context)
         end
         return
@@ -458,7 +454,7 @@ Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.Telepor
     if (Hooks.AntiTeleport and Player == LocalPlayer) then
         local Notify = Utils.Notify
         local Context;
-        local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+        local sett, gett = setthreadidentity, getthreadidentity
         if (sett) then
             Context = gett();
             sett(3);
@@ -476,7 +472,7 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     if (Hooks.AntiTeleport and Player == LocalPlayer) then
         local Notify = Utils.Notify
         local Context;
-        local sett, gett = (syn_context_set or setthreadidentity), (syn_context_get or getthreadidentity)
+        local sett, gett = setthreadidentity, getthreadidentity
         if (sett) then
             Context = gett();
             sett(3);
