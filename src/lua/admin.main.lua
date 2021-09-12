@@ -1049,10 +1049,12 @@ AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args, CEnv)
         CWait(Heartbeat);
         Camera.CameraSubject = Target.Character
     end), CEnv);
-    AddConnection(CConnect(LocalPlayer.CharcterAdded, function()
+    AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
+        WaitForChild(LocalPlayer.Character, "Humanoid");
+        CWait(Camera.CameraSubject.Changed);
         CWait(Heartbeat);
         Camera.CameraSubject = Target.Character
-    end))
+    end), CEnv);
     return "viewing " .. Target.Name
 end)
 
