@@ -1,5 +1,5 @@
 --[[
-	fates admin - 11/9/2021
+	fates admin - 12/9/2021
 ]]
 
 local game = game
@@ -2599,40 +2599,28 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     WaitForChild(LocalPlayer.Character, "HumanoidRootPart").CFrame = OldPos
 end)
 
-AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args)
+AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args, CEnv)
     local Target = GetPlayer(Args[1]);
-    for i, v in next, Target do
-        Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
+    if (#Target ~= 1) then
+        return "you can only view 1 person"
     end
+    Target = Target[1]
+    Camera.CameraSubject = GetCharacter(Target) or GetCharacter();
+    AddConnection(CConnect(Target.CharacterAdded, function()
+        CWait(Heartbeat);
+        Camera.CameraSubject = Target.Character
+    end), CEnv);
+    AddConnection(CConnect(LocalPlayer.CharcterAdded, function()
+        CWait(Heartbeat);
+        Camera.CameraSubject = LocalPlayer.Character
+    end))
+    return "viewing " .. Target.Name
 end)
 
 AddCommand("unview", {"unv"}, "unviews a user", {3}, function(Caller, Args)
-    Camera.CameraSubject = GetHumanoid();
+    DisableAllCmdConnections("view");
+    Camera.CameraSubject = GetCharacter();
     return "unviewing"
-end)
-
-AddCommand("loopview", {}, "loopviews a user", {3, "1"}, function(Caller, Args, CEnv)
-    local Target = GetPlayer(Args[1]);
-    for i, v in next, Target do
-        Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
-        local LoopView = CConnect(GetPropertyChangedSignal(Camera, "CameraSubject"), function()
-            Camera.CameraSubject = GetHumanoid(v) or GetHumanoid();
-        end)
-        CEnv[v.Name] = LoopView
-        AddPlayerConnection(v, LoopView)
-    end
-end)
-
-AddCommand("unloopview", {}, "unloopviews a user", {3}, function(Caller, Args)
-    local LoopViewing = LoadCommand("loopview").CmdEnv
-    local Target = GetPlayer(Args[1]);
-    for i, v in next, LoopViewing do
-        for i2, v2 in next, Target do
-            if (i == v2.Name) then
-                Disconnect(v);
-            end
-        end
-    end
 end)
 
 AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function()
@@ -2675,6 +2663,12 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
     local Duped = {}
     local Humanoid = GetHumanoid();
     UnequipTools(Humanoid);
+    local Connection = AddConnection(CConnect(GetCharacter().ChildAdded, function(Added)
+        wait(.4);
+        if (IsA(Added, "Tool")) then
+            Added.Parent = LocalPlayer.Backpack
+        end
+    end), CEnv);
     for i = 1, Amount do
         if (not LoadCommand("dupetools").CmdEnv[1]) then
             do break end;
@@ -2723,6 +2717,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
         UnequipTools(Humanoid);
         AmountDuped = AmountDuped + 1
     end
+    Disconnect(Connection);
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);
 end)
 
@@ -2804,6 +2799,7 @@ AddCommand("stopdupe", {}, "stops the dupe", {}, function()
         return "you are not duping tools"
     end
     LoadCommand("dupetools").CmdEnv[1] = false
+    DisableAllCmdConnections("dupetools");
     return "dupetools stopped"
 end)
 
@@ -3784,8 +3780,16 @@ AddCommand("notruesightguis", {"untruesightguis", "notsg"}, "removes truesight o
 end)
 
 AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "loads fates esp", {}, function(Caller, Args, CEnv)
-    loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
+    CEnv.KillEsp = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
     return "esp enabled"
+end)
+
+AddCommand("unesp", {"noesp"}, "removes esp", {}, function()
+    local Kill = LoadCommand("esp").CmdEnv.KillEsp
+    if (Kill) then
+        Kill()
+    end
+    return "esp removed"
 end)
 
 local EspLib;
@@ -5286,6 +5290,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
 
         local function ProcessInput(input, processed)
             local userInputType = input.UserInputType
+            Processed = processed
             if userInputType == Enum.UserInputType.Gamepad1 then
                 local keycode = input.KeyCode
                 if keycode == Enum.KeyCode.Thumbstick2 then
@@ -5300,7 +5305,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                 elseif keycode == Enum.KeyCode.ButtonR2 then
                     gp_r1 = input.Position.z
                 end
-            elseif userInputType == Enum.UserInputType.MouseWheel then
+
                 rate_fov = input.Position.Z
             end
         end
@@ -5311,7 +5316,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
         local IsKeyDown = UserInputService.IsKeyDown
         local function IsDirectionDown(direction)
             for i = 1, #KEY_MAPPINGS[direction] do
-                if IsKeyDown(UserInputService, KEY_MAPPINGS[direction][i]) then
+                if (IsKeyDown(UserInputService, KEY_MAPPINGS[direction][i]) and not Processed) then
                     return true
                 end
             end
@@ -5431,6 +5436,11 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                     screenGuis[obj] = true
                 end
             end
+
+            AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
+                local Hrp = WaitForChild(LocalPlayer.Character, "HumanoidRootPart");
+                Hrp.Anchored = true
+            end))
             RunService.BindToRenderStep(RunService, "Freecam", Enum.RenderPriority.Camera.Value, UpdateFreecam);
             CEnv.Enabled = true
         end
