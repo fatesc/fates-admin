@@ -1051,7 +1051,7 @@ AddCommand("view", {"v"}, "views a user", {3,"1"}, function(Caller, Args, CEnv)
     end), CEnv);
     AddConnection(CConnect(LocalPlayer.CharcterAdded, function()
         CWait(Heartbeat);
-        Camera.CameraSubject = LocalPlayer.Character
+        Camera.CameraSubject = Target.Character
     end))
     return "viewing " .. Target.Name
 end)
