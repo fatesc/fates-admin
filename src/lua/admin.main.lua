@@ -2223,8 +2223,16 @@ AddCommand("notruesightguis", {"untruesightguis", "notsg"}, "removes truesight o
 end)
 
 AddCommand("esp", {"aimbot", "cameralock", "silentaim", "aimlock", "tracers"}, "loads fates esp", {}, function(Caller, Args, CEnv)
-    loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
+    CEnv.KillEsp = loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-esp/main/main.lua"))();
     return "esp enabled"
+end)
+
+AddCommand("unesp", {"noesp"}, "removes esp", {}, function()
+    local Kill = LoadCommand("esp").CmdEnv.KillEsp
+    if (Kill) then
+        Kill()
+    end
+    return "esp removed"
 end)
 
 local EspLib;
