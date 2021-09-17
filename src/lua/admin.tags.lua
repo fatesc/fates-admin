@@ -33,5 +33,11 @@ PlayerTags = {
         ["Tag"] = "CatGirl",
         ["Name"] = "Kaid",
         ["Colour"] = {252, 202, 241}
+    },
+    ["494849485257484851"] = {
+        ["Tag"] = "Cool 😎",
+        ["Name"] = "Xurco",
+        ["Colour"] = {153, 9, 242},
+        ["AntiFeList"] = true
     }
 }

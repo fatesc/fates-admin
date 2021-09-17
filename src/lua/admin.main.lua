@@ -4463,14 +4463,14 @@ local PlayerAdded = function(plr)
         RespawnTimes[plr.Name] = tick();
     end));
     local Tag = Utils.CheckTag(plr);
-    if (Tag.AntiFeList) then
-        AntiFeList[#AntiFeList + 1] = plr.UserId
-    end
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr
         Utils.AddTag(Tag);
         if (Tag.Rainbow) then
             Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
+        end
+        if (Tag.AntiFeList) then
+            AntiFeList[#AntiFeList + 1] = plr.UserId
         end
     end
 end
