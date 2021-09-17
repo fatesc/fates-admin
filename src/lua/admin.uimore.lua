@@ -331,6 +331,9 @@ do
     local Connection, Frame2;
     local Predict;
     ToggleChatPrediction = function()
+        if (not Frame2) then
+            return
+        end
         if (not Enabled) then
             local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
             local RobloxChatBarFrame;

@@ -1,5 +1,5 @@
 --[[
-	fates admin - 12/9/2021
+	fates admin - 17/9/2021
 ]]
 
 local game = game
@@ -1034,7 +1034,7 @@ GetPlayer = function(str, noerror)
     str = lower(trim(str));
     if (Sfind(str, ",")) then
         return flatMap(split(str, ","), function(i, v)
-            return GetPlayer(v);
+            return GetPlayer(v, noerror);
         end)
     end
 
@@ -1050,7 +1050,7 @@ GetPlayer = function(str, noerror)
         end,
         ["others"] = function()
             return filter(CurrentPlayers, function(i, v)
-                return v ~= LocalPlayer
+                return v ~= LocalPlayerw
             end)
         end,
         ["nearest"] = function()
@@ -1109,7 +1109,7 @@ GetPlayer = function(str, noerror)
         return (sub(lower(v.Name), 1, #str) == str) or (sub(lower(v.DisplayName), 1, #str) == str);
     end)
     if (not next(Players) and not noerror) then
-        getgenv().F_A.Utils.Notify(LocalPlayer, "Fail", format("Couldn't find player %s", str));
+        Utils.Notify(LocalPlayer, "Fail", format("Couldn't find player %s", str));
     end
     return Players
 end
@@ -3214,12 +3214,14 @@ end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, CEnv)
     local Option = Args[1]
+    local Players = Services.Players
+
     local ShowName = function(v)
         if (v.Name ~= v.DisplayName) then
             if (v.Character) then
                 v.Character.Humanoid.DisplayName = v.Name
             end
-            local Connection = CConnect(CharacterAdded, function()
+            local Connection = CConnect(v.CharacterAdded, function()
                 WaitForChild(v.Character, "Humanoid").DisplayName = v.Name
             end)
             CEnv[v.Name] = {v.DisplayName, Connection}
@@ -3228,7 +3230,7 @@ AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on"
     end
     if (lower(Option) == "off") then
         for i, v in next, GetPlayers(Players) do
-            ShowName(v)
+            ShowName(v);
         end
         AddConnection(CConnect(Players.PlayerAdded, ShowName));
         return "people with a displayname displaynames will be shown"
@@ -3537,6 +3539,7 @@ end)
 
 AddCommand("streamermode", {}, "changes names of everyone to something random", {}, function(Caller, Args, CEnv)
     local Rand = function(len) return gsub(sub(GenerateGUID(Services.HttpService), 2, len), "-", "") end
+    local Players = Services.Players
     local Hide = function(a, v)
         if (v and IsA(v, "TextLabel") or IsA(v, "TextButton")) then
             local Player = GetPlayer(v.Text, true);
@@ -4253,8 +4256,8 @@ AddCommand("unspin", {}, "unspins your character", {}, function(Caller, Args)
     local Spinning = LoadCommand("spin").CmdEnv
     for i, v in next, Spinning do
         Destroy(v);
-        Spinning[1] = nil
     end
+    LoadCommand("spin").CmdEnv = {}
     return "stopped spinning"
 end)
 
@@ -4365,6 +4368,7 @@ AddCommand("revertnolights", {"lights"}, "reverts nolights", {}, function()
 end)
 
 AddCommand("fullbright", {"fb"}, "turns on fullbright", {}, function(Caller, Args, CEnv)
+    local Lighting = Services.Lighting
     for i, v in next, GetDescendants(game) do
         if (IsA(v, "PointLight") or IsA(v, "SurfaceLight") or IsA(v, "SpotLight")) then
             CEnv[v] = v.Range
@@ -4380,6 +4384,7 @@ AddCommand("fullbright", {"fb"}, "turns on fullbright", {}, function(Caller, Arg
 end)
 
 AddCommand("nofullbright", {"revertlights", "unfullbright", "nofb"}, "reverts fullbright", {}, function()
+    local Lighting = Services.Lighting
     local Lights = LoadCommand("fullbright").CmdEnv
     for i, v in next, Lights do
         i.Range = v
@@ -4574,8 +4579,8 @@ AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv
                 Root.CFrame = Root.CFrame * CFrameNew(0, 1.5, 0);
             end
         end), CEnv)
+        return "now floating"
     end
-    return "now floating"
 end)
 
 AddCommand("unfloat", {"nofloat"}, "stops float", {}, function(Caller, Args, CEnv)
@@ -4583,6 +4588,7 @@ AddCommand("unfloat", {"nofloat"}, "stops float", {}, function(Caller, Args, CEn
     if (Floating[1]) then
         Disconnect(Floating[1]);
         Destroy(Floating[2]);
+        LoadCommand("float").CmdEnv = {}
         return "stopped floating"
     end
     return "floating not on"
@@ -5037,12 +5043,15 @@ end)
 
 local ToggleChatPrediction
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    ToggleChatPrediction();
-    local ChatBar = WaitForChild(Frame2, "ChatBar", .1);
-    ChatBar.CaptureFocus(ChatBar);
-    wait();
-    ChatBar.Text = Prefix
-    return "chat prediction enabled"
+    if (Frame2) then
+        ToggleChatPrediction();
+        local ChatBar = WaitForChild(Frame2, "ChatBar", .1);
+        ChatBar.CaptureFocus(ChatBar);
+        wait();
+        ChatBar.Text = Prefix
+        return "chat prediction enabled"
+    end
+    return "couldn't find chatbar"
 end)
 
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, CEnv)
@@ -5129,15 +5138,12 @@ AddCommand("copyname", {"copyusername"}, "copies a users name to your clipboard"
 end)
 
 AddCommand("copyid", {"copyuserid", "copyuid"}, "copies someones userid to your clipboard", {"1"}, function(Caller, Args)
-    local Target = GetPlayer(Args[1])[1]
-    if (setclipboard) then
+    local Target = GetPlayer(Args[1])
+    if (setclipboard and Target[1]) then
         setclipboard(Target.UserId);
-    else
-        Frame2.Chatbar.CaptureFocus(Frame2.Chatbar);
-        wait();
-        Frame2.Chatbar.Text = Target.UserId
+        return format("copied %s' userid", Target.Name);
     end
-    return format("copied %s' userid", Target.Name);
+    return "exploit doesn't have copy clipboard support"
 end)
 
 AddCommand("switchteam", {"team"}, "switches your team", {}, function(Caller, Args)
@@ -5442,7 +5448,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
             AddConnection(CConnect(LocalPlayer.CharacterAdded, function()
                 local Hrp = WaitForChild(LocalPlayer.Character, "HumanoidRootPart");
                 Hrp.Anchored = true
-            end))
+            end), CEnv.Connections);
             RunService.BindToRenderStep(RunService, "Freecam", Enum.RenderPriority.Camera.Value, UpdateFreecam);
             CEnv.Enabled = true
         end
@@ -6274,6 +6280,9 @@ do
     local Connection, Frame2;
     local Predict;
     ToggleChatPrediction = function()
+        if (not Frame2) then
+            return
+        end
         if (not Enabled) then
             local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
             local RobloxChatBarFrame;
