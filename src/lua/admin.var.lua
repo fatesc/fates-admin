@@ -63,8 +63,6 @@ local JSONEncode, JSONDecode, GenerateGUID =
 
 local Camera = Services.Workspace.CurrentCamera
 
-local next = next
-
 local table = table
 local Tfind, sort, concat, pack, unpack = 
     table.find, 
@@ -103,8 +101,6 @@ do
         math.rad
 end
 
-local tostring, tonumber = tostring, tonumber
-
 local InstanceNew = Instance.new
 local CFrameNew = CFrame.new
 local Vector3New = Vector3.new
@@ -133,7 +129,6 @@ local ChangeState = __H.ChangeState
 local SetStateEnabled = __H.SetStateEnabled
 local GetState = __H.GetState
 local GetAccessories = __H.GetAccessories
-local MoveTo = __H.MoveTo
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui

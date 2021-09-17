@@ -578,6 +578,8 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
+local AntiFeList = {}
+
 local KillCam;
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -606,6 +608,9 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
+            if (Tfind(AntiFeList, v.UserId)) then
+                continue
+            end
             TChar = GetCharacter(v);
             if (TChar) then
                 if (isSat(v)) then
@@ -671,6 +676,9 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
+            if (Tfind(AntiFeList, v.UserId)) then
+                continue
+            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
@@ -730,6 +738,9 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         end
         for i = 1, #Target do
             local v = Target[i]
+            if (Tfind(AntiFeList, v.UserId)) then
+                continue
+            end
             local TargetRoot = GetRoot(v)
             local Children = GetChildren(LocalPlayer.Backpack);
             for i2 = 1, #Children do
@@ -788,6 +799,9 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
+            if (Tfind(AntiFeList, v.UserId)) then
+                continue
+            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     if (#Target == 1) then
@@ -855,6 +869,9 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Destroy_;
     CThread(function()
         for i, v in next, Target do
+            if (Tfind(AntiFeList, v.UserId)) then
+                continue
+            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
@@ -922,6 +939,9 @@ AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
+        if (Tfind(AntiFeList, v.UserId)) then
+            continue
+        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -991,6 +1011,9 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
+        if (Tfind(AntiFeList, v.UserId)) then
+            continue
+        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -2303,7 +2326,8 @@ end)
 
 AddCommand("walkto", {}, "walks to a player", {"1", 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1])[1];
-    MoveTo(GetHumanoid(), GetRoot(Target).Position);
+    local Humanoid = GetHumanoid();
+    Humanoid.MoveTo(Humanoid, GetRoot(Target).Position);
     return "walking to " .. Target.Name
 end)
 
@@ -2312,7 +2336,8 @@ AddCommand("follow", {}, "follows a player", {"1", 3}, function(Caller, Args, CE
     CEnv[Target.Name] = true
     CThread(function()
         repeat
-            MoveTo(GetHumanoid(), GetRoot(Target).Position);
+            local Humanoid = GetHumanoid();
+            Humanoid.MoveTo(Humanoid, GetRoot(Target).Position);
             wait(.2);
         until not LoadCommand("follow").CmdEnv[Target.Name]
     end)()
@@ -4438,10 +4463,15 @@ local PlayerAdded = function(plr)
         RespawnTimes[plr.Name] = tick();
     end));
     local Tag = Utils.CheckTag(plr);
+    if (Tag.AntiFeList) then
+        AntiFeList[#AntiFeList + 1] = plr.UserId
+    end
     if (Tag and plr ~= LocalPlayer) then
         Tag.Player = plr
-        Utils.Notify(LocalPlayer, "Admin", format("%s (%s) has joined", Tag.Name, Tag.Tag));
         Utils.AddTag(Tag);
+        if (Tag.Rainbow) then
+            Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
+        end
     end
 end
 

@@ -28,5 +28,10 @@ PlayerTags = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
         ["Rainbow"] = true
+    },
+    ["5557545653575750"] = {
+        ["Tag"] = "CatGirl",
+        ["Name"] = "Kaid",
+        ["Colour"] = {252, 202, 241}
     }
 }
