@@ -941,7 +941,7 @@ local PluginSettings = {
     DisabledPlugins = {
         ["PluginName"] = true
     },
-    SafePlugins = true
+    SafePlugins = false
 }
 
 local WriteConfig = function(Destroy)
@@ -972,10 +972,6 @@ end
 local GetPluginConfig = function()
     if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfile("fates-admin/plugins/plugin-conf.json")) then
         local JSON = JSONDecode(Services.HttpService, readfile("fates-admin/plugins/plugin-conf.json"));
-        if (JSON.SafePlugins == nil) then
-            WriteConfig();
-            JSON.SafePlugins = true
-        end
         return JSON
     else
         WriteConfig();
@@ -6879,7 +6875,11 @@ PluginLibrary = {
     AddConnection = AddConnection,
     filter = filter,
     map = map,
-    clone = clone
+    clone = clone,
+    firetouchinterest = firetouchinterest,
+    fireproximityprompt = fireproximityprompt,
+    hookfunction = hookfunction,
+    decompile = decompile
 }
 
 do
@@ -6893,11 +6893,29 @@ do
     end) or {}
 
     local Renv = clone(getrenv(), true);
-    for i, v in next, PluginLibrary do
-        Renv[i] = v
+    for i, v in next, Renv do
+        PluginLibrary[i] = v
     end
-    Renv.debug = nil
+    PluginLibrary.debug = nil
 
+    if (PluginConf.SafePlugins) then
+        local Funcs = {}
+        for i, v in next, PluginLibrary do
+            if (type(v) == 'function') then
+                Funcs[#Funcs + 1] = v
+            end
+        end
+        local FateEnv = getfenv(1);
+        local OldGetfenv;
+        OldGetfenv = hookfunction(PluginLibrary.getfenv, newcclosure(function(...)
+            local f = ({...})[1]
+            local Env = OldGetfenv(...);
+            if (type(f) == 'function' and Tfind(Funcs, f) or Env == FateEnv and checkcaller()) then
+                return PluginLibrary
+            end
+            return Env
+        end))
+    end
 
     if (PluginConf.PluginsEnabled) then
         local LoadPlugin = function(Plugin)
@@ -6920,7 +6938,7 @@ do
             local sett, gett = setthreadidentity, getthreadidentity
             if (sett and PluginConf.SafePlugins) then
                 Context = gett();
-                sett(2);
+                sett(5);
             end
             local Ran, Return = pcall(Plugin.Init);
             if (sett and Context) then
@@ -6963,7 +6981,7 @@ do
         for i, Plugin in next, Plugins do
             local PluginFunc = Plugin[2]
             if (PluginConf.SafePlugins) then
-                setfenv(PluginFunc, Renv);
+                setfenv(PluginFunc, PluginLibrary);
             else
                 local CurrentEnv = getfenv(PluginFunc);
                 for i2, v2 in next, PluginLibrary do
@@ -6994,7 +7012,7 @@ do
             
             for i, Plugin in next, Plugins do
                 local PluginFunc = Plugin[2]
-                setfenv(PluginFunc, Renv);
+                setfenv(PluginFunc, PluginLibrary);
                 local Success, Ret = pcall(PluginFunc);
                 if (Success) then
                     LoadPlugin(Ret);

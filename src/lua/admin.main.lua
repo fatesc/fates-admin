@@ -74,7 +74,7 @@ local PluginSettings = {
     DisabledPlugins = {
         ["PluginName"] = true
     },
-    SafePlugins = true
+    SafePlugins = false
 }
 
 local WriteConfig = function(Destroy)
@@ -105,10 +105,6 @@ end
 local GetPluginConfig = function()
     if (isfolder("fates-admin") and isfolder("fates-admin/plugins") and isfile("fates-admin/plugins/plugin-conf.json")) then
         local JSON = JSONDecode(Services.HttpService, readfile("fates-admin/plugins/plugin-conf.json"));
-        if (JSON.SafePlugins == nil) then
-            WriteConfig();
-            JSON.SafePlugins = true
-        end
         return JSON
     else
         WriteConfig();
