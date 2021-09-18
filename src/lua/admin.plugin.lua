@@ -10,6 +10,10 @@ PluginLibrary = {
     SpoofInstance = SpoofInstance,
     SpoofProperty = SpoofProperty,
     UnSpoofInstance = UnSpoofInstance,
+    ReplaceCharacter = ReplaceCharacter,
+    ReplaceHumanoid = ReplaceHumanoid,
+    GetCorrectToolWithHandle = GetCorrectToolWithHandle,
+    DisableAnimate = DisableAnimate,
     GetPlayer = GetPlayer,
     GetHumanoid = GetHumanoid,
     GetRoot = GetRoot,
@@ -33,8 +37,10 @@ PluginLibrary = {
     clone = clone,
     firetouchinterest = firetouchinterest,
     fireproximityprompt = fireproximityprompt,
-    hookfunction = hookfunction,
-    decompile = decompile
+    decompile = decompile,
+    getnilinstances = getnilinstances,
+    getinstances = getinstances,
+    Drawing = Drawing
 }
 
 do
