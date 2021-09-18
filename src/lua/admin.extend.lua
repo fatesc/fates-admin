@@ -159,7 +159,7 @@ do
                 end
             end
             SpoofedProperties[Instance_] = {{
-                SpoofedProperty = Cloned and Cloned or Instance_,
+                SpoofedProperty = Cloned and Cloned or {[Property]=Instance_[Property]},
                 Property = Property,
             }}
         end
