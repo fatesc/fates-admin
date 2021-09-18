@@ -246,7 +246,8 @@ AddConnection(CConnect(HttpLogs.Save.MouseButton1Click, function()
     if (not isfolder("fates-admin/httplogs")) then
         makefolder("fates-admin/httplogs");
     end
-    writefile(format("HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")), Logs);
+    writefile(format("fates-admin/httplogs/HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")) .. ".txt", gsub(Logs, "%b<>", ""));
+    Utils.Notify(LocalPlayer, "Saved", "Http logs saved!");
 end), Connections.UI, true);
 
 -- auto correct

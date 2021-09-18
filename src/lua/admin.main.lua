@@ -2637,10 +2637,10 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
         ScrollBarImageTransparency = 0
     })
 
-    local AddLog = function(reqType, url, body)
+    local AddLog = function(reqType, url, Req)
         if (getgenv().F_A and UI) then
             local Clone = Clone(ChatLogMessage);
-            Clone.Text = format("%s\nUrl: %s%s\n", Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, body and ", Body: " .. Utils.TextFont(body, {255, 255, 0}) or "");
+            Clone.Text = format("%s\nUrl: %s%s\n", Utils.TextFont(reqType .. " Detected (time: " .. tostring(os.date("%X")) ..")", {255, 165, 0}), url, Req and ", RequestPayLoad: " .. Utils.TextFont(Req, {255, 255, 0}) or "");
             Clone.RichText = true
             Clone.Visible = true
             Clone.TextTransparency = 1
