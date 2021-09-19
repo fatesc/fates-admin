@@ -121,7 +121,7 @@ do
                 end
                 local Clone = Clone(Command);
                 Utils.Hover(Clone, "BackgroundColor3");
-                Utils.ToolTip(Clone, command.Name .. "\n" .. command.Description .. " - " .. Plugin.Author);
+                Utils.ToolTip(Clone, format("%s\n%s - %s", command.Name, command.Description, Plugin.Author));
                 Clone.CommandText.RichText = true
                 Clone.CommandText.Text = format("%s %s %s", command.Name, next(command.Aliases or {}) and format("(%s)", concat(command.Aliases, ", ")) or "", Utils.TextFont("[PLUGIN]", {77, 255, 255}));
                 Clone.Name = command.Name
