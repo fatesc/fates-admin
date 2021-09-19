@@ -6903,6 +6903,7 @@ do
         PluginLibrary[i] = v
     end
     PluginLibrary.debug = nil
+    PluginLibrary.getfenv = nil
 
     if (PluginConf.SafePlugins) then
         local Funcs = {}
@@ -6912,15 +6913,14 @@ do
             end
         end
         local FateEnv = getfenv(1);
-        local OldGetfenv;
-        OldGetfenv = hookfunction(PluginLibrary.getfenv, newcclosure(function(...)
+        PluginLibrary.getfenv = newcclosure(function(...)
             local f = ({...})[1]
-            local Env = OldGetfenv(...);
+            local Env = getfenv(...);
             if (type(f) == 'function' and Tfind(Funcs, f) or Env == FateEnv and checkcaller()) then
                 return PluginLibrary
             end
             return Env
-        end))
+        end)
     end
 
     if (PluginConf.PluginsEnabled) then
