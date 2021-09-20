@@ -106,3 +106,5 @@ dist
 .tern-port
 
 output.lua
+ProtectInstance.lua
+.gitignore

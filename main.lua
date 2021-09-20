@@ -1,5 +1,5 @@
 --[[
-	fates admin - 19/9/2021
+	fates admin - 20/9/2021
 ]]
 
 local game = game
@@ -7378,6 +7378,7 @@ getgenv().F_A = {
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
+Utils.Notify(LocalPlayer, "Discord", "join the discord for updates! discord.gg/5epGRYR", 7);
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
