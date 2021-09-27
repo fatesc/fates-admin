@@ -428,7 +428,7 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
         end
     end
     return Hooks.OldGetFocusedTextBox(...);
-end, Services.UserInputService.GetFocusedTextBox));
+end));
 
 Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     local Player, Message = ...
@@ -447,7 +447,7 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
         return
     end
     return Hooks.OldKick(...);
-end, LocalPlayer.Kick))
+end))
 
 Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.TeleportToPlaceInstance, newcclosure(function(...)
     local Player, PlaceId = ...
