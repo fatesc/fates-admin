@@ -2220,9 +2220,23 @@ end)
 
 AddCommand("grippos", {}, "changes grippos of your tool", {"3"}, function(Caller, Args, CEnv)
     local Tool = FindFirstChildWhichIsA(GetCharacter(), "Tool") or FindFirstChildWhichIsA(LocalPlayer.Backpack, "Tool");
-    SpoofProperty(Tool, "GripPos");
-    Tool.GripPos = Vector3New(tonumber(Args[1]), tonumber(Args[2]), tonumber(Args[3]));
-    Tool.Parent = GetCharacter();
+    if (Tool) then
+        local GripPos = Vector3New(tonumber(Args[1]), tonumber(Args[2]), tonumber(Args[3]));
+        if (Args[4]) then
+            for i, v in next, tbl_concat(GetChildren(LocalPlayer.Backpack), GetChildren(LocalPlayer.Character)) do
+                if (IsA(v, "Tool")) then
+                    SpoofProperty(Tool, "GripPos");
+                    Tool.GripPos = GripPos
+                end
+            end
+        end
+        SpoofProperty(Tool, "GripPos");
+        Tool.GripPos = GripPos
+        Tool.Parent = GetCharacter();
+        return "grippos set"
+    else
+        return "no tool to set grippos"
+    end
     return "grippos set"
 end)
 
@@ -2731,7 +2745,11 @@ AddCommand("goto", {"to"}, "teleports yourself to the other character", {3, "1"}
         if (Delay) then
             wait(Delay);
         end
-        GetRoot().CFrame = GetRoot(v).CFrame * CFrameNew(-5, 0, 0);
+        if (Caller ~= LocalPlayer) then
+            ExecuteCommand("bring", {Caller.Name, v.Name}, LocalPlayer)
+        else
+            GetRoot().CFrame = GetRoot(v).CFrame * CFrameNew(-5, 0, 0);
+        end
     end
 end)
 
@@ -3957,6 +3975,17 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
     end
 end)
 
+AddCommand("freecamgoto", {"fcgoto"}, "takes your freecam to t hem", {"1"}, function(Caller, Args)
+    local Target = GetPlayer(Args[1]);
+    local Delay = tonumber(Args[2]);
+    for i, v in next, Target do
+        if (Delay) then
+            wait(Delay);
+        end
+        Camera.CFrame = GetRoot(v).CFrame * CFrameNew(0, 10, 10);
+    end
+end)
+
 AddCommand("plastic", {"fpsboost"}, "changes everything to a plastic material", {}, function(Caller, Args, CEnv)
     local time = tick();
     local Plasticc = 0
@@ -4052,9 +4081,10 @@ AddCommand("unfriend", {"unfr"}, "unfriends a player that you're friends with", 
     return #Target == 1 and "unfriended " .. Target[1].Name or format("unfriended %d players", #Target);
 end)
 
-AddCommand("setzoomdistance", {"szd"}, "sets your cameras zoom distance so you can zoom out", {}, function(Caller, Args)
+AddCommand("setzoomdistance", {"szd", "maxzoom"}, "sets your cameras zoom distance so you can zoom out", {}, function(Caller, Args)
     local ZoomDistance = tonumber(Args[1]) or 1000
     LocalPlayer.CameraMaxZoomDistance = ZoomDistance
+    LocalPlayer.CameraMode = Enum.CameraMode.Classic
     return "set zoom distance to " .. ZoomDistance
 end)
 
