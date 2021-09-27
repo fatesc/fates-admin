@@ -2815,8 +2815,11 @@ AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}
         if (DupeAmount <= 1) then
             for i, v in next, GetChildren(Workspace) do
                 if (IsA(v, "Tool")) then
-                    firetouchinterest(v.Handle, RootPart, 0);
-                    firetouchinterest(v.Handle, RootPart, 1);
+                    local Handle = WaitForChild(v, "Handle", .5);
+                    if (Handle) then
+                        firetouchinterest(Handle, RootPart, 0);
+                        firetouchinterest(Handle, RootPart, 1);
+                    end
                 end
             end
             delfile("fates-admin/tooldupe.txt");
@@ -2824,7 +2827,7 @@ AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}
             loadstring(game.HttpGet(game, "https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua"))();
             RootPart.CFrame = OldPos
             repeat wait() RootPart.CFrame = OldPos until RootPart.CFrame == OldPos
-            getgenv().F_A.PluginLibrary.Execute("dp", {"1"}, LocalPlayer);
+            getgenv().F_A.PluginLibrary.ExecuteCommand("dp", {"1"}, LocalPlayer);
         else
             RootPart.CFrame = CFrame.new(0, 2e5, 0);
             wait(.3);
@@ -5823,13 +5826,29 @@ AddCommand("loop", {"loopcommand"}, "loops a command", {"1"}, function(Caller, A
     local LoopSpeed = 3
     Args = shift(Args);
     CEnv.Looping = true
+    CEnv.LoopedCommands = CEnv.LoopedCommands or {}
+    CEnv.LoopedCommands[Command] = true
     CThread(function()
-        while (CEnv.Looping) do
+        while (CEnv.Looping and LoopedCommands[Command]) do
             ExecuteCommand(Command, Args, Caller);
             wait(Args[2] or 1);
         end
     end)();
     return format("now looping the %s command", Command);
+end)
+
+AddCommand("unloop", {"unloopcommand"}, "unloops a command", {}, function(Caller, Args)
+    local Looped = LoadCommand("loop").CmdEnv
+    if (Args[1]) then
+        if (Looped.LoopedCommands[Args[1]]) then
+            Looped.LoopedCommands[Args[1]] = nil
+            return format("unlooped command %s", Args[1]);
+        end
+        return "command isn't looped"
+    else
+        Looped.Looping = false
+        return "unlooped all commands looped"
+    end
 end)
 
 AddCommand("disablesit", {"neversit", "nosit"}, "disables you from being sat", {}, function(Caller, Args, CEnv)
