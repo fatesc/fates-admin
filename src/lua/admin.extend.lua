@@ -138,6 +138,7 @@ do
         end
     end
     
+    local ChangedSpoofedProperties = {}
     SpoofProperty = function(Instance_, Property, NoClone)
         if (SpoofedProperties[Instance_]) then
             local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
@@ -162,6 +163,7 @@ do
                 SpoofedProperty = Cloned and Cloned or {[Property]=Instance_[Property]},
                 Property = Property,
             }}
+            ChangedSpoofedProperties[Instance_] = {}
         end
     end
 
@@ -283,7 +285,6 @@ do
         if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
             SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
         end
-        local ProtectedInstance = Tfind(ProtectedInstances, Instance_);
         local SpoofedInstance = SpoofedInstances[Instance_]
         local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
@@ -297,7 +298,17 @@ do
         if (SpoofedPropertiesForInstance) then
             for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
                 if (SanitisedIndex == SpoofedProperty.Property) then
-                    return __Index(SpoofedProperty.SpoofedProperty, Index);
+                    local ClientChangedData = ChangedSpoofedProperties[Instance_][SanitisedIndex]
+                    local IndexedSpoofed = __Index(SpoofedProperty.SpoofedProperty, Index);
+                    local Indexed = __Index(Instance_, Index);
+                    if (not ClientChangedData and IndexedSpoofed ~= Indexed) then
+                        OldMetaMethods.__NewIndex(SpoofedProperty.SpoofedProperty, Index, Indexed);
+                        return __Index(SpoofedProperty.SpoofedProperty, Index);
+                    end
+                    if (ClientChangedData.Caller) then
+                        ChangedSpoofedProperties[Instance_][SanitisedIndex] = nil
+                    end
+                    return IndexedSpoofed
                 end
             end
         end
@@ -351,6 +362,13 @@ do
                 end
             end
             if (SpoofedInstance or SpoofedPropertiesForInstance) then
+                if (SpoofedPropertiesForInstance) then
+                    ChangedSpoofedProperties[Instance_][Index] = {
+                        Caller = true,
+                        BeforeValue = Instance_[Index],
+                        Value = Value
+                    }
+                end
                 local Connections = tbl_concat(
                     getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index)),
                     getconnections(Instance_.Changed)
@@ -386,7 +404,12 @@ do
         if (SpoofedPropertiesForInstance) then
             for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
                 if (SpoofedProperty.Property == SanitisedIndex and not Tfind(AllowedIndexes, SanitisedIndex)) then
-                    return __NewIndex(SpoofedProperty.SpoofedProperty, Index, __Index(SpoofedProperty.SpoofedProperty, Index));
+                    ChangedSpoofedProperties[Instance_][SanitisedIndex] = {
+                        Caller = false,
+                        BeforeValue = Instance_[Index],
+                        Value = Value
+                    }
+                    return __NewIndex(SpoofedProperty.SpoofedProperty, Index, Value);
                 end
             end
         end
