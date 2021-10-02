@@ -1,5 +1,5 @@
 --[[
-	fates admin - 27/9/2021
+	fates admin - 2/10/2021
 ]]
 
 local game = game
@@ -5853,15 +5853,14 @@ AddCommand("loop", {"loopcommand"}, "loops a command", {"1"}, function(Caller, A
     if (not LoadedCommand) then
         return format("command %s not found", Command);
     end
-    local LoopSpeed = 3
     Args = shift(Args);
     CEnv.Looping = true
     CEnv.LoopedCommands = CEnv.LoopedCommands or {}
     CEnv.LoopedCommands[Command] = true
     CThread(function()
-        while (CEnv.Looping and LoopedCommands[Command]) do
+        while (CEnv.Looping and CEnv.LoopedCommands[Command]) do
             ExecuteCommand(Command, Args, Caller);
-            wait(Args[2] or 1);
+            wait(tonumber(Args[#Args]) or 1);
         end
     end)();
     return format("now looping the %s command", Command);
