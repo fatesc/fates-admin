@@ -219,13 +219,14 @@ do
             return __Namecall(...);
         end
 
-        local Protected = Tfind(ProtectedInstances, self);
 
-        if (Protected) then
-            if (Tfind(Methods, Method)) then
+        if (Tfind(Methods, Method)) then
+            local ReturnedInstance = __Namecall(...);
+            if (Tfind(ProtectedInstances, ReturnedInstance)) then
                 return Method == "IsA" and false or nil
             end
         end
+        
 
         if (Method == "GetChildren" or Method == "GetDescendants") then
             return filter(__Namecall(...), function(i, v)
@@ -315,6 +316,9 @@ do
 
         if (Tfind(ProtectedInstances, __Index(...))) then
             return nil
+        end
+        if (Tfind(ProtectedInstances, Instance_) and SanitisedIndex == "ClassName") then
+            return "Part"
         end
 
         if (Hooks.NoJumpCooldown and SanitisedIndex == "Jump") then
@@ -440,6 +444,45 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
         end)
     end
     return Hooks.OldGetDescendants(...);
+end));
+
+Hooks.FindFirstChild = hookfunction(game.FindFirstChild, newcclosure(function(...)
+    if (not checkcaller()) then
+        local ReturnedInstance = Hooks.FindFirstChild(...);
+        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+            return nil
+        end
+    end
+    return Hooks.FindFirstChild(...);
+end));
+Hooks.FindFirstChildOfClass = hookfunction(game.FindFirstChildOfClass, newcclosure(function(...)
+    if (not checkcaller()) then
+        local ReturnedInstance = Hooks.FindFirstChildOfClass(...);
+        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+            return nil
+        end
+    end
+    return Hooks.FindFirstChildOfClass(...);
+end));
+Hooks.FindFirstChildWhichIsA = hookfunction(game.FindFirstChildWhichIsA, newcclosure(function(...)
+    if (not checkcaller()) then
+        local ReturnedInstance = Hooks.FindFirstChildWhichIsA(...);
+        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+            return nil
+        end
+    end
+    return Hooks.FindFirstChildWhichIsA(...);
+end));
+Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
+    if (not checkcaller()) then
+        local Args = {...}
+        local IsACheck = Args[1]
+        local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
+        if (ProtectedInstance and Args[2]) then
+            return false
+        end
+    end
+    return Hooks.IsA(...);
 end));
 
 local UndetectedCmdBar;
