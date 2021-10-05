@@ -3091,8 +3091,9 @@ AddCommand("noclip", {}, "noclips your character", {3}, function(Caller, Args, C
             end
         end
     end), CEnv);
-    local Noclipping2 = AddConnection(CConnect(GetRoot().Touched, function(Part)
-        if (Part.CanCollide) then
+    local Torso = isR6() and Char.Torso or Char.UpperTorso
+    local Noclipping2 = AddConnection(CConnect(Torso.Touched, function(Part)
+        if (Part and Part.CanCollide and not FindFirstChildWhichIsA(Part.Parent, "Humanoid")) then
             local OldTransparency = Part.Transparency
             Part.CanCollide = false
             Part.Transparency = Part.Transparency <= 0.5 and 0.6 or Part.Transparency
