@@ -665,7 +665,13 @@ do
 
         if (checkcaller()) then
             if (Index == "Parent") then
-                local ProtectedInstance = Tfind(ProtectedInstances, Instance_)
+                local ProtectedInstance;-- = Tfind(ProtectedInstances, Instance_);
+                for i = 1, #ProtectedInstances do
+                    local ProtectedInstance_ = ProtectedInstances[i]
+                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Instance_, ProtectedInstance_)) then
+                        ProtectedInstance = true
+                    end
+                end
                 if (ProtectedInstance) then
                     local Parents = GetAllParents(Value);
                     for i, v in next, getconnections(Parents[1].ChildAdded, true) do
@@ -700,7 +706,8 @@ do
                 end
                 local Connections = tbl_concat(
                     getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index)),
-                    getconnections(Instance_.Changed)
+                    getconnections(Instance_.Changed),
+                    getconnections(game.ItemChanged)
                 )
                 
                 if (not next(Connections)) then
