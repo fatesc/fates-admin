@@ -518,8 +518,18 @@ local Keys = {}
 do
     local UserInputService = Services.UserInputService
     local IsKeyDown = UserInputService.IsKeyDown
-    AddConnection(CConnect(UserInputService.InputBegan, function(Input, GameProccesed)
-        if (GameProccesed) then return end
+    local WindowFocused = true
+    AddConnection(CConnect(UserInputService.WindowFocusReleased, function()
+        WindowFocused = false
+    end));
+    AddConnection(CConnect(UserInputService.WindowFocused, function()
+        WindowFocused = true
+    end));
+    local GetFocusedTextBox = UserInputService.GetFocusedTextBox
+    AddConnection(CConnect(UserInputService.InputBegan, function(Input, GameProcessed)
+        Keys["GameProcessed"] = GameProcessed and WindowFocused and not (not GetFocusedTextBox(UserInputService));
+        Keys["LastEntered"] = Input.KeyCode
+        if (GameProcessed) then return end
         local KeyCode = split(tostring(Input.KeyCode), ".")[3]
         Keys[KeyCode] = true
         for i = 1, #Macros do
@@ -535,8 +545,8 @@ do
             end
         end
     end));
-    AddConnection(CConnect(UserInputService.InputEnded, function(Input, GameProccesed)
-        if (GameProccesed) then return end
+    AddConnection(CConnect(UserInputService.InputEnded, function(Input, GameProcessed)
+        if (GameProcessed) then return end
         local KeyCode = split(tostring(Input.KeyCode), ".")[3]
         if (Keys[KeyCode] or Keys[Input.KeyCode]) then
             Keys[KeyCode] = false
@@ -4406,6 +4416,19 @@ local PlrChat = function(i, plr)
         Connections.Players[plr.Name].Connections = {}
     end
     Connections.Players[plr.Name].ChatCon = CConnect(plr.Chatted, function(raw)
+        local Processed = Keys.GameProcessed
+        local Last = Keys.LastEntered
+        if (not Processed or Last ~= Enum.KeyCode.Return) then
+            local K;
+            local T = CThread(function()
+                K = CWait(Services.UserInputService.InputBegan);
+            end)();
+            wait();
+            if (K.KeyCode ~= Enum.KeyCode.Return) then
+                return    
+            end
+            T = nil
+        end
         local message = raw
 
         if (ChatLogsEnabled) then
