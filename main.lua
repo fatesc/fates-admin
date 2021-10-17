@@ -1,5 +1,5 @@
 --[[
-	fates admin - 16/10/2021
+	fates admin - 17/10/2021
 ]]
 
 local game = game
@@ -6056,18 +6056,20 @@ local PlrChat = function(i, plr)
         Connections.Players[plr.Name].Connections = {}
     end
     Connections.Players[plr.Name].ChatCon = CConnect(plr.Chatted, function(raw)
-        local Processed = Keys.GameProcessed
-        local Last = Keys.LastEntered
-        if (not Processed or Last ~= Enum.KeyCode.Return) then
-            local K;
-            local T = CThread(function()
-                K = CWait(Services.UserInputService.InputBegan);
-            end)();
-            wait();
-            if (K.KeyCode ~= Enum.KeyCode.Return) then
-                return    
+        if (plr == LocalPlayer) then
+            local Processed = Keys.GameProcessed
+            local Last = Keys.LastEntered
+            if (not Processed or Last ~= Enum.KeyCode.Return) then
+                local K;
+                local T = CThread(function()
+                    K = CWait(Services.UserInputService.InputBegan);
+                end)();
+                wait();
+                if (K.KeyCode ~= Enum.KeyCode.Return) then
+                    return    
+                end
+                T = nil
             end
-            T = nil
         end
         local message = raw
 
@@ -6100,6 +6102,8 @@ local PlrChat = function(i, plr)
 
         if (startsWith(raw, "/e")) then
             raw = sub(raw, 4);
+        elseif (startsWith(raw, "/w")) then
+            raw = shift(shift(split(message, " ")));
         elseif (startsWith(raw, Prefix)) then
             raw = sub(raw, #Prefix + 1);
         else
