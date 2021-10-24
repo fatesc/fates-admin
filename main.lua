@@ -1,5 +1,5 @@
 --[[
-	fates admin - 17/10/2021
+	fates admin - 24/10/2021
 ]]
 
 local game = game
@@ -509,14 +509,13 @@ do
             if (Hooks.AntiKick and Player == LocalPlayer) then
                 local Notify = Utils.Notify
                 local Context;
-                local sett, gett = setthreadidentity, getthreadidentity
-                if (sett) then
-                    Context = gett();
-                    sett(3);
+                if (setthreadidentity) then
+                    Context = getthreadidentity();
+                    setthreadidentity(3);
                 end
                 if (Notify and Context) then
                     Notify(nil, "Attempt to kick", format("attempt to kick %s", (Message and type(Message) == 'number' or type(Message) == 'number') and ": " .. Message or ""));
-                    sett(Context);
+                    setthreadidentity(Context);
                 end
                 return
             end
@@ -527,14 +526,13 @@ do
             if (Hooks.AntiTeleport and Player == LocalPlayer) then
                 local Notify = Utils.Notify
                 local Context;
-                local sett, gett = setthreadidentity, getthreadidentity
-                if (sett) then
-                    Context = gett();
-                    sett(3);
+                if (setthreadidentity) then
+                    Context = getthreadidentity();
+                    setthreadidentity(3);
                 end
                 if (Notify and Context) then
                     Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
-                    sett(Context);
+                    setthreadidentity(Context);
                 end
                 return
             end
@@ -665,7 +663,7 @@ do
 
         if (checkcaller()) then
             if (Index == "Parent") then
-                local ProtectedInstance;-- = Tfind(ProtectedInstances, Instance_);
+                local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
                     if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Instance_, ProtectedInstance_)) then
@@ -833,14 +831,13 @@ Hooks.OldKick = hookfunction(LocalPlayer.Kick, newcclosure(function(...)
     if (Hooks.AntiKick and Player == LocalPlayer) then
         local Notify = Utils.Notify
         local Context;
-        local sett, gett = setthreadidentity, getthreadidentity
-        if (sett) then
-            Context = gett();
-            sett(3);
+        if (setthreadidentity) then
+            Context = getthreadidentity();
+            setthreadidentity(3);
         end
         if (Notify and Context) then
             Notify(nil, "Attempt to kick", format("attempt to kick %s", (Message and type(Message) == 'number' or type(Message) == 'string') and ": " .. Message or ""));
-            sett(Context)
+            setthreadidentity(Context)
         end
         return
     end
@@ -852,14 +849,13 @@ Hooks.OldTeleportToPlaceInstance = hookfunction(Services.TeleportService.Telepor
     if (Hooks.AntiTeleport and Player == LocalPlayer) then
         local Notify = Utils.Notify
         local Context;
-        local sett, gett = setthreadidentity, getthreadidentity
-        if (sett) then
-            Context = gett();
-            sett(3);
+        if (setthreadidentity) then
+            Context = getthreadidentity();
+            setthreadidentity(3);
         end
         if (Notify and Context) then
             Notify(nil, "Attempt to teleport", format("attempt to teleport to place %s", PlaceId and PlaceId or ""));
-            sett(Context)
+            setthreadidentity(Context)
         end
         return
     end
@@ -870,14 +866,13 @@ Hooks.OldTeleport = hookfunction(Services.TeleportService.Teleport, newcclosure(
     if (Hooks.AntiTeleport and Player == LocalPlayer) then
         local Notify = Utils.Notify
         local Context;
-        local sett, gett = setthreadidentity, getthreadidentity
-        if (sett) then
-            Context = gett();
-            sett(3);
+        if (setthreadidentity) then
+            Context = getthreadidentity();
+            setthreadidentity(3);
         end
         if (Notify and Context) then
             Notify(nil, "Attempt to teleport", format("attempt to teleport to place \"%s\"", PlaceId and PlaceId or ""));
-            sett(Context);
+            setthreadidentity(Context);
         end
         return
     end
