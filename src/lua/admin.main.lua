@@ -560,7 +560,7 @@ AddCommand("commandcount", {"cc"}, "shows you how many commands there is in fate
     end)))
 end)
 
-AddCommand("walkspeed", {"ws"}, "changes your walkspeed to the second argument", {}, function(Caller, Args, CEnv)
+AddCommand("walkspeed", {"ws", "speed"}, "changes your walkspeed to the second argument", {}, function(Caller, Args, CEnv)
     local Humanoid = GetHumanoid();
     CEnv[1] = Humanoid.WalkSpeed
     SpoofProperty(Humanoid, "WalkSpeed");
@@ -572,6 +572,8 @@ AddCommand("jumppower", {"jp"}, "changes your jumpower to the second argument", 
     local Humanoid = GetHumanoid();
     CEnv[1] = Humanoid.JumpPower
     SpoofProperty(Humanoid, "JumpPower");
+    SpoofProperty(Humanoid, "UseJumpPower");
+    Humanoid.UseJumpPower = true
     Humanoid.JumpPower = tonumber(Args[1]) or 50
     return "your jumppower is now " .. Humanoid.JumpPower
 end)
