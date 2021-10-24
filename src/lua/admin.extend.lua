@@ -179,6 +179,15 @@ do
         local self = Args[1]
         local Method = getnamecallmethod() or "";
 
+        if (Method ~= "") then
+            local Success, Error = pcall(function()
+                return self[Method]
+            end)
+            if (Error) then
+                return __Namecall(...);
+            end
+        end
+
         if (Hooks.AntiKick and lower(Method) == "kick") then
             local Player, Message = self, Args[2]
             if (Hooks.AntiKick and Player == LocalPlayer) then
@@ -189,7 +198,7 @@ do
                     setthreadidentity(3);
                 end
                 if (Notify and Context) then
-                    Notify(nil, "Attempt to kick", format("attempt to kick %s", (Message and type(Message) == 'number' or type(Message) == 'number') and ": " .. Message or ""));
+                    Notify(nil, "Attempt to kick", format("attempt to kick %s", (Message and type(Message) == 'number' or type(Message) == 'string') and ": " .. Message or ""));
                     setthreadidentity(Context);
                 end
                 return
@@ -226,7 +235,7 @@ do
         end
         
 
-        if (Method == "GetChildren" or Method == "GetDescendants") then
+        if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
                 return not Tfind(ProtectedInstances, v);
             end)
