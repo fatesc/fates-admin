@@ -1,5 +1,5 @@
 --[[
-	fates admin - 24/10/2021
+	fates admin - 25/10/2021
 ]]
 
 local game = game
@@ -506,9 +506,9 @@ do
 
         if (Method ~= "") then
             local Success, Error = pcall(function()
-                return self[Method]
+                return self and self[Method]
             end)
-            if (Error) then
+            if (not Success) then
                 return __Namecall(...);
             end
         end
