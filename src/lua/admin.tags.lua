@@ -24,6 +24,11 @@ PlayerTags = {
         ["Name"] = "Owner",
         ["Rainbow"] = true
     },
+    ["49555054485248545349"] = {
+        ["Tag"] = "Developer",
+        ["Name"] = "dsf",
+        ["Rainbow"] = true
+    },
     ["495357485451505151"] = {
         ["Tag"] = "Contributor",
         ["Name"] = "Tes",
