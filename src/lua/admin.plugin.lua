@@ -1,4 +1,3 @@
-local IsSupportedExploit = isfile and isfolder and writefile and readfile
 PluginConf = IsSupportedExploit and GetPluginConfig();
 local Plugins;
 

@@ -1,5 +1,5 @@
 --[[
-	fates admin - 26/10/2021
+	fates admin - 27/10/2021
 ]]
 
 local game = game
@@ -1292,18 +1292,24 @@ local UIConfig = {
         }
     }
 }
+local IsSupportedExploit = isfile and isfolder and writefile and readfile
 
-if isfolder("fates-admin") and not isfile("fates-admin/UI.json") then 
+if IsSupportedExploit and isfolder("fates-admin") and not isfile("fates-admin/UI.json") then 
     local Data = JSONEncode(Services.HttpService, UIConfig);
     writefile("fates-admin/UI.json", Data);
-    writefile("fates-admin/UI-Backup.json", Data);
 end;
 
 do
-    local ok, res = pcall(JSONDecode, Services.HttpService, readfile("fates-admin/UI.json"));
+    if (IsSupportedExploit) then
+        local Success, Res = pcall(JSONDecode, Services.HttpService, readfile("fates-admin/UI.json"));
+        if (not Success or (Success and type(Res) == 'table' and not Res.Command)) then
+            local Data = JSONEncode(Services.HttpService, UIConfig);
+            writefile("fates-admin/UI.json", Data);
+            Res = UIConfig
+        end
+        UIConfig = Success and Res or UIConfig
+    end
     local Config = GetConfig();
-
-    UIConfig = ok and res or UIConfig;
     CommandBarPrefix = isfolder and (Config.CommandBarPrefix and Enum.KeyCode[Config.CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
 end
 
@@ -7131,7 +7137,6 @@ end))
 
 
 --IMPORT [plugin]
-local IsSupportedExploit = isfile and isfolder and writefile and readfile
 PluginConf = IsSupportedExploit and GetPluginConfig();
 local Plugins;
 
@@ -7666,7 +7671,6 @@ getgenv().F_A = {
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
-Utils.Notify(LocalPlayer, "Discord", "join the discord for updates! discord.gg/5epGRYR", 7);
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
