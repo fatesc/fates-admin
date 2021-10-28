@@ -1,5 +1,5 @@
 --[[
-	fates admin - 28/10/2021
+	fates admin - 27/10/2021
 ]]
 
 local game = game
@@ -9,9 +9,7 @@ if (not game.IsLoaded(game)) then
     Loaded.Wait(Loaded);
 end
 
-local _L = {}
-
-_L.start = start or tick();
+local start = start or tick();
 local Debug = true
 
 do
@@ -250,23 +248,6 @@ deepsearch = function(tbl, ret)
             end
             ret(i, v);
         end
-    end
-end
-
-local deepsearchset;
-deepsearchset = function(tbl, ret, value)
-    if (type(tbl) == 'table') then
-        local new = {}
-        for i, v in next, tbl do
-            new[i] = v
-            if (type(v) == 'table') then
-                new[i] = deepsearchset(v, ret, value);
-            end
-            if (ret(i, v)) then
-                new[i] = value(i, v);
-            end
-        end
-        return new
     end
 end
 
@@ -1105,10 +1086,10 @@ local Exceptions = Exceptions or {}
 local Connections = {
     Players = {}
 }
-_L.CLI = false
-_L.ChatLogsEnabled = true
-_L.GlobalChatLogsEnabled = false
-_L.HttpLogsEnabled = true
+local CLI = false
+local ChatLogsEnabled = true
+local GlobalChatLogsEnabled = false
+local HttpLogsEnabled = true
 
 local GetPlayer;
 GetPlayer = function(str, noerror)
@@ -1137,7 +1118,7 @@ GetPlayer = function(str, noerror)
         end,
         ["others"] = function()
             return filter(CurrentPlayers, function(i, v)
-                return v ~= LocalPlayer
+                return v ~= LocalPlayerw
             end)
         end,
         ["nearest"] = function()
@@ -1223,10 +1204,114 @@ ParentGui = function(Gui, Parent)
     Guis[#Guis + 1] = Gui
     return Gui
 end
-UI = Clone(Services.InsertService:LoadLocalAsset("rbxassetid://7855824528"));
+UI = Clone(game.GetObjects(game, "rbxassetid://6167929302")[1]);
 UI.Enabled = true
 
 local CommandBarPrefix;
+local UIConfig = {
+    CommandBar = {
+        Background = {
+            Color = {
+                R = 32,
+                G = 33,
+                B = 36
+            },
+            Transparency = 0.25
+        },
+        InputText = {
+            Color = {
+                R = 255,
+                G = 255,
+                B = 255
+            }
+        },
+        Arrow = {
+            Color = {
+                R = 255,
+                G = 255,
+                B = 255
+            }
+        }
+    },
+    CommandList = {
+        Background = {
+            Color = {
+                R = 32,
+                G = 33,
+                B = 36
+            },
+            Transparency = 0.25
+        },
+        Title = {
+            Text = "Search Commands",
+            Color = {
+                R = 184,
+                G = 187,
+                B = 195
+            }
+        }
+    },
+    Notification = {
+        Background = {
+            Color = {
+                R = 32,
+                G = 33,
+                B = 36
+            },
+            Transparency = 0.25
+        },
+        Title = {
+            Text = "Notification",
+            Color = {
+                R = 220,
+                G = 224,
+                B = 234
+            }
+        },
+        Message = {
+            Color = {
+                R = 220,
+                G = 224,
+                B = 234
+            }
+        }
+    },
+    Command = {
+        Background = {
+            Color = {
+                R = 32,
+                G = 33,
+                B = 36
+            },
+            Transparency = 0.75
+        },
+        TextColor = {
+            R = 220,
+            G = 224,
+            B = 234
+        }
+    }
+}
+local IsSupportedExploit = isfile and isfolder and writefile and readfile
+
+if IsSupportedExploit and isfolder("fates-admin") and not isfile("fates-admin/UI.json") then 
+    local Data = JSONEncode(Services.HttpService, UIConfig);
+    writefile("fates-admin/UI.json", Data);
+end;
+
+do
+    if (IsSupportedExploit) then
+        local Success, Res = pcall(JSONDecode, Services.HttpService, readfile("fates-admin/UI.json"));
+        if (not Success or (Success and type(Res) == 'table' and not Res.Command)) then
+            local Data = JSONEncode(Services.HttpService, UIConfig);
+            writefile("fates-admin/UI.json", Data);
+            Res = UIConfig
+        end
+        UIConfig = Success and Res or UIConfig
+    end
+    local Config = GetConfig();
+    CommandBarPrefix = isfolder and (Config.CommandBarPrefix and Enum.KeyCode[Config.CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
+end
 
 local ConfigUI = UI.Config
 local ConfigElements = ConfigUI.GuiElements
@@ -1243,14 +1328,14 @@ local NotificationBar = UI.NotificationBar
 local Stats = Clone(UI.Notification);
 local StatsBar = Clone(UI.NotificationBar);
 
-CommandBarOpen = false
-CommandBarTransparencyClone = Clone(CommandBar);
-ChatLogsTransparencyClone = Clone(ChatLogs);
-GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
-HttpLogsTransparencyClone = Clone(HttpLogs);
-CommandsTransparencyClone = nil
-ConfigUIClone = Clone(ConfigUI);
-PredictionText = ""
+local CommandBarOpen = false
+local CommandBarTransparencyClone = Clone(CommandBar);
+local ChatLogsTransparencyClone = Clone(ChatLogs);
+local GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
+local HttpLogsTransparencyClone = Clone(HttpLogs);
+local CommandsTransparencyClone
+local ConfigUIClone = Clone(ConfigUI);
+local PredictionText = ""
 do
     local UIParent = CommandBar.Parent
     GlobalChatLogs.Parent = UIParent
@@ -1268,261 +1353,39 @@ CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
 ProtectInstance(CommandBar.Input, true);
 ProtectInstance(Commands.Search, true);
 
-local UITheme, Values;
+-- Loading theme
 do
-    local BaseBGColor = Color3.fromRGB(32, 33, 36);
-    local BaseTransparency = 0.25
-    local BaseTextColor = Color3.fromRGB(220, 224, 234);
-    local BaseValues = { BackgroundColor = BaseBGColor, Transparency = BaseTransparency, TextColor = BaseTextColor }
-    Values = { Background = clone(BaseValues), CommandBar = clone(BaseValues), CommandList = clone(BaseValues), Notification = clone(BaseValues), ChatLogs = clone(BaseValues), Config = clone(BaseValues) }
-    local Objects = keys(Values);
-    local GetBaseMT = function(Object)
-        return setmetatable({}, {
-            __newindex = function(self, Index, Value)
-                local type = typeof(Value);
-                if (Index == "BackgroundColor") then
-                    if (Value == "Reset") then
-                        Value = BaseBGColor
-                        type = "Color3"
-                    end
-                    assert(type == 'Color3', format("invalid argument #3 (Color3 expected, got %s)", type));
-                    if (Object == "Background") then
-                        CommandBar.BackgroundColor3 = Value
-                        Notification.BackgroundColor3 = Value
-                        Command.BackgroundColor3 = Value
-                        ChatLogs.BackgroundColor3 = Value
-                        ChatLogs.Frame.BackgroundColor3 = Value
-                        HttpLogs.BackgroundColor3 = Value
-                        HttpLogs.Frame.BackgroundColor3 = Value
-                        UI.ToolTip.BackgroundColor3 = Value
-                        ConfigUI.BackgroundColor3 = Value
-                        ConfigUI.Container.BackgroundColor3 = Value
-                        Commands.BackgroundColor3 = Value
-                        Commands.Frame.BackgroundColor3 = Value
-                        local Children = GetChildren(UI.NotificationBar);
-                        for i = 1, #Children do
-                            local Child = Children[i]
-                            if (IsA(Child, "GuiObject")) then
-                                Child.BackgroundColor3 = Value
-                            end
-                        end
-                        local Children = GetChildren(Commands.Frame.List);
-                        for i = 1, #Children do
-                            local Child = Children[i]
-                            if (IsA(Child, "GuiObject")) then
-                                Child.BackgroundColor3 = Value
-                            end
-                        end
-                        for i, v in next, Values do
-                            Values[i].BackgroundColor = Value
-                        end
-                    elseif (Object == "CommandBar") then
-                        CommandBar.BackgroundColor3 = Value
-                    elseif (Object == "Notification") then
-                        Notification.BackgroundColor3 = Value
-                        local Children = GetChildren(UI.NotificationBar);
-                        for i = 1, #Children do
-                            local Child = Children[i]
-                            if (IsA(Child, "GuiObject")) then
-                                Child.BackgroundColor3 = Value
-                            end
-                        end
-                    elseif (Object == "CommandList") then
-                        Commands.BackgroundColor3 = Value
-                        Commands.Frame.BackgroundColor3 = Value
-                    elseif (Object == "Command") then
-                        Command.BackgroundColor3 = Value
-                    elseif (Object == "ChatLogs") then
-                        ChatLogs.BackgroundColor3 = Value
-                        ChatLogs.Frame.BackgroundColor3 = Value
-                        HttpLogs.BackgroundColor3 = Value
-                        HttpLogs.Frame.BackgroundColor3 = Value
-                    elseif (Object == "Config") then
-                        ConfigUI.BackgroundColor3 = Value
-                        ConfigUI.Container.BackgroundColor3 = Value
-                    end
-                    Values[Object][Index] = Value
-                elseif (Index == "TextColor") then
-                    if (Value == "Reset") then
-                        Value = BaseTextColor
-                        type = "Color3"
-                    end
-                    assert(type == 'Color3', format("invalid argument #3 (Color3 expected, got %s)", type));
-                    if (Object == "Notification") then
-                        Notification.Title.TextColor3 = Value
-                        Notification.Message.TextColor3 = Value
-                        Notification.Close.TextColor3 = Value
-                    elseif (Object == "CommandBar") then
-                        CommandBar.Input.TextColor3 = Value
-                        CommandBar.Arrow.TextColor3 = Value
-                    elseif (Object == "CommandList") then
-                        Command.CommandText.TextColor3 = Value
-                        local Descendants = GetDescendants(Commands);
-                        for i = 1, #Descendants do
-                            local Descendant = Descendants[i]
-                            local IsText = IsA(Descendant, "TextBox") or IsA(Descendant, "TextLabel") or IsA(Descendant, "TextButton");
-                            if (IsText) then
-                                Descendant.TextColor3 = Value
-                            end
-                        end
-                    elseif (Object == "ChatLogs") then
-                        UI.Message.TextColor3 = Value
-                    elseif (Object == "Config") then
-                        local Descendants = GetDescendants(ConfigUI);
-                        for i = 1, #Descendants do
-                            local Descendant = Descendants[i]
-                            local IsText = IsA(Descendant, "TextBox") or IsA(Descendant, "TextLabel") or IsA(Descendant, "TextButton");
-                            if (IsText) then
-                                Descendant.TextColor3 = Value
-                            end
-                        end
-                    elseif (Object == "Background") then
-                        Notification.Title.TextColor3 = Value
-                        Notification.Message.TextColor3 = Value
-                        Notification.Close.TextColor3 = Value
-                        CommandBar.Input.TextColor3 = Value
-                        CommandBar.Arrow.TextColor3 = Value
-                        Command.CommandText.TextColor3 = Value
-                        UI.Message.TextColor3 = Value
-                        local Descendants = GetDescendants(ConfigUI);
-                        for i = 1, #Descendants do
-                            local Descendant = Descendants[i]
-                            local IsText = IsA(Descendant, "TextBox") or IsA(Descendant, "TextLabel") or IsA(Descendant, "TextButton");
-                            if (IsText) then
-                                Descendant.TextColor3 = Value
-                            end
-                        end
-                        local Descendants = GetDescendants(Commands);
-                        for i = 1, #Descendants do
-                            local Descendant = Descendants[i]
-                            local IsText = IsA(Descendant, "TextBox") or IsA(Descendant, "TextLabel") or IsA(Descendant, "TextButton");
-                            if (IsText) then
-                                Descendant.TextColor3 = Value
-                            end
-                        end
-                        for i, v in next, Values do
-                            Values[i].TextColor = Value
-                        end
-                    end
-                    Values[Object][Index] = Value
-                elseif (Index == "Transparency") then
-                    if (Value == "Reset") then
-                        Value = BaseTransparency
-                        type = "number"
-                    end
-                    assert(type == 'number', format("invalid argument #3 (Color3 expected, got %s)", type));
-                    if (Object == "Background") then
-                        CommandBar.Transparency = Value
-                        Notification.Transparency = Value
-                        Command.Transparency = Value
-                        ChatLogs.Transparency = Value
-                        ChatLogs.Frame.Transparency = Value
-                        HttpLogs.Transparency = Value
-                        HttpLogs.Frame.Transparency = Value
-                        UI.ToolTip.Transparency = Value
-                        ConfigUI.Transparency = Value
-                        ConfigUI.Container.Transparency = Value + .5
-                        Commands.Transparency = Value
-                        Commands.Frame.Transparency = Value
-                        Values[Object][Index] = Value
-                    elseif (Object == "Notification") then
-                        Notification.Transparency = Value
-                        local Children = GetChildren(UI.NotificationBar);
-                        for i = 1, #Children do
-                            local Child = Children[i]
-                            if (IsA(Child, "GuiObject")) then
-                                Child.Transparency = Value
-                            end
-                        end
-                    end
-                    Values[Object][Index] = Value
-                end
-            end,
-            __index = function(self, Index)
-                return Values[Object][Index]
-            end
-        })
-    end
-    UITheme = setmetatable({}, {
-        __index = function(self, Index)
-            if (Tfind(Objects, Index)) then
-                local BaseMt = GetBaseMT(Index);
-                self[Index] = BaseMt
-                return BaseMt
-            end
-        end
-    })
-end
+    local fromRGB = Color3.fromRGB;
+    local CloneCmdC = UIConfig.Command; 
+    local CommandBarC = UIConfig.CommandBar;
+    local CommandListC = UIConfig.CommandList;
+    local NotificationC = UIConfig.Notification;
 
-local IsSupportedExploit = isfile and isfolder and writefile and readfile
+    CommandBar.BackgroundColor3 = fromRGB(CommandBarC.Background.Color.R, CommandBarC.Background.Color.G, CommandBarC.Background.Color.B);
+    CommandBar.BackgroundTransparency = CommandBarC.Background.Transparency;
 
-local GetThemeConfig
-local WriteThemeConfig = function(Conf)
-    if (IsSupportedExploit and isfolder("fates-admin")) then
-        local ToHSV = Color3.new().ToHSV
-        local ValuesToEncode = deepsearchset(Values, function(i, v)
-            return typeof(v) == 'Color3'
-        end, function(i, v)
-            local H, S, V = ToHSV(v);
-            return {H, S, V, "Color3"}
-        end)
-        local Data = JSONEncode(Services.HttpService, ValuesToEncode);
-        writefile("fates-admin/Theme.json", Data);
-    end
-end
+    CommandBar.Input.TextColor3 = fromRGB(CommandBarC.InputText.Color.R, CommandBarC.InputText.Color.G, CommandBarC.InputText.Color.B);
+    CommandBar.Arrow.TextColor3 = fromRGB(CommandBarC.Arrow.Color.R, CommandBarC.Arrow.Color.G, CommandBarC.Arrow.Color.B);
 
-GetThemeConfig = function()
-    if (IsSupportedExploit and isfolder("fates-admin")) then
-        if (isfile("fates-admin/Theme.json")) then
-            local Success, Data = pcall(JSONDecode, Services.HttpService, readfile("fates-admin/Theme.json"));
-            if (not Success or type(Data) ~= 'table') then
-                WriteThemeConfig();
-                return Values
-            end
-            local DecodedData = deepsearchset(Data, function(i, v)
-                return type(v) == 'table' and #v == 4 and v[4] == "Color3"
-            end, function(i,v)
-                return Color3.fromHSV(v[1], v[2], v[3]);
-            end)
-            return DecodedData            
-        else
-            WriteThemeConfig();
-        end
-    else
-        return Values
-    end
-end
+    Commands.BackgroundColor3 = fromRGB(CommandListC.Background.Color.R, CommandListC.Background.Color.G, CommandListC.Background.Color.B);
+    Commands.BackgroundTransparency = CommandListC.Background.Transparency;
 
-local LoadTheme;
-do
-    local Config = GetConfig();
-    CommandBarPrefix = isfolder and (Config.CommandBarPrefix and Enum.KeyCode[Config.CommandBarPrefix] or Enum.KeyCode.Semicolon) or Enum.KeyCode.Semicolon
+    Commands.Search.PlaceholderColor3 = fromRGB(CommandListC.Title.Color.R, CommandListC.Title.Color.G, CommandListC.Title.Color.B);
+    Commands.Search.PlaceholderText = CommandListC.Title.Text;
 
-    local Theme = GetThemeConfig();
-    LoadTheme = function(Theme)
-        UITheme.Background.BackgroundColor = Theme.Background.BackgroundColor
-        UITheme.Background.Transparency = Theme.Background.Transparency
+    Notification.BackgroundColor3 = fromRGB(NotificationC.Background.Color.R, NotificationC.Background.Color.G, NotificationC.Background.Color.B);
+    Notification.BackgroundTransparency = NotificationC.Background.Transparency;
 
-        UITheme.ChatLogs.BackgroundColor = Theme.ChatLogs.BackgroundColor
-        UITheme.CommandBar.BackgroundColor = Theme.CommandBar.BackgroundColor
-        UITheme.Config.BackgroundColor = Theme.Config.BackgroundColor
-        UITheme.Notification.BackgroundColor = Theme.Notification.BackgroundColor
-        UITheme.CommandList.BackgroundColor = Theme.Notification.BackgroundColor
-        
-        UITheme.ChatLogs.TextColor = Theme.ChatLogs.TextColor
-        UITheme.CommandBar.TextColor = Theme.CommandBar.TextColor
-        UITheme.Config.TextColor = Theme.Config.TextColor
-        UITheme.Notification.TextColor = Theme.Notification.TextColor
-        UITheme.CommandList.TextColor = Theme.Notification.TextColor
+    Notification.Title.TextColor3 = fromRGB(NotificationC.Title.Color.R, NotificationC.Title.Color.G, NotificationC.Title.Color.B);
+    Notification.Title.Text = NotificationC.Title.Text;
 
-        UITheme.ChatLogs.Transparency = Theme.ChatLogs.Transparency
-        UITheme.CommandBar.Transparency = Theme.CommandBar.Transparency
-        UITheme.Config.Transparency = Theme.Config.Transparency
-        UITheme.Notification.Transparency = Theme.Notification.Transparency
-        UITheme.CommandList.Transparency = Theme.Notification.Transparency
-    end
-    LoadTheme(Theme);
-end
+    Notification.Message.TextColor3 = fromRGB(NotificationC.Message.Color.R, NotificationC.Message.Color.G, NotificationC.Message.Color.B);
+
+    Command.CommandText.TextColor3 = fromRGB(CloneCmdC.TextColor.R, CloneCmdC.TextColor.G, CloneCmdC.TextColor.B);
+
+    Command.BackgroundColor3 = fromRGB(CloneCmdC.Background.Color.R, CloneCmdC.Background.Color.G, CloneCmdC.Background.Color.B);
+    Command.BackgroundTransparency = CloneCmdC.Background.Transparency;
+end;
 --END IMPORT [ui]
 
 
@@ -2180,114 +2043,6 @@ Utils.Thing = function(Object)
     
     return Object
 end
-
-function Utils.Intro(Object)
-	local Frame = InstanceNew("Frame")
-	local UICorner = InstanceNew("UICorner")
-	local CornerRadius = FindFirstChild(Object, "UICorner") and Object.UICorner.CornerRadius or UDim.new(0, 0)
-
-	Frame.Name = "IntroFrame"
-	Frame.ZIndex = 1000
-	Frame.Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
-	Frame.AnchorPoint = Vector2.new(.5, .5)
-	Frame.Position = UDim2.new(Object.Position.X.Scale, Object.Position.X.Offset + (Object.AbsoluteSize.X / 2), Object.Position.Y.Scale, Object.Position.Y.Offset + (Object.AbsoluteSize.Y / 2))
-	Frame.BackgroundColor3 = Object.BackgroundColor3
-	Frame.BorderSizePixel = 0
-
-	UICorner.CornerRadius = CornerRadius
-	UICorner.Parent = Frame
-
-	Frame.Parent = Object.Parent
-
-	if (Object.Visible) then
-		Frame.BackgroundTransparency = 1
-
-		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
-			BackgroundTransparency = 0
-		})
-
-		Tween.Completed:Wait()
-		Object.Visible = false
-
-		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
-			Size = UDim2.fromOffset(0, 0)
-		})
-
-		Utils.Tween(UICorner, "Quad", "Out", .25, {
-			CornerRadius = UDim.new(1, 0)
-		})
-
-		Tween.Completed:Wait()
-		Frame:Destroy()
-	else
-		Frame.Visible = true
-		Frame.Size = UDim2.fromOffset(0, 0)
-		UICorner.CornerRadius = UDim.new(1, 0)
-
-		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
-			Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
-		})
-
-		Utils.Tween(UICorner, "Quad", "Out", .25, {
-			CornerRadius = CornerRadius
-		})
-
-		Tween.Completed:Wait()
-		Object.Visible = true
-
-		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
-			BackgroundTransparency = 1
-		})
-
-		Tween.Completed:Wait()
-		Frame:Destroy()
-	end
-end
-
-Utils.MakeGradient = function(ColorTable)
-	local Table = {}
-    local ColorSequenceKeypointNew = ColorSequenceKeypoint.new
-	for Time, Color in next, ColorTable do
-		Table[#Table + 1] = ColorSequenceKeypointNew(Time - 1, Color);
-	end
-	return ColorSequence.new(Table)
-end
-
-Utils.Debounce = function(Func)
-	local Debounce = false
-
-	return function(...)
-		if (not Debounce) then
-			Debounce = true
-			Func(...);
-			Debounce = false
-		end
-	end
-end
-
-Utils.ToggleFunction = function(Container, Enabled, Callback) -- fpr color picker
-    local Switch = Container.Switch
-    local Hitbox = Container.Hitbox
-    Container.BackgroundColor3 = Color3.fromRGB(255, 79, 87);
-
-    if not Enabled then
-        Switch.Position = UDim2.fromOffset(2, 2)
-        Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
-    end
-
-    AddConnection(CConnect(Hitbox.MouseButton1Click, function()
-        Enabled = not Enabled
-        
-        Utils.Tween(Switch, "Quad", "Out", .25, {
-            Position = Enabled and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
-        })
-        Utils.Tween(Container, "Quad", "Out", .25, {
-            BackgroundColor3 = Enabled and Color3.fromRGB(255, 79, 87) or Color3.fromRGB(25, 25, 25);
-        })
-        
-        Callback(Enabled)
-    end));
-end
 --END IMPORT [utils]
 
 
@@ -2509,7 +2264,7 @@ local CFrameTool = function(tool, pos)
     tool.Grip = Frame
 end
 
-_L.Sanitize = function(value)
+local Sanitize = function(value)
     if typeof(value) == 'CFrame' then
         local components = {components(value)}
         for i,v in pairs(components) do
@@ -2614,9 +2369,9 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
-_L.AntiFeList = {}
+local AntiFeList = {}
 
-_L.KillCam = {};
+local KillCam;
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local OldPos = GetRoot().CFrame
@@ -2644,7 +2399,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
+            if (Tfind(AntiFeList, v.UserId)) then
                 continue
             end
             TChar = GetCharacter(v);
@@ -2678,7 +2433,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         end
     end)()
     ChangeState(Humanoid, 15);
-    if (_L.KillCam and #Target == 1 and TChar) then
+    if (KillCam and #Target == 1 and TChar) then
         Camera.CameraSubject = TChar
     end
     wait(.3);
@@ -2712,7 +2467,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
+            if (Tfind(AntiFeList, v.UserId)) then
                 continue
             end
             if (GetCharacter(v)) then
@@ -2774,7 +2529,7 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         end
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
+            if (Tfind(AntiFeList, v.UserId)) then
                 continue
             end
             local TargetRoot = GetRoot(v)
@@ -2835,7 +2590,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
+            if (Tfind(AntiFeList, v.UserId)) then
                 continue
             end
             if (GetCharacter(v)) then
@@ -2905,7 +2660,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Destroy_;
     CThread(function()
         for i, v in next, Target do
-            if (Tfind(_L.AntiFeList, v.UserId)) then
+            if (Tfind(AntiFeList, v.UserId)) then
                 continue
             end
             if (GetCharacter(v)) then
@@ -2975,7 +2730,7 @@ AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
+        if (Tfind(AntiFeList, v.UserId)) then
             continue
         end
         if (GetCharacter(v)) then
@@ -3047,7 +2802,7 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
+        if (Tfind(AntiFeList, v.UserId)) then
             continue
         end
         if (GetCharacter(v)) then
@@ -4418,7 +4173,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    Services.CoreGui.RobloxPromptGui.Enabled = false
+    Services.CoreGui.PurchasePromptApp.Enabled = false
     return "You'll no longer recive sale prompts"
 end)
 
@@ -4593,7 +4348,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         ScrollBarImageTransparency = 0
     });
 
-    _L.GlobalChatLogsEnabled = true
+    GlobalChatLogsEnabled = true
     if (not Socket) then
         Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
 
@@ -4613,7 +4368,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         end
 
         CConnect(Socket.OnMessage, function(msg)
-            if (_L.GlobalChatLogsEnabled) then
+            if (GlobalChatLogsEnabled) then
                 local OP, DATA = unpack(JSONDecode(Services.HttpService, msg));
                 local Clone = Clone(GlobalChatLogMessage);
                 local CurrentTime = tostring(os.date("%X"));
@@ -4632,7 +4387,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         local MessageSender = require(LocalPlayer.PlayerScripts.ChatScript.ChatMain.MessageSender);
         local OldSendMessage = MessageSender.SendMessage
         MessageSender.SendMessage = function(self, Message, ...)
-            if (_L.GlobalChatLogsEnabled) then
+            if (GlobalChatLogsEnabled) then
                 local CurrentTime = tostring(os.date("%X"));
                 if (#Message > 30) then
                     MakeMessage(format("[%s] - [C-LOG]: Message is too long dsadsadasdasd.aas...", CurrentTime));
@@ -4715,25 +4470,21 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
         AddLog("HttpGet", url);
         return Httpget(self, url);
     end));
-    if (game.HttpGet ~= game.HttpGetAsync) then
-        local HttpgetAsync;
-        HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
-            AddLog("HttpGetAsync", url);
-            return HttpgetAsync(self, url);
-        end));
-    end
+    local HttpgetAsync;
+    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
+        AddLog("HttpGetAsync", url);
+        return HttpgetAsync(self, url);
+    end));
     local Httppost;
     Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
         AddLog("HttpPost", url);
         return Httppost(self, url);
     end));
-    if (game.HttpPost ~= game.HttpPostAsync) then
-        local HttppostAsync;
-        HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
-            AddLog("HttpPostAsync", url);
-            return HttppostAsync(self, url);
-        end));
-    end
+    local HttppostAsync;
+    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
+        AddLog("HttpPostAsync", url);
+        return HttppostAsync(self, url);
+    end));
 
     local Clone = Clone(ChatLogMessage);
     Clone.Text = "httpspy loaded"
@@ -5470,8 +5221,8 @@ AddCommand("reloadscript", {}, "kills the script and reloads it", {}, function(C
 end)
 
 AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for when games detect by textbox", {}, function()
-    if (not _L.CLI) then
-        _L.CLI = true
+    if (not CLI) then
+        CLI = true
         while true do
             rconsoleprint("@@WHITE@@");
             rconsoleprint("CMD >");
@@ -5532,7 +5283,7 @@ AddCommand("saveprefix", {}, "saves your prefix", {}, function(Caller, Args)
 end)
 
 AddCommand("clear", {"clearcli", "cls"}, "clears the commandline (if open)", {}, function()
-    if (_L.CLI) then
+    if (CLI) then
         rconsoleclear();
         rconsolename("Admin Command Line");
         rconsoleprint("\nCommand Line:\n");
@@ -5569,12 +5320,15 @@ end)
 
 local ToggleChatPrediction
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    ToggleChatPrediction();
-    local ChatBar = WaitForChild(_L.Frame2, "ChatBar", .1);
-    ChatBar.CaptureFocus(ChatBar);
-    wait();
-    ChatBar.Text = Prefix
-    return "chat prediction enabled"
+    if (Frame2) then
+        ToggleChatPrediction();
+        local ChatBar = WaitForChild(Frame2, "ChatBar", .1);
+        ChatBar.CaptureFocus(ChatBar);
+        wait();
+        ChatBar.Text = Prefix
+        return "chat prediction enabled"
+    end
+    return "couldn't find chatbar"
 end)
 
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, CEnv)
@@ -5841,9 +5595,9 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
             end
         end
         CEnv.Connections = {}
-        AddConnection(CConnect(UserInputService.InputChanged, ProcessInput));
-        AddConnection(CConnect(UserInputService.InputEnded, ProcessInput));
-        AddConnection(CConnect(UserInputService.InputBegan, ProcessInput));
+        AddConnection(CConnect(UserInputService.InputChanged, ProcessInput), CEnv.Connections);
+        AddConnection(CConnect(UserInputService.InputEnded, ProcessInput), CEnv.Connections);
+        AddConnection(CConnect(UserInputService.InputBegan, ProcessInput), CEnv.Connections);
         local IsKeyDown = UserInputService.IsKeyDown
         local function IsDirectionDown(direction)
             for i = 1, #KEY_MAPPINGS[direction] do
@@ -5858,7 +5612,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
             local dt = 1/60
             AddConnection(CConnect(RenderStepped, function(_dt)
                 dt = _dt
-            end));
+            end), CEnv.Connections);
 
             function UpdateFreecam()
                 local camCFrame = Camera.CFrame
@@ -5932,7 +5686,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                 if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
                     SpeedModifier = 1
                 end
-            end), CEnv.Connections);
+            end))
 
             Camera.CameraType = Enum.CameraType.Scriptable
 
@@ -6464,7 +6218,7 @@ local PlrChat = function(i, plr)
         end
         local message = raw
 
-        if (_L.ChatLogsEnabled) then
+        if (ChatLogsEnabled) then
             local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
@@ -6663,21 +6417,21 @@ AddConnection(CConnect(HttpLogs.Close.MouseButton1Click, function()
     HttpLogs.Visible = false
 end), Connections.UI, true);
 
-ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
-GlobalChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
-HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
+ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
+GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
+HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 
 AddConnection(CConnect(ChatLogs.Toggle.MouseButton1Click, function()
-    _L.ChatLogsEnabled = not _L.ChatLogsEnabled
-    ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
+    ChatLogsEnabled = not ChatLogsEnabled
+    ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 AddConnection(CConnect(GlobalChatLogs.Toggle.MouseButton1Click, function()
-    _L.GlobalChatLogsEnabled = not _L.GlobalChatLogsEnabled
-    GlobalChatLogs.Toggle.Text = _L.GlobalChatLogsEnabled and "Enabled" or "Disabled"
+    GlobalChatLogsEnabled = not GlobalChatLogsEnabled
+    GlobalChatLogs.Toggle.Text = GlobalChatLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 AddConnection(CConnect(HttpLogs.Toggle.MouseButton1Click, function()
-    _L.HttpLogsEnabled = not _L.HttpLogsEnabled
-    HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
+    HttpLogsEnabled = not HttpLogsEnabled
+    HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 
 AddConnection(CConnect(ChatLogs.Clear.MouseButton1Click, function()
@@ -6843,17 +6597,16 @@ AddConnection(CConnect(GetPropertyChangedSignal(CommandBar.Input, "Text"), funct
     end
 end))
 
-
 do
     local Enabled = false
-    local Connection;
+    local Connection, Frame2;
     local Predict;
     ToggleChatPrediction = function()
-        if (_L.Frame2) then
+        if (not Frame2) then
             return
         end
         if (not Enabled) then
-            local RobloxChat = LocalPlayer.PlayerGui and FindFirstChild(LocalPlayer.PlayerGui, "Chat");
+            local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
             local RobloxChatBarFrame;
             if (RobloxChat) then
                 local RobloxChatFrame = FindFirstChild(RobloxChat, "Frame");
@@ -6867,10 +6620,10 @@ do
                 if Frame1 then
                     local BoxFrame = FindFirstChild(Frame1, 'BoxFrame');
                     if BoxFrame then
-                        _L.Frame2 = FindFirstChild(BoxFrame, 'Frame');
-                        if _L.Frame2 then
-                            local TextLabel = FindFirstChild(_L.Frame2, 'TextLabel');
-                            ChatBar = FindFirstChild(_L.Frame2, 'ChatBar');
+                        Frame2 = FindFirstChild(BoxFrame, 'Frame');
+                        if Frame2 then
+                            local TextLabel = FindFirstChild(Frame2, 'TextLabel');
+                            ChatBar = FindFirstChild(Frame2, 'ChatBar');
                             if TextLabel and ChatBar then
                                 PredictionClone = InstanceNew('TextLabel');
                                 PredictionClone.Font = TextLabel.Font
@@ -6897,7 +6650,7 @@ do
                 end
             end
 
-            ParentGui(PredictionClone, _L.Frame2);
+            ParentGui(PredictionClone, Frame2);
             Predict = PredictionClone
 
             Connection = AddConnection(CConnect(GetPropertyChangedSignal(ChatBar, "Text"), function() -- todo: add detection for /e
@@ -6982,7 +6735,6 @@ do
             Destroy(Predict);
             Enabled = false
         end
-        return _L.Frame2
     end
 
     if (CurrentConfig.ChatPrediction) then
@@ -7002,28 +6754,6 @@ do
         Background = Color3.fromRGB(32, 33, 36);
         ToggleDisabled = Color3.fromRGB(27, 28, 31);
     }
-
-    local ColorElements = ConfigElements.Elements.ColorElements
-    local Overlay = ColorElements.Overlay
-    local OverlayMain = Overlay.Main
-    local ColorPicker = OverlayMain.ColorPicker
-    local Settings = OverlayMain.Settings
-    local ClosePicker = OverlayMain.Close
-    local ColorCanvas = ColorPicker.ColorCanvas
-    local ColorSlider = ColorPicker.ColorSlider
-    local ColorGradient = ColorCanvas.ColorGradient
-    local DarkGradient = ColorGradient.DarkGradient
-    local CanvasBar = ColorGradient.Bar
-    local RainbowGradient = ColorSlider.RainbowGradient
-    local SliderBar = RainbowGradient.Bar
-    local CanvasHitbox = ColorCanvas.Hitbox
-    local SliderHitbox = ColorSlider.Hitbox
-    local ColorPreview = Settings.ColorPreview
-    local ColorOptions = Settings.Options
-    local RedTextBox = ColorOptions.Red.TextBox
-    local BlueTextBox = ColorOptions.Blue.TextBox
-    local GreenTextBox = ColorOptions.Green.TextBox
-    local RainbowToggle = ColorOptions.Rainbow
 
     local function UpdateClone()
         ConfigUIClone = Clone(ConfigUI);
@@ -7390,232 +7120,6 @@ do
                 UpdateClone();
             end
 
-            function ElementLibrary.ColorPicker(Title, DefaultColor, Callback)
-                local SelectColor = ColorElements.SelectColor:Clone()
-                local CurrentColor = DefaultColor
-                local Button = SelectColor.Button
-                               
-                local H, S, V = DefaultColor:ToHSV()
-                local Opened = false
-                local Rainbow = false
-                
-                local function UpdateText()
-                    RedTextBox.PlaceholderText = tostring(math.floor(CurrentColor.R * 255))
-                    GreenTextBox.PlaceholderText = tostring(math.floor(CurrentColor.G * 255))
-                    BlueTextBox.PlaceholderText = tostring(math.floor(CurrentColor.B * 255))
-                end
-                
-                local function UpdateColor()
-                    H, S, V = CurrentColor:ToHSV()
-                    
-                    SliderBar.Position = UDim2.new(0, 0, H, 2)
-                    CanvasBar.Position = UDim2.new(S, 2, 1 - V, 2)
-                    ColorGradient.UIGradient.Color = Utils.MakeGradient({
-                        [1] = Color3.new(1, 1, 1);
-                        [2] = Color3.fromHSV(H, 1, 1);
-                    })
-                    
-                    ColorPreview.BackgroundColor3 = CurrentColor
-                    UpdateText()
-                end
-            
-                local function UpdateHue(Hue)
-                    SliderBar.Position = UDim2.new(0, 0, Hue, 2)
-                    ColorGradient.UIGradient.Color = Utils.MakeGradient({
-                        [1] = Color3.new(1, 1, 1);
-                        [2] = Color3.fromHSV(Hue, 1, 1);
-                    })
-                    
-                    ColorPreview.BackgroundColor3 = CurrentColor
-                    UpdateText()
-                end
-                
-                local function ColorSliderInit()
-                    local Moving = false
-                    
-                    local function Update()
-                        if Opened and not Rainbow then
-                            local LowerBound = SliderHitbox.AbsoluteSize.Y
-                            local Position = math.clamp(Mouse.Y - SliderHitbox.AbsolutePosition.Y, 0, LowerBound)
-                            local Value = Position / LowerBound
-                            
-                            H = Value
-                            CurrentColor = Color3.fromHSV(H, S, V)
-                            ColorPreview.BackgroundColor3 = CurrentColor
-                            ColorGradient.UIGradient.Color = Utils.MakeGradient({
-                                [1] = Color3.new(1, 1, 1);
-                                [2] = Color3.fromHSV(H, 1, 1);
-                            })
-                            
-                            UpdateText()
-                            
-                            local Position = UDim2.new(0, 0, Value, 2)
-                            local Tween = Utils.Tween(SliderBar, "Linear", "Out", .05, {
-                                Position = Position
-                            })
-                            
-                            Callback(CurrentColor)
-                            Tween.Completed:Wait()
-                        end
-                    end
-                
-                    AddConnection(CConnect(SliderHitbox.MouseButton1Down, function()
-                        Moving = true
-                        Update()
-                    end))
-                    
-                    AddConnection(CConnect(UserInputService.InputEnded, function(Input)
-                        if Input.UserInputType == Enum.UserInputType.MouseButton1 and Moving then
-                            Moving = false
-                        end
-                    end))
-                    
-                    AddConnection(CConnect(Mouse.Move, Utils.Debounce(function()
-                        if Moving then
-                            Update()
-                        end
-                    end)))
-                end
-                local function ColorCanvasInit()
-                    local Moving = false
-                    
-                    local function Update()
-                        if Opened then
-                            local LowerBound = CanvasHitbox.AbsoluteSize.Y
-                            local YPosition = math.clamp(Mouse.Y - CanvasHitbox.AbsolutePosition.Y, 0, LowerBound)
-                            local YValue = YPosition / LowerBound
-                            local RightBound = CanvasHitbox.AbsoluteSize.X
-                            local XPosition = math.clamp(Mouse.X - CanvasHitbox.AbsolutePosition.X, 0, RightBound)
-                            local XValue = XPosition / RightBound
-                            
-                            S = XValue
-                            V = 1 - YValue
-                            
-                            CurrentColor = Color3.fromHSV(H, S, V)
-                            ColorPreview.BackgroundColor3 = CurrentColor
-                            UpdateText()
-                            
-                            local Position = UDim2.new(XValue, 2, YValue, 2)
-                            local Tween = Utils.Tween(CanvasBar, "Linear", "Out", .05, {
-                                Position = Position
-                            })
-                            Callback(CurrentColor)
-                            Tween.Completed:Wait()
-                        end
-                    end
-                
-                    AddConnection(CConnect(CanvasHitbox.MouseButton1Down, function()
-                        Moving = true
-                        Update()
-                    end))
-                    
-                    AddConnection(CConnect(UserInputService.InputEnded, function(Input)
-                        if Input.UserInputType == Enum.UserInputType.MouseButton1 and Moving then
-                            Moving = false
-                        end
-                    end))
-                    
-                    AddConnection(CConnect(Mouse.Move, Utils.Debounce(function()
-                        if Moving then
-                            Update()
-                        end
-                    end)))
-                end
-                
-                ColorSliderInit()
-                ColorCanvasInit()
-                
-                AddConnection(CConnect(Button.MouseButton1Click, function()
-                    if not Opened then
-                        Opened = true
-                        UpdateColor()
-                        RainbowToggle.Container.Switch.Position = Rainbow and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
-                        RainbowToggle.Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
-                        Overlay.Visible = true
-                        OverlayMain.Visible = false
-                        Utils.Intro(OverlayMain)
-                    end
-                end))
-                
-                AddConnection(CConnect(ClosePicker.MouseButton1Click, Utils.Debounce(function()
-                    Button.BackgroundColor3 = CurrentColor
-                    Utils.Intro(OverlayMain)
-                    Overlay.Visible = false
-                    Opened = false
-                end)))
-                
-                AddConnection(CConnect(RedTextBox.FocusLost, function()
-                    if Opened then
-                        local Number = tonumber(RedTextBox.Text)
-                        if Number then
-                            Number = math.clamp(math.floor(Number), 0, 255)
-                            CurrentColor = Color3.new(Number / 255, CurrentColor.G, CurrentColor.B)
-                            UpdateColor()
-                            RedTextBox.PlaceholderText = tostring(Number)
-                            Callback(CurrentColor)
-                        end
-                        RedTextBox.Text = ""
-                    end
-                end))
-                
-                AddConnection(CConnect(GreenTextBox.FocusLost, function()
-                    if Opened then
-                        local Number = tonumber(GreenTextBox.Text)
-                        if Number then
-                            Number = math.clamp(math.floor(Number), 0, 255)
-                            CurrentColor = Color3.new(CurrentColor.R, Number / 255, CurrentColor.B)
-                            UpdateColor()
-                            GreenTextBox.PlaceholderText = tostring(Number)
-                            Callback(CurrentColor)
-                        end
-                        GreenTextBox.Text = ""
-                    end
-                end))
-                
-                AddConnection(CConnect(BlueTextBox.FocusLost, function()
-                    if Opened then
-                        local Number = tonumber(BlueTextBox.Text)
-                        if Number then
-                            Number = math.clamp(math.floor(Number), 0, 255)
-                            CurrentColor = Color3.new(CurrentColor.R, CurrentColor.G, Number / 255)
-                            UpdateColor()
-                            BlueTextBox.PlaceholderText = tostring(Number)
-                            Callback(CurrentColor)
-                        end
-                        BlueTextBox.Text = ""
-                    end
-                end))
-                
-                Utils.ToggleFunction(RainbowToggle.Container, false, function(Callback)
-                    if Opened then
-                        Rainbow = Callback
-                    end
-                end)
-                
-                AddConnection(CConnect(RenderStepped, function()
-                    if Rainbow then
-                        local Hue = (tick() / 5) % 1
-                        CurrentColor = Color3.fromHSV(Hue, S, V)
-                        
-                        if Opened then
-                            UpdateHue(Hue)
-                        end
-                        
-                        Button.BackgroundColor3 = CurrentColor
-                        Callback(CurrentColor, true);
-                    end
-                end))
-                                
-                Button.BackgroundColor3 = DefaultColor
-                SelectColor.Title.Text = Title
-                CThread(function()
-                    wait(.1)
-                    SelectColor.Visible = true
-                    SelectColor.Parent = Section.Options
-                    Utils.Thing(SelectColor.Title);
-                end)()
-            end
-
             return ElementLibrary
         end
 
@@ -7895,14 +7399,14 @@ do
             Hooks.UndetectedMessageOut = Callback
         end)
 
-        Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
+        Misc.Toggle("Anti Kick", AntiKick, function(Callback)
             Hooks.AntiKick = Callback
             Utils.Notify(nil, nil, format("AntiKick %s", Hooks.AntiKick and "enabled" or "disabled"));
         end)
 
-        Misc.Toggle("Anti Teleport", Hooks.AntiTeleport, function(Callback)
-            Hooks.AntiTeleport = Callback
-            Utils.Notify(nil, nil, format("AntiTeleport %s", Hooks.AntiTeleport and "enabled" or "disabled"));
+        Misc.Toggle("Anti Teleport", AntiTeleport, function(Callback)
+            AntiTeleport = Callback
+            Utils.Notify(nil, nil, format("AntiTeleport %s", AntiTeleport and "enabled" or "disabled"));
         end)
 
         Misc.Toggle("wide cmdbar", WideBar, function(Callback)
@@ -7939,7 +7443,7 @@ do
 
         Misc.Toggle("KillCam when killing", CurrentConf.KillCam, function(Callback)
             SetConfig({KillCam=Callback});
-            _L.KillCam = Callback
+            KillCam = Callback
         end)
 
         local OldFireTouchInterest = firetouchinterest
@@ -8053,80 +7557,6 @@ do
             SetPluginConfig({SafePlugins = Callback});
         end)
 
-        local Themes = ConfigUILib.NewPage("Themes");
-
-        local Color = Themes.NewSection("Colors");
-        local Options = Themes.NewSection("Options");
-
-        local RainbowEnabled = false
-        Color.ColorPicker("All Background", UITheme.Background.BackgroundColor, function(Callback, IsRainbow)
-            UITheme.Background.BackgroundColor = Callback
-            RainbowEnabled = IsRainbow
-        end)
-        Color.ColorPicker("CommandBar", UITheme.CommandBar.BackgroundColor, function(Callback)
-            if (not RainbowEnabled) then
-                UITheme.CommandBar.BackgroundColor = Callback
-            end
-        end)
-        Color.ColorPicker("Notification", UITheme.Notification.BackgroundColor, function(Callback)
-            if (not RainbowEnabled) then
-                UITheme.Notification.BackgroundColor = Callback
-            end
-        end)
-        Color.ColorPicker("ChatLogs", UITheme.ChatLogs.BackgroundColor, function(Callback)
-            if (not RainbowEnabled) then
-                UITheme.ChatLogs.BackgroundColor = Callback
-            end
-        end)
-        Color.ColorPicker("CommandList", UITheme.CommandList.BackgroundColor, function(Callback)
-            if (not RainbowEnabled) then
-                UITheme.CommandList.BackgroundColor = Callback
-            end
-        end)
-        Color.ColorPicker("Config", UITheme.Config.BackgroundColor, function(Callback)
-            if (not RainbowEnabled) then
-                UITheme.Config.BackgroundColor = Callback
-            end
-        end)
-
-        Color.ColorPicker("All Text", UITheme.Background.TextColor, function(Callback)
-            UITheme.Background.TextColor = Callback
-        end)
-
-        local ToggleSave;
-        ToggleSave = Options.Toggle("Save Theme", false, function(Callback)
-            WriteThemeConfig();
-            wait(.5);
-            ToggleSave();
-            Utils.Notify(nil, "Theme", "saved theme");
-        end)
-
-        local ToggleLoad;
-        ToggleLoad = Options.Toggle("Load Theme", false, function(Callback)
-            LoadTheme(GetThemeConfig());
-            wait(.5);
-            ToggleLoad();
-            Utils.Notify(nil, "Theme", "Loaded theme");
-        end)
-
-        local ToggleReset;
-        ToggleReset = Options.Toggle("Reset Theme", false, function(Callback)
-            UITheme.Background.BackgroundColor = "Reset"
-            UITheme.Notification.TextColor = "Reset"
-            UITheme.CommandBar.TextColor = "Reset"
-            UITheme.CommandList.TextColor = "Reset"
-            UITheme.ChatLogs.TextColor = "Reset"
-            UITheme.Config.TextColor = "Reset"
-            UITheme.Notification.Transparency = "Reset"
-            UITheme.CommandBar.Transparency = "Reset"
-            UITheme.CommandList.Transparency = "Reset"
-            UITheme.ChatLogs.Transparency = "Reset"
-            UITheme.Config.Transparency = "Reset"
-            wait(.5);
-            ToggleReset();
-            Utils.Notify(nil, "Theme", "reset theme");
-        end)
-
     end
 
     delay(1, function()
@@ -8205,8 +7635,8 @@ local PlayerAdded = function(plr)
         if (Tag.Rainbow) then
             Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
         end
-        if (Tag._L.AntiFeList) then
-            _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
+        if (Tag.AntiFeList) then
+            AntiFeList[#AntiFeList + 1] = plr.UserId
         end
     end
 end
@@ -8239,11 +7669,11 @@ getgenv().F_A = {
     GetConfig = GetConfig
 }
 
-Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
+Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
-_L.LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
+local LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
 wait(1);
-Utils.Notify(LocalPlayer, "Newest Update", format("%s - %s", _L.LatestCommit.commit.message, _L.LatestCommit.commit.author.name));
+Utils.Notify(LocalPlayer, "Newest Update", format("%s - %s", LatestCommit.commit.message, LatestCommit.commit.author.name));
