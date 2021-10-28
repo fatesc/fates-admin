@@ -1223,7 +1223,7 @@ ParentGui = function(Gui, Parent)
     Guis[#Guis + 1] = Gui
     return Gui
 end
-UI = Clone(game.GetObjects(game, getsynasset("fates-admin/ui.rbxm"))[1]);
+UI = Clone(Services.InsertService:LoadLocalAsset("rbxassetid://7855824528"));
 UI.Enabled = true
 
 local CommandBarPrefix;
