@@ -147,21 +147,21 @@ AddConnection(CConnect(HttpLogs.Close.MouseButton1Click, function()
     HttpLogs.Visible = false
 end), Connections.UI, true);
 
-ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
-GlobalChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
-HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
+ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
+GlobalChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
+HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
 
 AddConnection(CConnect(ChatLogs.Toggle.MouseButton1Click, function()
-    ChatLogsEnabled = not ChatLogsEnabled
-    ChatLogs.Toggle.Text = ChatLogsEnabled and "Enabled" or "Disabled"
+    _L.ChatLogsEnabled = not _L.ChatLogsEnabled
+    ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 AddConnection(CConnect(GlobalChatLogs.Toggle.MouseButton1Click, function()
-    GlobalChatLogsEnabled = not GlobalChatLogsEnabled
-    GlobalChatLogs.Toggle.Text = GlobalChatLogsEnabled and "Enabled" or "Disabled"
+    _L.GlobalChatLogsEnabled = not _L.GlobalChatLogsEnabled
+    GlobalChatLogs.Toggle.Text = _L.GlobalChatLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 AddConnection(CConnect(HttpLogs.Toggle.MouseButton1Click, function()
-    HttpLogsEnabled = not HttpLogsEnabled
-    HttpLogs.Toggle.Text = HttpLogsEnabled and "Enabled" or "Disabled"
+    _L.HttpLogsEnabled = not _L.HttpLogsEnabled
+    HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
 end), Connections.UI, true);
 
 AddConnection(CConnect(ChatLogs.Clear.MouseButton1Click, function()
@@ -484,6 +484,28 @@ do
         Background = Color3.fromRGB(32, 33, 36);
         ToggleDisabled = Color3.fromRGB(27, 28, 31);
     }
+
+    local ColorElements = ConfigElements.Elements.ColorElements
+    local Overlay = ColorElements.Overlay
+    local OverlayMain = Overlay.Main
+    local ColorPicker = OverlayMain.ColorPicker
+    local Settings = OverlayMain.Settings
+    local ClosePicker = OverlayMain.Close
+    local ColorCanvas = ColorPicker.ColorCanvas
+    local ColorSlider = ColorPicker.ColorSlider
+    local ColorGradient = ColorCanvas.ColorGradient
+    local DarkGradient = ColorGradient.DarkGradient
+    local CanvasBar = ColorGradient.Bar
+    local RainbowGradient = ColorSlider.RainbowGradient
+    local SliderBar = RainbowGradient.Bar
+    local CanvasHitbox = ColorCanvas.Hitbox
+    local SliderHitbox = ColorSlider.Hitbox
+    local ColorPreview = Settings.ColorPreview
+    local ColorOptions = Settings.Options
+    local RedTextBox = ColorOptions.Red.TextBox
+    local BlueTextBox = ColorOptions.Blue.TextBox
+    local GreenTextBox = ColorOptions.Green.TextBox
+    local RainbowToggle = ColorOptions.Rainbow
 
     local function UpdateClone()
         ConfigUIClone = Clone(ConfigUI);
@@ -848,6 +870,232 @@ do
                 Keybind.Visible = true
                 Keybind.Parent = Section.Options
                 UpdateClone();
+            end
+
+            function ElementLibrary.ColorPicker(Title, DefaultColor, Callback)
+                local SelectColor = ColorElements.SelectColor:Clone()
+                local CurrentColor = DefaultColor
+                local Button = SelectColor.Button
+                               
+                local H, S, V = DefaultColor:ToHSV()
+                local Opened = false
+                local Rainbow = false
+                
+                local function UpdateText()
+                    RedTextBox.PlaceholderText = tostring(math.floor(CurrentColor.R * 255))
+                    GreenTextBox.PlaceholderText = tostring(math.floor(CurrentColor.G * 255))
+                    BlueTextBox.PlaceholderText = tostring(math.floor(CurrentColor.B * 255))
+                end
+                
+                local function UpdateColor()
+                    H, S, V = CurrentColor:ToHSV()
+                    
+                    SliderBar.Position = UDim2.new(0, 0, H, 2)
+                    CanvasBar.Position = UDim2.new(S, 2, 1 - V, 2)
+                    ColorGradient.UIGradient.Color = Utils.MakeGradient({
+                        [1] = Color3.new(1, 1, 1);
+                        [2] = Color3.fromHSV(H, 1, 1);
+                    })
+                    
+                    ColorPreview.BackgroundColor3 = CurrentColor
+                    UpdateText()
+                end
+            
+                local function UpdateHue(Hue)
+                    SliderBar.Position = UDim2.new(0, 0, Hue, 2)
+                    ColorGradient.UIGradient.Color = Utils.MakeGradient({
+                        [1] = Color3.new(1, 1, 1);
+                        [2] = Color3.fromHSV(Hue, 1, 1);
+                    })
+                    
+                    ColorPreview.BackgroundColor3 = CurrentColor
+                    UpdateText()
+                end
+                
+                local function ColorSliderInit()
+                    local Moving = false
+                    
+                    local function Update()
+                        if Opened and not Rainbow then
+                            local LowerBound = SliderHitbox.AbsoluteSize.Y
+                            local Position = math.clamp(Mouse.Y - SliderHitbox.AbsolutePosition.Y, 0, LowerBound)
+                            local Value = Position / LowerBound
+                            
+                            H = Value
+                            CurrentColor = Color3.fromHSV(H, S, V)
+                            ColorPreview.BackgroundColor3 = CurrentColor
+                            ColorGradient.UIGradient.Color = Utils.MakeGradient({
+                                [1] = Color3.new(1, 1, 1);
+                                [2] = Color3.fromHSV(H, 1, 1);
+                            })
+                            
+                            UpdateText()
+                            
+                            local Position = UDim2.new(0, 0, Value, 2)
+                            local Tween = Utils.Tween(SliderBar, "Linear", "Out", .05, {
+                                Position = Position
+                            })
+                            
+                            Callback(CurrentColor)
+                            Tween.Completed:Wait()
+                        end
+                    end
+                
+                    AddConnection(CConnect(SliderHitbox.MouseButton1Down, function()
+                        Moving = true
+                        Update()
+                    end))
+                    
+                    AddConnection(CConnect(UserInputService.InputEnded, function(Input)
+                        if Input.UserInputType == Enum.UserInputType.MouseButton1 and Moving then
+                            Moving = false
+                        end
+                    end))
+                    
+                    AddConnection(CConnect(Mouse.Move, Utils.Debounce(function()
+                        if Moving then
+                            Update()
+                        end
+                    end)))
+                end
+                local function ColorCanvasInit()
+                    local Moving = false
+                    
+                    local function Update()
+                        if Opened then
+                            local LowerBound = CanvasHitbox.AbsoluteSize.Y
+                            local YPosition = math.clamp(Mouse.Y - CanvasHitbox.AbsolutePosition.Y, 0, LowerBound)
+                            local YValue = YPosition / LowerBound
+                            local RightBound = CanvasHitbox.AbsoluteSize.X
+                            local XPosition = math.clamp(Mouse.X - CanvasHitbox.AbsolutePosition.X, 0, RightBound)
+                            local XValue = XPosition / RightBound
+                            
+                            S = XValue
+                            V = 1 - YValue
+                            
+                            CurrentColor = Color3.fromHSV(H, S, V)
+                            ColorPreview.BackgroundColor3 = CurrentColor
+                            UpdateText()
+                            
+                            local Position = UDim2.new(XValue, 2, YValue, 2)
+                            local Tween = Utils.Tween(CanvasBar, "Linear", "Out", .05, {
+                                Position = Position
+                            })
+                            Callback(CurrentColor)
+                            Tween.Completed:Wait()
+                        end
+                    end
+                
+                    AddConnection(CConnect(CanvasHitbox.MouseButton1Down, function()
+                        Moving = true
+                        Update()
+                    end))
+                    
+                    AddConnection(CConnect(UserInputService.InputEnded, function(Input)
+                        if Input.UserInputType == Enum.UserInputType.MouseButton1 and Moving then
+                            Moving = false
+                        end
+                    end))
+                    
+                    AddConnection(CConnect(Mouse.Move, Utils.Debounce(function()
+                        if Moving then
+                            Update()
+                        end
+                    end)))
+                end
+                
+                ColorSliderInit()
+                ColorCanvasInit()
+                
+                AddConnection(CConnect(Button.MouseButton1Click, function()
+                    if not Opened then
+                        Opened = true
+                        UpdateColor()
+                        RainbowToggle.Container.Switch.Position = Rainbow and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
+                        RainbowToggle.Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
+                        Overlay.Visible = true
+                        OverlayMain.Visible = false
+                        Utils.Intro(OverlayMain)
+                    end
+                end))
+                
+                AddConnection(CConnect(ClosePicker.MouseButton1Click, Utils.Debounce(function()
+                    Button.BackgroundColor3 = CurrentColor
+                    Utils.Intro(OverlayMain)
+                    Overlay.Visible = false
+                    Opened = false
+                end)))
+                
+                AddConnection(CConnect(RedTextBox.FocusLost, function()
+                    if Opened then
+                        local Number = tonumber(RedTextBox.Text)
+                        if Number then
+                            Number = math.clamp(math.floor(Number), 0, 255)
+                            CurrentColor = Color3.new(Number / 255, CurrentColor.G, CurrentColor.B)
+                            UpdateColor()
+                            RedTextBox.PlaceholderText = tostring(Number)
+                            Callback(CurrentColor)
+                        end
+                        RedTextBox.Text = ""
+                    end
+                end))
+                
+                AddConnection(CConnect(GreenTextBox.FocusLost, function()
+                    if Opened then
+                        local Number = tonumber(GreenTextBox.Text)
+                        if Number then
+                            Number = math.clamp(math.floor(Number), 0, 255)
+                            CurrentColor = Color3.new(CurrentColor.R, Number / 255, CurrentColor.B)
+                            UpdateColor()
+                            GreenTextBox.PlaceholderText = tostring(Number)
+                            Callback(CurrentColor)
+                        end
+                        GreenTextBox.Text = ""
+                    end
+                end))
+                
+                AddConnection(CConnect(BlueTextBox.FocusLost, function()
+                    if Opened then
+                        local Number = tonumber(BlueTextBox.Text)
+                        if Number then
+                            Number = math.clamp(math.floor(Number), 0, 255)
+                            CurrentColor = Color3.new(CurrentColor.R, CurrentColor.G, Number / 255)
+                            UpdateColor()
+                            BlueTextBox.PlaceholderText = tostring(Number)
+                            Callback(CurrentColor)
+                        end
+                        BlueTextBox.Text = ""
+                    end
+                end))
+                
+                Utils.ToggleFunction(RainbowToggle.Container, false, function(Callback)
+                    if Opened then
+                        Rainbow = Callback
+                    end
+                end)
+                
+                AddConnection(CConnect(RenderStepped, function()
+                    if Rainbow then
+                        local Hue = (tick() / 5) % 1
+                        CurrentColor = Color3.fromHSV(Hue, S, V)
+                        
+                        if Opened then
+                            UpdateHue(Hue)
+                        end
+                        
+                        Button.BackgroundColor3 = CurrentColor
+                        Callback(CurrentColor, true);
+                    end
+                end))
+                                
+                Button.BackgroundColor3 = DefaultColor
+                SelectColor.Title.Text = Title
+                CThread(function()
+                    wait(.1)
+                    SelectColor.Visible = true
+                    SelectColor.Parent = Section.Options
+                    Utils.Thing(SelectColor.Title);
+                end)()
             end
 
             return ElementLibrary

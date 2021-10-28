@@ -599,3 +599,111 @@ Utils.Thing = function(Object)
     
     return Object
 end
+
+function Utils.Intro(Object)
+	local Frame = InstanceNew("Frame")
+	local UICorner = InstanceNew("UICorner")
+	local CornerRadius = FindFirstChild(Object, "UICorner") and Object.UICorner.CornerRadius or UDim.new(0, 0)
+
+	Frame.Name = "IntroFrame"
+	Frame.ZIndex = 1000
+	Frame.Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+	Frame.AnchorPoint = Vector2.new(.5, .5)
+	Frame.Position = UDim2.new(Object.Position.X.Scale, Object.Position.X.Offset + (Object.AbsoluteSize.X / 2), Object.Position.Y.Scale, Object.Position.Y.Offset + (Object.AbsoluteSize.Y / 2))
+	Frame.BackgroundColor3 = Object.BackgroundColor3
+	Frame.BorderSizePixel = 0
+
+	UICorner.CornerRadius = CornerRadius
+	UICorner.Parent = Frame
+
+	Frame.Parent = Object.Parent
+
+	if (Object.Visible) then
+		Frame.BackgroundTransparency = 1
+
+		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
+			BackgroundTransparency = 0
+		})
+
+		Tween.Completed:Wait()
+		Object.Visible = false
+
+		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
+			Size = UDim2.fromOffset(0, 0)
+		})
+
+		Utils.Tween(UICorner, "Quad", "Out", .25, {
+			CornerRadius = UDim.new(1, 0)
+		})
+
+		Tween.Completed:Wait()
+		Frame:Destroy()
+	else
+		Frame.Visible = true
+		Frame.Size = UDim2.fromOffset(0, 0)
+		UICorner.CornerRadius = UDim.new(1, 0)
+
+		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
+			Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+		})
+
+		Utils.Tween(UICorner, "Quad", "Out", .25, {
+			CornerRadius = CornerRadius
+		})
+
+		Tween.Completed:Wait()
+		Object.Visible = true
+
+		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
+			BackgroundTransparency = 1
+		})
+
+		Tween.Completed:Wait()
+		Frame:Destroy()
+	end
+end
+
+Utils.MakeGradient = function(ColorTable)
+	local Table = {}
+    local ColorSequenceKeypointNew = ColorSequenceKeypoint.new
+	for Time, Color in next, ColorTable do
+		Table[#Table + 1] = ColorSequenceKeypointNew(Time - 1, Color);
+	end
+	return ColorSequence.new(Table)
+end
+
+Utils.Debounce = function(Func)
+	local Debounce = false
+
+	return function(...)
+		if (not Debounce) then
+			Debounce = true
+			Func(...);
+			Debounce = false
+		end
+	end
+end
+
+Utils.ToggleFunction = function(Container, Enabled, Callback) -- fpr color picker
+    local Switch = Container.Switch
+    local Hitbox = Container.Hitbox
+    Container.BackgroundColor3 = Color3.fromRGB(255, 79, 87);
+
+    if not Enabled then
+        Switch.Position = UDim2.fromOffset(2, 2)
+        Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
+    end
+
+    AddConnection(CConnect(Hitbox.MouseButton1Click, function()
+        Enabled = not Enabled
+        
+        Utils.Tween(Switch, "Quad", "Out", .25, {
+            Position = Enabled and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
+        })
+        Utils.Tween(Container, "Quad", "Out", .25, {
+            BackgroundColor3 = Enabled and Color3.fromRGB(255, 79, 87) or Color3.fromRGB(25, 25, 25);
+        })
+        
+        Callback(Enabled)
+    end));
+end

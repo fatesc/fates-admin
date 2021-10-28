@@ -224,6 +224,23 @@ deepsearch = function(tbl, ret)
     end
 end
 
+local deepsearchset;
+deepsearchset = function(tbl, ret, value)
+    if (type(tbl) == 'table') then
+        local new = {}
+        for i, v in next, tbl do
+            new[i] = v
+            if (type(v) == 'table') then
+                new[i] = deepsearchset(v, ret, value);
+            end
+            if (ret(i, v)) then
+                new[i] = value(i, v);
+            end
+        end
+        return new
+    end
+end
+
 local flat = function(tbl)
     if (type(tbl) == 'table') then
         local new = {}

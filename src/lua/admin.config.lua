@@ -67,14 +67,14 @@ do
             Hooks.UndetectedMessageOut = Callback
         end)
 
-        Misc.Toggle("Anti Kick", AntiKick, function(Callback)
+        Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
             Hooks.AntiKick = Callback
             Utils.Notify(nil, nil, format("AntiKick %s", Hooks.AntiKick and "enabled" or "disabled"));
         end)
 
-        Misc.Toggle("Anti Teleport", AntiTeleport, function(Callback)
-            AntiTeleport = Callback
-            Utils.Notify(nil, nil, format("AntiTeleport %s", AntiTeleport and "enabled" or "disabled"));
+        Misc.Toggle("Anti Teleport", Hooks.AntiTeleport, function(Callback)
+            Hooks.AntiTeleport = Callback
+            Utils.Notify(nil, nil, format("AntiTeleport %s", Hooks.AntiTeleport and "enabled" or "disabled"));
         end)
 
         Misc.Toggle("wide cmdbar", WideBar, function(Callback)
@@ -111,7 +111,7 @@ do
 
         Misc.Toggle("KillCam when killing", CurrentConf.KillCam, function(Callback)
             SetConfig({KillCam=Callback});
-            KillCam = Callback
+            _L.KillCam = Callback
         end)
 
         local OldFireTouchInterest = firetouchinterest
@@ -223,6 +223,80 @@ do
 
         PluginSettings.Toggle("Safe Plugins", CurrentPluginConf.SafePlugins, function(Callback)
             SetPluginConfig({SafePlugins = Callback});
+        end)
+
+        local Themes = ConfigUILib.NewPage("Themes");
+
+        local Color = Themes.NewSection("Colors");
+        local Options = Themes.NewSection("Options");
+
+        local RainbowEnabled = false
+        Color.ColorPicker("All Background", UITheme.Background.BackgroundColor, function(Callback, IsRainbow)
+            UITheme.Background.BackgroundColor = Callback
+            RainbowEnabled = IsRainbow
+        end)
+        Color.ColorPicker("CommandBar", UITheme.CommandBar.BackgroundColor, function(Callback)
+            if (not RainbowEnabled) then
+                UITheme.CommandBar.BackgroundColor = Callback
+            end
+        end)
+        Color.ColorPicker("Notification", UITheme.Notification.BackgroundColor, function(Callback)
+            if (not RainbowEnabled) then
+                UITheme.Notification.BackgroundColor = Callback
+            end
+        end)
+        Color.ColorPicker("ChatLogs", UITheme.ChatLogs.BackgroundColor, function(Callback)
+            if (not RainbowEnabled) then
+                UITheme.ChatLogs.BackgroundColor = Callback
+            end
+        end)
+        Color.ColorPicker("CommandList", UITheme.CommandList.BackgroundColor, function(Callback)
+            if (not RainbowEnabled) then
+                UITheme.CommandList.BackgroundColor = Callback
+            end
+        end)
+        Color.ColorPicker("Config", UITheme.Config.BackgroundColor, function(Callback)
+            if (not RainbowEnabled) then
+                UITheme.Config.BackgroundColor = Callback
+            end
+        end)
+
+        Color.ColorPicker("All Text", UITheme.Background.TextColor, function(Callback)
+            UITheme.Background.TextColor = Callback
+        end)
+
+        local ToggleSave;
+        ToggleSave = Options.Toggle("Save Theme", false, function(Callback)
+            WriteThemeConfig();
+            wait(.5);
+            ToggleSave();
+            Utils.Notify(nil, "Theme", "saved theme");
+        end)
+
+        local ToggleLoad;
+        ToggleLoad = Options.Toggle("Load Theme", false, function(Callback)
+            LoadTheme(GetThemeConfig());
+            wait(.5);
+            ToggleLoad();
+            Utils.Notify(nil, "Theme", "Loaded theme");
+        end)
+
+        local ToggleReset;
+        ToggleReset = Options.Toggle("Reset Theme", false, function(Callback)
+            UITheme.Background.BackgroundColor = "Reset"
+            UITheme.Notification.TextColor = "Reset"
+            UITheme.CommandBar.TextColor = "Reset"
+            UITheme.CommandList.TextColor = "Reset"
+            UITheme.ChatLogs.TextColor = "Reset"
+            UITheme.Config.TextColor = "Reset"
+            UITheme.Notification.Transparency = "Reset"
+            UITheme.CommandBar.Transparency = "Reset"
+            UITheme.CommandList.Transparency = "Reset"
+            UITheme.ChatLogs.Transparency = "Reset"
+            UITheme.Config.Transparency = "Reset"
+            wait(.5);
+            ToggleReset();
+            Utils.Notify(nil, "Theme", "reset theme");
         end)
 
     end

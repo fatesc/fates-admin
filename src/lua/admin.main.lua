@@ -5,7 +5,9 @@ if (not game.IsLoaded(game)) then
     Loaded.Wait(Loaded);
 end
 
-local start = start or tick();
+local _L = {}
+
+_L.start = start or tick();
 local Debug = true
 
 do
@@ -142,10 +144,10 @@ local Exceptions = Exceptions or {}
 local Connections = {
     Players = {}
 }
-local CLI = false
-local ChatLogsEnabled = true
-local GlobalChatLogsEnabled = false
-local HttpLogsEnabled = true
+_L.CLI = false
+_L.ChatLogsEnabled = true
+_L.GlobalChatLogsEnabled = false
+_L.HttpLogsEnabled = true
 
 local GetPlayer;
 GetPlayer = function(str, noerror)
@@ -174,7 +176,7 @@ GetPlayer = function(str, noerror)
         end,
         ["others"] = function()
             return filter(CurrentPlayers, function(i, v)
-                return v ~= LocalPlayerw
+                return v ~= LocalPlayer
             end)
         end,
         ["nearest"] = function()
@@ -481,7 +483,7 @@ local CFrameTool = function(tool, pos)
     tool.Grip = Frame
 end
 
-local Sanitize = function(value)
+_L.Sanitize = function(value)
     if typeof(value) == 'CFrame' then
         local components = {components(value)}
         for i,v in pairs(components) do
@@ -586,9 +588,9 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
-local AntiFeList = {}
+_L.AntiFeList = {}
 
-local KillCam;
+_L.KillCam = {};
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local OldPos = GetRoot().CFrame
@@ -616,7 +618,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(AntiFeList, v.UserId)) then
+            if (Tfind(_L.AntiFeList, v.UserId)) then
                 continue
             end
             TChar = GetCharacter(v);
@@ -650,7 +652,7 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
         end
     end)()
     ChangeState(Humanoid, 15);
-    if (KillCam and #Target == 1 and TChar) then
+    if (_L.KillCam and #Target == 1 and TChar) then
         Camera.CameraSubject = TChar
     end
     wait(.3);
@@ -684,7 +686,7 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(AntiFeList, v.UserId)) then
+            if (Tfind(_L.AntiFeList, v.UserId)) then
                 continue
             end
             if (GetCharacter(v)) then
@@ -746,7 +748,7 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         end
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(AntiFeList, v.UserId)) then
+            if (Tfind(_L.AntiFeList, v.UserId)) then
                 continue
             end
             local TargetRoot = GetRoot(v)
@@ -807,7 +809,7 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(AntiFeList, v.UserId)) then
+            if (Tfind(_L.AntiFeList, v.UserId)) then
                 continue
             end
             if (GetCharacter(v)) then
@@ -877,7 +879,7 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Destroy_;
     CThread(function()
         for i, v in next, Target do
-            if (Tfind(AntiFeList, v.UserId)) then
+            if (Tfind(_L.AntiFeList, v.UserId)) then
                 continue
             end
             if (GetCharacter(v)) then
@@ -947,7 +949,7 @@ AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(AntiFeList, v.UserId)) then
+        if (Tfind(_L.AntiFeList, v.UserId)) then
             continue
         end
         if (GetCharacter(v)) then
@@ -1019,7 +1021,7 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(AntiFeList, v.UserId)) then
+        if (Tfind(_L.AntiFeList, v.UserId)) then
             continue
         end
         if (GetCharacter(v)) then
@@ -2565,7 +2567,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         ScrollBarImageTransparency = 0
     });
 
-    GlobalChatLogsEnabled = true
+    _L.GlobalChatLogsEnabled = true
     if (not Socket) then
         Socket = (syn and syn.websocket or WebSocket).connect("ws://fate0.xyz:8080/scripts/fates-admin/chat?username=" .. LocalPlayer.Name);
 
@@ -2585,7 +2587,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         end
 
         CConnect(Socket.OnMessage, function(msg)
-            if (GlobalChatLogsEnabled) then
+            if (_L.GlobalChatLogsEnabled) then
                 local OP, DATA = unpack(JSONDecode(Services.HttpService, msg));
                 local Clone = Clone(GlobalChatLogMessage);
                 local CurrentTime = tostring(os.date("%X"));
@@ -2604,7 +2606,7 @@ AddCommand("globalchatlogs", {"globalclogs"}, "enables globalchatlogs", {}, func
         local MessageSender = require(LocalPlayer.PlayerScripts.ChatScript.ChatMain.MessageSender);
         local OldSendMessage = MessageSender.SendMessage
         MessageSender.SendMessage = function(self, Message, ...)
-            if (GlobalChatLogsEnabled) then
+            if (_L.GlobalChatLogsEnabled) then
                 local CurrentTime = tostring(os.date("%X"));
                 if (#Message > 30) then
                     MakeMessage(format("[%s] - [C-LOG]: Message is too long dsadsadasdasd.aas...", CurrentTime));
@@ -3438,8 +3440,8 @@ AddCommand("reloadscript", {}, "kills the script and reloads it", {}, function(C
 end)
 
 AddCommand("commandline", {"cmd", "cli"}, "brings up a cli, can be useful for when games detect by textbox", {}, function()
-    if (not CLI) then
-        CLI = true
+    if (not _L.CLI) then
+        _L.CLI = true
         while true do
             rconsoleprint("@@WHITE@@");
             rconsoleprint("CMD >");
@@ -3500,7 +3502,7 @@ AddCommand("saveprefix", {}, "saves your prefix", {}, function(Caller, Args)
 end)
 
 AddCommand("clear", {"clearcli", "cls"}, "clears the commandline (if open)", {}, function()
-    if (CLI) then
+    if (_L.CLI) then
         rconsoleclear();
         rconsolename("Admin Command Line");
         rconsoleprint("\nCommand Line:\n");
@@ -4435,7 +4437,7 @@ local PlrChat = function(i, plr)
         end
         local message = raw
 
-        if (ChatLogsEnabled) then
+        if (_L.ChatLogsEnabled) then
             local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
@@ -4543,8 +4545,8 @@ local PlayerAdded = function(plr)
         if (Tag.Rainbow) then
             Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
         end
-        if (Tag.AntiFeList) then
-            AntiFeList[#AntiFeList + 1] = plr.UserId
+        if (Tag._L.AntiFeList) then
+            _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
         end
     end
 end
@@ -4577,11 +4579,11 @@ getgenv().F_A = {
     GetConfig = GetConfig
 }
 
-Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - start));
+Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
-local LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
+_L.LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
 wait(1);
-Utils.Notify(LocalPlayer, "Newest Update", format("%s - %s", LatestCommit.commit.message, LatestCommit.commit.author.name));
+Utils.Notify(LocalPlayer, "Newest Update", format("%s - %s", _L.LatestCommit.commit.message, _L.LatestCommit.commit.author.name));
