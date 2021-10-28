@@ -574,11 +574,12 @@ end)
 
 Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     local Humanoid, State = ...
+    local Ret = Hooks.GetStateEnabled(...);
     local Parent, Character = Humanoid.Parent, LocalPlayer.Character
     if (Hooks.NoJumpCooldown and (State == Enum.HumanoidStateType.Jumping or State == "Jumping") and Parent and Character and Parent == Character) then
         return false
     end
-    return Hooks.GetStateEnabled(...);
+    return Ret
 end)
 
 do
@@ -588,7 +589,7 @@ do
     local MessagesOut = Hooks.MessagesOut
 
     Hooks.Print = hookfunction(print, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller()) then
+        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
             local MessageOutConnections = getconnections(MessageOut);
             for i = 1, #MessageOutConnections do
                 MessageOutConnections[i]:Disable();
@@ -606,7 +607,7 @@ do
     end));
     
     Hooks.Warn = hookfunction(warn, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller()) then
+        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
             local MessageOutConnections = getconnections(MessageOut);
             for i = 1, #MessageOutConnections do
                 MessageOutConnections[i]:Disable();
