@@ -2392,7 +2392,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    Services.CoreGui.PurchasePromptApp.Enabled = false
+    Services.CoreGui.RobloxPromptGui.Enabled = false
     return "You'll no longer recive sale prompts"
 end)
 
@@ -2689,21 +2689,25 @@ AddCommand("httplogs", {"httpspy"}, "enables httpspy", {}, function()
         AddLog("HttpGet", url);
         return Httpget(self, url);
     end));
-    local HttpgetAsync;
-    HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
-        AddLog("HttpGetAsync", url);
-        return HttpgetAsync(self, url);
-    end));
+    if (game.HttpGet ~= game.HttpGetAsync) then
+        local HttpgetAsync;
+        HttpgetAsync = hookfunction(game.HttpGetAsync, newcclosure(function(self, url)
+            AddLog("HttpGetAsync", url);
+            return HttpgetAsync(self, url);
+        end));
+    end
     local Httppost;
     Httppost = hookfunction(game.HttpPost, newcclosure(function(self, url)
         AddLog("HttpPost", url);
         return Httppost(self, url);
     end));
-    local HttppostAsync;
-    HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
-        AddLog("HttpPostAsync", url);
-        return HttppostAsync(self, url);
-    end));
+    if (game.HttpPost ~= game.HttpPostAsync) then
+        local HttppostAsync;
+        HttppostAsync = hookfunction(game.HttpPostAsync, newcclosure(function(self, url)
+            AddLog("HttpPostAsync", url);
+            return HttppostAsync(self, url);
+        end));
+    end
 
     local Clone = Clone(ChatLogMessage);
     Clone.Text = "httpspy loaded"
@@ -3539,15 +3543,12 @@ end)
 
 local ToggleChatPrediction
 AddCommand("chatprediction", {}, "enables command prediction on the chatbar", {}, function()
-    if (Frame2) then
-        ToggleChatPrediction();
-        local ChatBar = WaitForChild(Frame2, "ChatBar", .1);
-        ChatBar.CaptureFocus(ChatBar);
-        wait();
-        ChatBar.Text = Prefix
-        return "chat prediction enabled"
-    end
-    return "couldn't find chatbar"
+    ToggleChatPrediction();
+    local ChatBar = WaitForChild(_L.Frame2, "ChatBar", .1);
+    ChatBar.CaptureFocus(ChatBar);
+    wait();
+    ChatBar.Text = Prefix
+    return "chat prediction enabled"
 end)
 
 AddCommand("blink", {"blinkws"}, "cframe speed", {}, function(Caller, Args, CEnv)
@@ -3814,9 +3815,9 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
             end
         end
         CEnv.Connections = {}
-        AddConnection(CConnect(UserInputService.InputChanged, ProcessInput), CEnv.Connections);
-        AddConnection(CConnect(UserInputService.InputEnded, ProcessInput), CEnv.Connections);
-        AddConnection(CConnect(UserInputService.InputBegan, ProcessInput), CEnv.Connections);
+        AddConnection(CConnect(UserInputService.InputChanged, ProcessInput));
+        AddConnection(CConnect(UserInputService.InputEnded, ProcessInput));
+        AddConnection(CConnect(UserInputService.InputBegan, ProcessInput));
         local IsKeyDown = UserInputService.IsKeyDown
         local function IsDirectionDown(direction)
             for i = 1, #KEY_MAPPINGS[direction] do
@@ -3831,7 +3832,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
             local dt = 1/60
             AddConnection(CConnect(RenderStepped, function(_dt)
                 dt = _dt
-            end), CEnv.Connections);
+            end));
 
             function UpdateFreecam()
                 local camCFrame = Camera.CFrame
@@ -3905,7 +3906,7 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                 if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
                     SpeedModifier = 1
                 end
-            end))
+            end), CEnv.Connections);
 
             Camera.CameraType = Enum.CameraType.Scriptable
 

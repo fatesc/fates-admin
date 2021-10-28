@@ -327,16 +327,17 @@ AddConnection(CConnect(GetPropertyChangedSignal(CommandBar.Input, "Text"), funct
     end
 end))
 
+
 do
     local Enabled = false
-    local Connection, Frame2;
+    local Connection;
     local Predict;
     ToggleChatPrediction = function()
-        if (not Frame2) then
+        if (_L.Frame2) then
             return
         end
         if (not Enabled) then
-            local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
+            local RobloxChat = LocalPlayer.PlayerGui and FindFirstChild(LocalPlayer.PlayerGui, "Chat");
             local RobloxChatBarFrame;
             if (RobloxChat) then
                 local RobloxChatFrame = FindFirstChild(RobloxChat, "Frame");
@@ -350,10 +351,10 @@ do
                 if Frame1 then
                     local BoxFrame = FindFirstChild(Frame1, 'BoxFrame');
                     if BoxFrame then
-                        Frame2 = FindFirstChild(BoxFrame, 'Frame');
-                        if Frame2 then
-                            local TextLabel = FindFirstChild(Frame2, 'TextLabel');
-                            ChatBar = FindFirstChild(Frame2, 'ChatBar');
+                        _L.Frame2 = FindFirstChild(BoxFrame, 'Frame');
+                        if _L.Frame2 then
+                            local TextLabel = FindFirstChild(_L.Frame2, 'TextLabel');
+                            ChatBar = FindFirstChild(_L.Frame2, 'ChatBar');
                             if TextLabel and ChatBar then
                                 PredictionClone = InstanceNew('TextLabel');
                                 PredictionClone.Font = TextLabel.Font
@@ -380,7 +381,7 @@ do
                 end
             end
 
-            ParentGui(PredictionClone, Frame2);
+            ParentGui(PredictionClone, _L.Frame2);
             Predict = PredictionClone
 
             Connection = AddConnection(CConnect(GetPropertyChangedSignal(ChatBar, "Text"), function() -- todo: add detection for /e
@@ -465,6 +466,7 @@ do
             Destroy(Predict);
             Enabled = false
         end
+        return _L.Frame2
     end
 
     if (CurrentConfig.ChatPrediction) then
