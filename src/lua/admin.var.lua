@@ -27,7 +27,8 @@ setmetatable(Services, {
             return Service
         end
         return nil
-    end
+    end,
+    __mode = "v"
 });
 
 local GetChildren, GetDescendants = game.GetChildren, game.GetDescendants

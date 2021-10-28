@@ -120,9 +120,6 @@ do
     ProtectInstance = function(Instance_, disallow)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
-            if (syn and syn.protect_gui and not disallow) then
-                syn.protect_gui(Instance_);
-            end
         end
     end
     
