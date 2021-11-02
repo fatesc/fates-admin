@@ -3049,7 +3049,6 @@ AddCommand("unfly", {}, "unflies your character", {3}, function()
     end
     UnSpoofInstance(Root);
     GetHumanoid().PlatformStand = false
-    return "stopped flying"
 end)
 
 AddCommand("float", {}, "floats your character", {}, function(Caller, Args, CEnv)

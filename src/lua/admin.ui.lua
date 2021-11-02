@@ -6,7 +6,7 @@ ParentGui = function(Gui, Parent)
     Guis[#Guis + 1] = Gui
     return Gui
 end
-UI = Clone(Services.InsertService:LoadLocalAsset("rbxassetid://6167929302"));
+UI = Clone(Services.InsertService:LoadLocalAsset("rbxassetid://7882275026"));
 UI.Enabled = true
 
 local CommandBarPrefix;
@@ -197,7 +197,7 @@ do
                     if (Object == "Background") then
                         CommandBar.Transparency = Value
                         Notification.Transparency = Value
-                        Command.Transparency = Value
+                        Command.Transparency = Value + .5
                         ChatLogs.Transparency = Value
                         ChatLogs.Frame.Transparency = Value
                         HttpLogs.Transparency = Value
@@ -206,7 +206,7 @@ do
                         ConfigUI.Transparency = Value
                         ConfigUI.Container.Transparency = Value + .5
                         Commands.Transparency = Value
-                        Commands.Frame.Transparency = Value
+                        Commands.Frame.Transparency = Value + .5
                         Values[Object][Index] = Value
                     elseif (Object == "Notification") then
                         Notification.Transparency = Value
@@ -270,6 +270,7 @@ GetThemeConfig = function()
             return DecodedData            
         else
             WriteThemeConfig();
+            return Values
         end
     else
         return Values

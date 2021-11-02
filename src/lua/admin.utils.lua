@@ -544,16 +544,17 @@ Utils.TextFont = function(Text, RGB)
 end
 
 Utils.Thing = function(Object)
-    local Container = InstanceNew("Frame")
-    local Hitbox = InstanceNew("ImageButton")
-    
+    local Container = InstanceNew("Frame");
+    local Hitbox = InstanceNew("ImageButton");
+    local UDim2fromOffset = UDim2.fromOffset
+
     Container.Name = "Container"
     Container.Parent = Object.Parent
     Container.BackgroundTransparency = 1.000
     Container.BorderSizePixel = 0
     Container.Position = Object.Position
     Container.ClipsDescendants = true
-    Container.Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+    Container.Size = UDim2fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y);
     Container.ZIndex = Object
     
     Object.AutomaticSize = Enum.AutomaticSize.X
@@ -577,12 +578,12 @@ Utils.Thing = function(Object)
             MouseOut = false
             repeat
                 local Tween1 = Utils.Tween(Object, "Quad", "Out", .5, {
-                    Position = UDim2.fromOffset(Container.AbsoluteSize.X - Object.AbsoluteSize.X, 0);
+                    Position = UDim2fromOffset(Container.AbsoluteSize.X - Object.AbsoluteSize.X, 0);
                 })
                 CWait(Tween1.Completed);
                 wait(.5);
                 local Tween2 = Utils.Tween(Object, "Quad", "Out", .5, {
-                    Position = UDim2.fromOffset(0, 0);
+                    Position = UDim2fromOffset(0, 0);
                 })
                 CWait(Tween2.Completed);
                 wait(.5);
@@ -593,21 +594,22 @@ Utils.Thing = function(Object)
     AddConnection(CConnect(Hitbox.MouseLeave, function()
         MouseOut = true
         Utils.Tween(Object, "Quad", "Out", .25, {
-            Position = UDim2.fromOffset(0, 0);
-        })
+            Position = UDim2fromOffset(0, 0);
+        });
     end))
     
     return Object
 end
 
 function Utils.Intro(Object)
-	local Frame = InstanceNew("Frame")
-	local UICorner = InstanceNew("UICorner")
+	local Frame = InstanceNew("Frame");
+	local UICorner = InstanceNew("UICorner");
 	local CornerRadius = FindFirstChild(Object, "UICorner") and Object.UICorner.CornerRadius or UDim.new(0, 0)
+    local UDim2fromOffset  = UDim2.fromOffset
 
 	Frame.Name = "IntroFrame"
 	Frame.ZIndex = 1000
-	Frame.Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+	Frame.Size = UDim2fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
 	Frame.AnchorPoint = Vector2.new(.5, .5)
 	Frame.Position = UDim2.new(Object.Position.X.Scale, Object.Position.X.Offset + (Object.AbsoluteSize.X / 2), Object.Position.Y.Scale, Object.Position.Y.Offset + (Object.AbsoluteSize.Y / 2))
 	Frame.BackgroundColor3 = Object.BackgroundColor3
@@ -623,43 +625,43 @@ function Utils.Intro(Object)
 
 		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
 			BackgroundTransparency = 0
-		})
+		});
 
-		Tween.Completed:Wait()
+		CWait(Tween.Completed);
 		Object.Visible = false
 
 		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
-			Size = UDim2.fromOffset(0, 0)
-		})
+			Size = UDim2fromOffset(0, 0);
+		});
 
 		Utils.Tween(UICorner, "Quad", "Out", .25, {
 			CornerRadius = UDim.new(1, 0)
-		})
+		});
 
-		Tween.Completed:Wait()
-		Frame:Destroy()
+		CWait(Tween.Completed);
+		Destroy(Frame);
 	else
 		Frame.Visible = true
-		Frame.Size = UDim2.fromOffset(0, 0)
+		Frame.Size = UDim2fromOffset(0, 0)
 		UICorner.CornerRadius = UDim.new(1, 0)
 
 		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
-			Size = UDim2.fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
-		})
+			Size = UDim2fromOffset(Object.AbsoluteSize.X, Object.AbsoluteSize.Y)
+		});
 
 		Utils.Tween(UICorner, "Quad", "Out", .25, {
 			CornerRadius = CornerRadius
-		})
+		});
 
-		Tween.Completed:Wait()
+		CWait(Tween.Completed);
 		Object.Visible = true
 
 		local Tween = Utils.Tween(Frame, "Quad", "Out", .25, {
 			BackgroundTransparency = 1
 		})
 
-		Tween.Completed:Wait()
-		Frame:Destroy()
+		CWait(Tween.Completed);
+		Destroy(Frame);
 	end
 end
 
@@ -687,23 +689,26 @@ end
 Utils.ToggleFunction = function(Container, Enabled, Callback) -- fpr color picker
     local Switch = Container.Switch
     local Hitbox = Container.Hitbox
-    Container.BackgroundColor3 = Color3.fromRGB(255, 79, 87);
+    local Color3fromRGB = Color3.fromRGB
+    local UDim2fromOffset = UDim2.fromOffset
+
+    Container.BackgroundColor3 = Color3fromRGB(255, 79, 87);
 
     if not Enabled then
-        Switch.Position = UDim2.fromOffset(2, 2)
-        Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
+        Switch.Position = UDim2fromOffset(2, 2)
+        Container.BackgroundColor3 = Color3fromRGB(25, 25, 25);
     end
 
     AddConnection(CConnect(Hitbox.MouseButton1Click, function()
         Enabled = not Enabled
         
         Utils.Tween(Switch, "Quad", "Out", .25, {
-            Position = Enabled and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
-        })
+            Position = Enabled and UDim2.new(1, -18, 0, 2) or UDim2fromOffset(2, 2)
+        });
         Utils.Tween(Container, "Quad", "Out", .25, {
-            BackgroundColor3 = Enabled and Color3.fromRGB(255, 79, 87) or Color3.fromRGB(25, 25, 25);
-        })
+            BackgroundColor3 = Enabled and Color3fromRGB(255, 79, 87) or Color3fromRGB(25, 25, 25);
+        });
         
-        Callback(Enabled)
+        Callback(Enabled);
     end));
 end

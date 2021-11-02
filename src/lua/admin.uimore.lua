@@ -875,11 +875,16 @@ do
             end
 
             function ElementLibrary.ColorPicker(Title, DefaultColor, Callback)
-                local SelectColor = ColorElements.SelectColor:Clone()
+                local SelectColor = Clone(ColorElements.SelectColor);
                 local CurrentColor = DefaultColor
                 local Button = SelectColor.Button
-                               
-                local H, S, V = DefaultColor:ToHSV()
+                local ToHSV = DefaultColor.ToHSV
+                local Color3New = Color3.new
+                local Color3fromHSV = Color3.fromHSV
+                local UDim2New = UDim2.new
+                local clamp = math.clamp
+
+                local H, S, V = ToHSV(DefaultColor);
                 local Opened = false
                 local Rainbow = false
                 
@@ -890,28 +895,28 @@ do
                 end
                 
                 local function UpdateColor()
-                    H, S, V = CurrentColor:ToHSV()
+                    H, S, V = ToHSV(CurrentColor);
                     
-                    SliderBar.Position = UDim2.new(0, 0, H, 2)
-                    CanvasBar.Position = UDim2.new(S, 2, 1 - V, 2)
+                    SliderBar.Position = UDim2New(0, 0, H, 2);
+                    CanvasBar.Position = UDim2New(S, 2, 1 - V, 2);
                     ColorGradient.UIGradient.Color = Utils.MakeGradient({
-                        [1] = Color3.new(1, 1, 1);
-                        [2] = Color3.fromHSV(H, 1, 1);
+                        [1] = Color3New(1, 1, 1);
+                        [2] = Color3fromHSV(H, 1, 1);
                     })
                     
                     ColorPreview.BackgroundColor3 = CurrentColor
-                    UpdateText()
+                    UpdateText();
                 end
             
                 local function UpdateHue(Hue)
-                    SliderBar.Position = UDim2.new(0, 0, Hue, 2)
+                    SliderBar.Position = UDim2New(0, 0, Hue, 2);
                     ColorGradient.UIGradient.Color = Utils.MakeGradient({
-                        [1] = Color3.new(1, 1, 1);
-                        [2] = Color3.fromHSV(Hue, 1, 1);
-                    })
+                        [1] = Color3New(1, 1, 1);
+                        [2] = Color3fromHSV(Hue, 1, 1);
+                    });
                     
                     ColorPreview.BackgroundColor3 = CurrentColor
-                    UpdateText()
+                    UpdateText();
                 end
                 
                 local function ColorSliderInit()
@@ -920,26 +925,26 @@ do
                     local function Update()
                         if Opened and not Rainbow then
                             local LowerBound = SliderHitbox.AbsoluteSize.Y
-                            local Position = math.clamp(Mouse.Y - SliderHitbox.AbsolutePosition.Y, 0, LowerBound)
+                            local Position = clamp(Mouse.Y - SliderHitbox.AbsolutePosition.Y, 0, LowerBound);
                             local Value = Position / LowerBound
                             
                             H = Value
-                            CurrentColor = Color3.fromHSV(H, S, V)
+                            CurrentColor = Color3fromHSV(H, S, V);
                             ColorPreview.BackgroundColor3 = CurrentColor
                             ColorGradient.UIGradient.Color = Utils.MakeGradient({
-                                [1] = Color3.new(1, 1, 1);
-                                [2] = Color3.fromHSV(H, 1, 1);
-                            })
+                                [1] = Color3New(1, 1, 1);
+                                [2] = Color3fromHSV(H, 1, 1);
+                            });
                             
-                            UpdateText()
+                            UpdateText();
                             
                             local Position = UDim2.new(0, 0, Value, 2)
                             local Tween = Utils.Tween(SliderBar, "Linear", "Out", .05, {
                                 Position = Position
-                            })
+                            });
                             
-                            Callback(CurrentColor)
-                            Tween.Completed:Wait()
+                            Callback(CurrentColor);
+                            CWait(Tween.Completed);
                         end
                     end
                 
@@ -966,25 +971,25 @@ do
                     local function Update()
                         if Opened then
                             local LowerBound = CanvasHitbox.AbsoluteSize.Y
-                            local YPosition = math.clamp(Mouse.Y - CanvasHitbox.AbsolutePosition.Y, 0, LowerBound)
+                            local YPosition = clamp(Mouse.Y - CanvasHitbox.AbsolutePosition.Y, 0, LowerBound)
                             local YValue = YPosition / LowerBound
                             local RightBound = CanvasHitbox.AbsoluteSize.X
-                            local XPosition = math.clamp(Mouse.X - CanvasHitbox.AbsolutePosition.X, 0, RightBound)
+                            local XPosition = clamp(Mouse.X - CanvasHitbox.AbsolutePosition.X, 0, RightBound)
                             local XValue = XPosition / RightBound
                             
                             S = XValue
                             V = 1 - YValue
                             
-                            CurrentColor = Color3.fromHSV(H, S, V)
+                            CurrentColor = Color3fromHSV(H, S, V);
                             ColorPreview.BackgroundColor3 = CurrentColor
                             UpdateText()
                             
-                            local Position = UDim2.new(XValue, 2, YValue, 2)
+                            local Position = UDim2New(XValue, 2, YValue, 2);
                             local Tween = Utils.Tween(CanvasBar, "Linear", "Out", .05, {
                                 Position = Position
-                            })
-                            Callback(CurrentColor)
-                            Tween.Completed:Wait()
+                            });
+                            Callback(CurrentColor);
+                            CWait(Tween.Completed);
                         end
                     end
                 
@@ -1013,7 +1018,7 @@ do
                     if not Opened then
                         Opened = true
                         UpdateColor()
-                        RainbowToggle.Container.Switch.Position = Rainbow and UDim2.new(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
+                        RainbowToggle.Container.Switch.Position = Rainbow and UDim2New(1, -18, 0, 2) or UDim2.fromOffset(2, 2)
                         RainbowToggle.Container.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
                         Overlay.Visible = true
                         OverlayMain.Visible = false
@@ -1032,8 +1037,8 @@ do
                     if Opened then
                         local Number = tonumber(RedTextBox.Text)
                         if Number then
-                            Number = math.clamp(math.floor(Number), 0, 255)
-                            CurrentColor = Color3.new(Number / 255, CurrentColor.G, CurrentColor.B)
+                            Number = clamp(floor(Number), 0, 255)
+                            CurrentColor = Color3New(Number / 255, CurrentColor.G, CurrentColor.B)
                             UpdateColor()
                             RedTextBox.PlaceholderText = tostring(Number)
                             Callback(CurrentColor)
@@ -1046,8 +1051,8 @@ do
                     if Opened then
                         local Number = tonumber(GreenTextBox.Text)
                         if Number then
-                            Number = math.clamp(math.floor(Number), 0, 255)
-                            CurrentColor = Color3.new(CurrentColor.R, Number / 255, CurrentColor.B)
+                            Number = clamp(floor(Number), 0, 255)
+                            CurrentColor = Color3New(CurrentColor.R, Number / 255, CurrentColor.B)
                             UpdateColor()
                             GreenTextBox.PlaceholderText = tostring(Number)
                             Callback(CurrentColor)
@@ -1060,8 +1065,8 @@ do
                     if Opened then
                         local Number = tonumber(BlueTextBox.Text)
                         if Number then
-                            Number = math.clamp(math.floor(Number), 0, 255)
-                            CurrentColor = Color3.new(CurrentColor.R, CurrentColor.G, Number / 255)
+                            Number = clamp(floor(Number), 0, 255)
+                            CurrentColor = Color3New(CurrentColor.R, CurrentColor.G, Number / 255)
                             UpdateColor()
                             BlueTextBox.PlaceholderText = tostring(Number)
                             Callback(CurrentColor)
