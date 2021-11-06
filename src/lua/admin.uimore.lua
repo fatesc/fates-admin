@@ -1097,12 +1097,9 @@ do
                                 
                 Button.BackgroundColor3 = DefaultColor
                 SelectColor.Title.Text = Title
-                CThread(function()
-                    wait(.1)
-                    SelectColor.Visible = true
-                    SelectColor.Parent = Section.Options
-                    Utils.Thing(SelectColor.Title);
-                end)()
+                SelectColor.Visible = true
+                SelectColor.Parent = Section.Options
+                Utils.Thing(SelectColor.Title);
             end
 
             return ElementLibrary
