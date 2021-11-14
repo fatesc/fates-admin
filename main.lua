@@ -842,6 +842,9 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
 end));
 
 local UndetectedCmdBar;
+if game.PlaceId == 7790565860 then
+	UndetectedCmdBar = true
+end
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
