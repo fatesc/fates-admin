@@ -822,9 +822,11 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     if (not checkcaller()) then
         local Args = {...}
         local IsACheck = Args[1]
-        local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
-        if (ProtectedInstance and Args[2]) then
-            return false
+        if (IsACheck) then
+            local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
+            if (ProtectedInstance and Args[2]) then
+                return false
+            end
         end
     end
     return Hooks.IsA(...);
