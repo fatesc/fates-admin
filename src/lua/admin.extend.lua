@@ -444,7 +444,7 @@ end));
 Hooks.FindFirstChild = hookfunction(game.FindFirstChild, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChild(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -453,7 +453,7 @@ end));
 Hooks.FindFirstChildOfClass = hookfunction(game.FindFirstChildOfClass, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChildOfClass(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -462,7 +462,7 @@ end));
 Hooks.FindFirstChildWhichIsA = hookfunction(game.FindFirstChildWhichIsA, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChildWhichIsA(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
