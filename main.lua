@@ -1,5 +1,5 @@
 --[[
-	fates admin - 7/11/2021
+	fates admin - 15/11/2021
 ]]
 
 local game = game
@@ -325,16 +325,21 @@ end
 
 local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext
 local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext
+
+local error = function()
+    -- fate admin console error
+end
+
+local warn = function()
+    -- fate admin console warn
+end
+
+local print = function()
+    -- fate admin console print
+end
 --END IMPORT [var]
 
 
-do
-    local ErrorConnections = getconnections(Services.ScriptContext.Error);
-    if (next(ErrorConnections)) then
-        getfenv().error = warn
-        getgenv().error = warn
-    end
-end
 
 local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
@@ -343,7 +348,7 @@ end
 local Utils = {}
 
 --IMPORT [extend]
-local firetouchinterest, hookfunction;
+local firetouchinterest, hookfunction, getconnections;
 do
     local GEnv = getgenv();
     local touched = {}
@@ -370,15 +375,13 @@ do
         func = applycclosure and newcclosure or newfunc
         return func
     end
-end
 
-local getconnections;
-do
     local CachedConnections = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
-    getconnections = function(Connection, FromCache)
-        local getconnections = getgenv().getconnections
+
+    getconnections = function(Connection, FromCache, AddOnConnect)
+        local getconnections = GEnv.getconnections
         if (not getconnections) then
             return {}
         end
@@ -394,7 +397,7 @@ do
             return CachedConnection
         end
 
-        local Connections = getgenv().getconnections(Connection);
+        local Connections = GEnv.getconnections(Connection);
         CachedConnections[Connection] = Connections
         return Connections
     end
@@ -412,31 +415,10 @@ local checkcaller = checkcaller or function()
     return false
 end
 
-local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
-    setreadonly(metatable, false);
-    Old = hookfunction(metatable[metamethod], func, true);
-    setreadonly(metatable, true);
-    return Old
-end
-
-local GetAllParents = function(Instance_)
-    if (typeof(Instance_) == "Instance") then
-        local Parents = {}
-        local Current = Instance_
-        repeat
-            local Parent = Current.Parent
-            Parents[#Parents + 1] = Parent
-            Current = Parent
-        until not Current
-        return Parents
-    end
-    return {}
-end
 local Hooks = {
     AntiKick = false,
     AntiTeleport = false,
     NoJumpCooldown = false,
-    UndetectedMessageOut = true
 }
 
 local mt = getrawmetatable(game);
@@ -451,14 +433,14 @@ local MetaMethodHooks = {}
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
 local ProtectedInstances = setmetatable({}, {
-    mode = "v"
+    __mode = "v"
 });
 do
     local SpoofedInstances = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
     local SpoofedProperties = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
     Hooks.SpoofedProperties = SpoofedProperties
 
@@ -507,6 +489,20 @@ do
             }}
             ChangedSpoofedProperties[Instance_] = {}
         end
+    end
+
+    local GetAllParents = function(Instance_)
+        if (typeof(Instance_) == "Instance") then
+            local Parents = {}
+            local Current = Instance_
+            repeat
+                local Parent = Current.Parent
+                Parents[#Parents + 1] = Parent
+                Current = Parent
+            until not Current
+            return Parents
+        end
+        return {}
     end
 
     local Methods = {
@@ -589,20 +585,6 @@ do
             end
         end
 
-        if (Hooks.UndetectedMessageOut and Method == "GetLogHistory") then
-            if (self == Services.LogService) then
-                local LogHistory = __Namecall(...);
-                local MessagesOut = Hooks.MessagesOut
-                local FilteredLogHistory = {}
-                for i, v in next, LogHistory do
-                    if (not Tfind(MessagesOut, v.message)) then
-                        FilteredLogHistory[#FilteredLogHistory + 1] = v
-                    end
-                end
-                return FilteredLogHistory
-            end
-        end
-
         if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
             local State = __Namecall(...);
             if (Method == "GetState" and (State == Enum.HumanoidStateType.Jumping or State == "Jumping")) then
@@ -612,7 +594,7 @@ do
                 return false
             end
         end
-        
+
         return __Namecall(...);
     end
 
@@ -776,11 +758,18 @@ do
 
         return __NewIndex(...);
     end
-end
 
-OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
-OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
-OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+    local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
+        setreadonly(metatable, false);
+        Old = hookfunction(metatable[metamethod], func, true);
+        setreadonly(metatable, true);
+        return Old
+    end
+
+    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
@@ -923,84 +912,6 @@ Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     end
     return Ret
 end)
-
-do
-    local LogService = Services.LogService
-    local MessageOut = LogService.MessageOut
-    Hooks.MessagesOut = {}
-    local MessagesOut = Hooks.MessagesOut
-
-    Hooks.Print = hookfunction(print, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Print = Hooks.Print(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Print
-        end
-        return Hooks.Print(...);
-    end));
-    
-    Hooks.Warn = hookfunction(warn, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Warn = Hooks.Warn(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Warn
-        end
-        return Hooks.Warn(...);
-    end))
-
-    Hooks.OldGetLogHistory = hookfunction(LogService.GetLogHistory, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut) then
-            local LogHistory = Hooks.OldGetLogHistory(...);
-            local FilteredLogHistory = {}
-            for i, v in next, LogHistory do
-                if (not Tfind(MessagesOut, v.message)) then
-                    FilteredLogHistory[#FilteredLogHistory + 1] = v
-                end
-            end
-            return FilteredLogHistory
-        end
-        return Hooks.OldGetLogHistory(...);
-    end))
-end
-
--- local UnProtectInstance = function(Instance_)
---     for i, v in next, ProtectedInstances do
---         if (v == Instance_) then
---             ProtectedInstances[i] = nil
---             if (syn and syn.unprotect_gui) then
---                 pcall(function()
---                     syn.unprotect_gui(Instance_);
---                 end)
---             end
---         end
---     end
--- end
-
--- local UnSpoofProperty = function(Instance_, Property)
---     local SpoofedProperty = SpoofedProperties[Instance_]
---     if (SpoofedProperty and SpoofedProperty.Property == Property) then
---         Destroy(SpoofedProperty.SpoofedProperty);
---         SpoofedInstances[Instance_] = nil
---     end
--- end
 --END IMPORT [extend]
 
 
@@ -2464,10 +2375,7 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
-                local UndetectedMessageOut = Hooks.UndetectedMessageOut
-                Hooks.UndetectedMessageOut = true
                 warn("[FA Error]: " .. debug.traceback(Err));
-                Hooks.UndetectedMessageOut = UndetectedMessageOut
                 Utils.Notify(Caller, "Error", Err);
             end
         end);
@@ -2475,10 +2383,7 @@ local ExecuteCommand = function(Name, Args, Caller)
             sett(Context);
         end
     else
-        local UndetectedMessageOut = Hooks.UndetectedMessageOut
-        Hooks.UndetectedMessageOut = true
         warn("couldn't find the command ".. Name);
-        Hooks.UndetectedMessageOut = UndetectedMessageOut
         Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
     end
 end
@@ -3764,7 +3669,7 @@ AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}
     Lighting.ClockTime = Times[Time] or Time
 end)
 
-AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
+AddCommand("fling", {"stan"}, "flings a player", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot()
     SpoofProperty(Root, "Velocity");
@@ -3799,7 +3704,7 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     Root.CFrame = OldPos
 end)
 
-AddCommand("fling2", {}, "another variant of fling", {}, function(Caller, Args)
+AddCommand("fling2", {"stan2"}, "another variant of fling", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot();
     local OldPos = Root.CFrame
@@ -7897,10 +7802,6 @@ do
             SetConfig({UndetectedCmdBar=Callback});
         end)
 
-        Misc.Toggle("Undetected MessageOut", Hooks.UndetectedMessageOut, function(Callback)
-            Hooks.UndetectedMessageOut = Callback
-        end)
-
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
             Hooks.AntiKick = Callback
             Utils.Notify(nil, nil, format("AntiKick %s", Hooks.AntiKick and "enabled" or "disabled"));
@@ -8197,8 +8098,6 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     end
 end), Connections.UI, true);
 
-local CurrentPlayers = GetPlayers(Players);
-
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
     AddConnection(CConnect(plr.CharacterAdded, function()
@@ -8217,7 +8116,7 @@ local PlayerAdded = function(plr)
     end
 end
 
-forEach(CurrentPlayers, function(i,v)
+forEach(GetPlayers(Players), function(i,v)
     PlrChat(i,v);
     PlayerAdded(v);
 end);
@@ -8246,7 +8145,7 @@ getgenv().F_A = {
 }
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
-Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
+Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands, 'config' to customise the script");
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end

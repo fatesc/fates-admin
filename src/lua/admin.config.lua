@@ -63,10 +63,6 @@ do
             SetConfig({UndetectedCmdBar=Callback});
         end)
 
-        Misc.Toggle("Undetected MessageOut", Hooks.UndetectedMessageOut, function(Callback)
-            Hooks.UndetectedMessageOut = Callback
-        end)
-
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
             Hooks.AntiKick = Callback
             Utils.Notify(nil, nil, format("AntiKick %s", Hooks.AntiKick and "enabled" or "disabled"));

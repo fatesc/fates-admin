@@ -1,4 +1,4 @@
-local firetouchinterest, hookfunction;
+local firetouchinterest, hookfunction, getconnections;
 do
     local GEnv = getgenv();
     local touched = {}
@@ -25,15 +25,13 @@ do
         func = applycclosure and newcclosure or newfunc
         return func
     end
-end
 
-local getconnections;
-do
     local CachedConnections = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
-    getconnections = function(Connection, FromCache)
-        local getconnections = getgenv().getconnections
+
+    getconnections = function(Connection, FromCache, AddOnConnect)
+        local getconnections = GEnv.getconnections
         if (not getconnections) then
             return {}
         end
@@ -49,7 +47,7 @@ do
             return CachedConnection
         end
 
-        local Connections = getgenv().getconnections(Connection);
+        local Connections = GEnv.getconnections(Connection);
         CachedConnections[Connection] = Connections
         return Connections
     end
@@ -67,31 +65,10 @@ local checkcaller = checkcaller or function()
     return false
 end
 
-local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
-    setreadonly(metatable, false);
-    Old = hookfunction(metatable[metamethod], func, true);
-    setreadonly(metatable, true);
-    return Old
-end
-
-local GetAllParents = function(Instance_)
-    if (typeof(Instance_) == "Instance") then
-        local Parents = {}
-        local Current = Instance_
-        repeat
-            local Parent = Current.Parent
-            Parents[#Parents + 1] = Parent
-            Current = Parent
-        until not Current
-        return Parents
-    end
-    return {}
-end
 local Hooks = {
     AntiKick = false,
     AntiTeleport = false,
     NoJumpCooldown = false,
-    UndetectedMessageOut = true
 }
 
 local mt = getrawmetatable(game);
@@ -106,14 +83,14 @@ local MetaMethodHooks = {}
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
 local ProtectedInstances = setmetatable({}, {
-    mode = "v"
+    __mode = "v"
 });
 do
     local SpoofedInstances = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
     local SpoofedProperties = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
     Hooks.SpoofedProperties = SpoofedProperties
 
@@ -162,6 +139,20 @@ do
             }}
             ChangedSpoofedProperties[Instance_] = {}
         end
+    end
+
+    local GetAllParents = function(Instance_)
+        if (typeof(Instance_) == "Instance") then
+            local Parents = {}
+            local Current = Instance_
+            repeat
+                local Parent = Current.Parent
+                Parents[#Parents + 1] = Parent
+                Current = Parent
+            until not Current
+            return Parents
+        end
+        return {}
     end
 
     local Methods = {
@@ -244,20 +235,6 @@ do
             end
         end
 
-        if (Hooks.UndetectedMessageOut and Method == "GetLogHistory") then
-            if (self == Services.LogService) then
-                local LogHistory = __Namecall(...);
-                local MessagesOut = Hooks.MessagesOut
-                local FilteredLogHistory = {}
-                for i, v in next, LogHistory do
-                    if (not Tfind(MessagesOut, v.message)) then
-                        FilteredLogHistory[#FilteredLogHistory + 1] = v
-                    end
-                end
-                return FilteredLogHistory
-            end
-        end
-
         if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
             local State = __Namecall(...);
             if (Method == "GetState" and (State == Enum.HumanoidStateType.Jumping or State == "Jumping")) then
@@ -267,7 +244,7 @@ do
                 return false
             end
         end
-        
+
         return __Namecall(...);
     end
 
@@ -431,11 +408,18 @@ do
 
         return __NewIndex(...);
     end
-end
 
-OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
-OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
-OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+    local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
+        setreadonly(metatable, false);
+        Old = hookfunction(metatable[metamethod], func, true);
+        setreadonly(metatable, true);
+        return Old
+    end
+
+    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
@@ -578,81 +562,3 @@ Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     end
     return Ret
 end)
-
-do
-    local LogService = Services.LogService
-    local MessageOut = LogService.MessageOut
-    Hooks.MessagesOut = {}
-    local MessagesOut = Hooks.MessagesOut
-
-    Hooks.Print = hookfunction(print, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Print = Hooks.Print(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Print
-        end
-        return Hooks.Print(...);
-    end));
-    
-    Hooks.Warn = hookfunction(warn, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Warn = Hooks.Warn(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Warn
-        end
-        return Hooks.Warn(...);
-    end))
-
-    Hooks.OldGetLogHistory = hookfunction(LogService.GetLogHistory, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut) then
-            local LogHistory = Hooks.OldGetLogHistory(...);
-            local FilteredLogHistory = {}
-            for i, v in next, LogHistory do
-                if (not Tfind(MessagesOut, v.message)) then
-                    FilteredLogHistory[#FilteredLogHistory + 1] = v
-                end
-            end
-            return FilteredLogHistory
-        end
-        return Hooks.OldGetLogHistory(...);
-    end))
-end
-
--- local UnProtectInstance = function(Instance_)
---     for i, v in next, ProtectedInstances do
---         if (v == Instance_) then
---             ProtectedInstances[i] = nil
---             if (syn and syn.unprotect_gui) then
---                 pcall(function()
---                     syn.unprotect_gui(Instance_);
---                 end)
---             end
---         end
---     end
--- end
-
--- local UnSpoofProperty = function(Instance_, Property)
---     local SpoofedProperty = SpoofedProperties[Instance_]
---     if (SpoofedProperty and SpoofedProperty.Property == Property) then
---         Destroy(SpoofedProperty.SpoofedProperty);
---         SpoofedInstances[Instance_] = nil
---     end
--- end

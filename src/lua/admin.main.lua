@@ -26,13 +26,6 @@ end
     require - var
 ]]
 
-do
-    local ErrorConnections = getconnections(Services.ScriptContext.Error);
-    if (next(ErrorConnections)) then
-        getfenv().error = warn
-        getgenv().error = warn
-    end
-end
 
 local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
@@ -433,10 +426,7 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
-                local UndetectedMessageOut = Hooks.UndetectedMessageOut
-                Hooks.UndetectedMessageOut = true
                 warn("[FA Error]: " .. debug.traceback(Err));
-                Hooks.UndetectedMessageOut = UndetectedMessageOut
                 Utils.Notify(Caller, "Error", Err);
             end
         end);
@@ -444,10 +434,7 @@ local ExecuteCommand = function(Name, Args, Caller)
             sett(Context);
         end
     else
-        local UndetectedMessageOut = Hooks.UndetectedMessageOut
-        Hooks.UndetectedMessageOut = true
         warn("couldn't find the command ".. Name);
-        Hooks.UndetectedMessageOut = UndetectedMessageOut
         Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
     end
 end
@@ -1733,7 +1720,7 @@ AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}
     Lighting.ClockTime = Times[Time] or Time
 end)
 
-AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
+AddCommand("fling", {"stan"}, "flings a player", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot()
     SpoofProperty(Root, "Velocity");
@@ -1768,7 +1755,7 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     Root.CFrame = OldPos
 end)
 
-AddCommand("fling2", {}, "another variant of fling", {}, function(Caller, Args)
+AddCommand("fling2", {"stan2"}, "another variant of fling", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot();
     local OldPos = Root.CFrame
@@ -4531,8 +4518,6 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     end
 end), Connections.UI, true);
 
-local CurrentPlayers = GetPlayers(Players);
-
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
     AddConnection(CConnect(plr.CharacterAdded, function()
@@ -4551,7 +4536,7 @@ local PlayerAdded = function(plr)
     end
 end
 
-forEach(CurrentPlayers, function(i,v)
+forEach(GetPlayers(Players), function(i,v)
     PlrChat(i,v);
     PlayerAdded(v);
 end);
@@ -4580,7 +4565,7 @@ getgenv().F_A = {
 }
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
-Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
+Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands, 'config' to customise the script");
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end

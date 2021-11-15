@@ -296,3 +296,15 @@ end
 
 local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext
 local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext
+
+local error = function()
+    -- fate admin console error
+end
+
+local warn = function()
+    -- fate admin console warn
+end
+
+local print = function()
+    -- fate admin console print
+end
