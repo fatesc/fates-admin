@@ -1733,7 +1733,7 @@ AddCommand("time", {"settime"}, "sets the games time", {{"night", "day", "dawn"}
     Lighting.ClockTime = Times[Time] or Time
 end)
 
-AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
+AddCommand("fling", {"stan"}, "flings a player", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot()
     SpoofProperty(Root, "Velocity");
@@ -1768,7 +1768,7 @@ AddCommand("fling", {}, "flings a player", {}, function(Caller, Args)
     Root.CFrame = OldPos
 end)
 
-AddCommand("fling2", {}, "another variant of fling", {}, function(Caller, Args)
+AddCommand("fling2", {"stan2"}, "another variant of fling", {}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
     local Root = GetRoot();
     local OldPos = Root.CFrame
