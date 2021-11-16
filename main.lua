@@ -1,5 +1,5 @@
 --[[
-	fates admin - 15/11/2021
+	fates admin - 16/11/2021
 ]]
 
 local game = game
@@ -7596,8 +7596,12 @@ do
     Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
-        local splitted = split(v, "\\")
-        return {splitted[#splitted], loadfile(v)}
+        local splitted = split(v, "\\");
+        if (identifyexecutor and identifyexecutor() == "ScriptWare") then
+            return {splitted[#splitted], loadfile("fates-admin/plugins/" .. v)}
+        else
+            return {splitted[#splitted], loadfile(v)}
+        end
     end) or {}
 
     local Renv = clone(getrenv(), true);
