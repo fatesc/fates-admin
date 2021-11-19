@@ -1,5 +1,5 @@
 --[[
-	fates admin - 16/11/2021
+	fates admin - 19/11/2021
 ]]
 
 local game = game
@@ -491,10 +491,13 @@ do
         end
     end
 
-    local GetAllParents = function(Instance_)
+    local GetAllParents = function(Instance_, NIV)
         if (typeof(Instance_) == "Instance") then
             local Parents = {}
-            local Current = Instance_
+            local Current = NIV or Instance_
+            if (NIV) then
+                Parents[#Parents + 1] = Current
+            end
             repeat
                 local Parent = Current.Parent
                 Parents[#Parents + 1] = Parent
@@ -504,7 +507,7 @@ do
         end
         return {}
     end
-
+    
     local Methods = {
         "FindFirstChild",
         "FindFirstChildWhichIsA",
@@ -679,7 +682,7 @@ do
                     end
                 end
                 if (ProtectedInstance) then
-                    local Parents = GetAllParents(Value);
+                    local Parents = GetAllParents(Instance_, Value);
                     for i, v in next, getconnections(Parents[1].ChildAdded, true) do
                         v.Disable(v);
                     end
