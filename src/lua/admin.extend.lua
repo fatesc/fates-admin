@@ -94,7 +94,7 @@ do
     });
     Hooks.SpoofedProperties = SpoofedProperties
 
-    ProtectInstance = function(Instance_, disallow)
+    ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
         end

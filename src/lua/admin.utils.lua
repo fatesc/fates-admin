@@ -337,6 +337,9 @@ Utils.Notify = function(Caller, Title, Message, Time)
         end)()
 
         AddConnection(CConnect(Clone.Close.MouseButton1Click, TweenDestroy));
+        if (Title ~= "Warning" and Title ~= "Error") then
+            Utils.Print(Message, Caller, true);
+        end
 
         return Clone
     else
@@ -711,4 +714,68 @@ Utils.ToggleFunction = function(Container, Enabled, Callback) -- fpr color picke
         
         Callback(Enabled);
     end));
+end
+
+do
+    local AmountPrint, AmountWarn, AmountError = 0, 0, 0;
+
+    Utils.Warn = function(Text, Plr)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "W" .. tostring(AmountWarn + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.TextColor3 = Color3.fromRGB(255, 218, 68);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountWarn = AmountWarn + 1
+        Utils.Notify(Plr, "Warning", Text);
+    end
+    
+    Utils.Error = function(Text, Caller, FromNotif)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "E" .. tostring(AmountError + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.TextColor3 = Color3.fromRGB(215, 90, 74);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountError = AmountError + 1
+    end
+    
+    Utils.Print = function(Text, Caller, FromNotif)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "P" .. tostring(AmountPrint + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountPrint = AmountPrint + 1
+        if (len(Text) <= 35 and not FromNotif) then
+            Utils.Notify(Caller, "Output", Text);
+        end
+    end
 end

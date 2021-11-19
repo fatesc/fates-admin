@@ -349,10 +349,10 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Function = function()
             for i, v in next, options do
                 if (type(v) == 'function' and v() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", ("You are missing something that is needed for this command"));
+                    Utils.Warn("You are missing something that is needed for this command", LocalPlayer);
                     return nil
                 elseif (type(v) == 'number' and CommandRequirements[v].Func() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", CommandRequirements[v].Message);
+                    Utils.Warn(CommandRequirements[v].Message, LocalPlayer);
                     return nil
                 end
             end
@@ -400,7 +400,7 @@ local ExecuteCommand = function(Name, Args, Caller)
     local Command = LoadCommand(Name);
     if (Command) then
         if (Command.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
+            return Utils.Warn(format("Insuficient Args (you need %d)", Command.ArgsNeeded), LocalPlayer);
         end
 
         local Context;
@@ -426,16 +426,15 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
-                warn("[FA Error]: " .. debug.traceback(Err));
-                Utils.Notify(Caller, "Error", Err);
+                Utils.Error(format("[FA CMD Error]: Command = '%s' Traceback = '%s'", Name, debug.traceback(Err)), Caller);
+                Utils.Notify(Caller, "Error", format("error in the '%s' command, more info shown in console", Name));
             end
         end);
         if (Command.IsPlugin and sett and PluginConf.SafePlugins and Context) then
             sett(Context);
         end
     else
-        warn("couldn't find the command ".. Name);
-        Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
+        Utils.Warn("couldn't find the command " .. Name, Caller);
     end
 end
 
@@ -531,6 +530,49 @@ do
                 else
                     ExecuteCommand(Macro.Command, Macro.Args);
                 end
+            end
+        end
+
+        if (Input.KeyCode == Enum.KeyCode.F8) then
+            if (Console.Visible) then
+                local Tween = Utils.TweenAllTrans(Console, .25)
+                CWait(Tween.Completed);
+                Console.Visible = false
+            else
+                local MessageClone = Clone(Console.Frame.List);
+    
+                Utils.ClearAllObjects(Console.Frame.List)
+                Console.Visible = true
+            
+                local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+            
+                Destroy(Console.Frame.List)
+                MessageClone.Parent = Console.Frame
+            
+                for i, v in next, GetChildren(Console.Frame.List) do
+                    if (not IsA(v, "UIListLayout")) then
+                        Utils.Tween(v, "Sine", "Out", .25, {
+                            TextTransparency = 0
+                        })
+                    end
+                end
+            
+                local ConsoleListLayout = Console.Frame.List.UIListLayout
+            
+                CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+                    local CanvasPosition = Console.Frame.List.CanvasPosition
+                    local CanvasSize = Console.Frame.List.CanvasSize
+                    local AbsoluteSize = Console.Frame.List.AbsoluteSize
+            
+                    if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+                       wait();
+                       Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+                    end
+                end)
+            
+                Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+                    ScrollBarImageTransparency = 0
+                })
             end
         end
     end));
@@ -3315,7 +3357,7 @@ AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, fun
         }
     end)
     for i, v in next, ChangeLogs do
-        print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
+        Utils.Print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
     end
 
     return "changelogs loaded, press f9"
@@ -4400,6 +4442,42 @@ AddCommand("pathfind", {"follow2"}, "finds a user with pathfinding", {"1",3}, fu
     end
 end)
 
+AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates admin has made", {}, function()
+    local MessageClone = Clone(Console.Frame.List);
+    
+    Utils.ClearAllObjects(Console.Frame.List)
+    Console.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+
+    Destroy(Console.Frame.List)
+    MessageClone.Parent = Console.Frame
+
+    for i, v in next, GetChildren(Console.Frame.List) do
+        if (not IsA(v, "UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local ConsoleListLayout = Console.Frame.List.UIListLayout
+
+    CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+        local CanvasPosition = Console.Frame.List.CanvasPosition
+        local CanvasSize = Console.Frame.List.CanvasSize
+        local AbsoluteSize = Console.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait();
+           Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+        end
+    end)
+
+    Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    })
+end)
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
@@ -4530,7 +4608,7 @@ local PlayerAdded = function(plr)
         if (Tag.Rainbow) then
             Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
         end
-        if (Tag._L.AntiFeList) then
+        if (Tag and _L.AntiFeList) then
             _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
         end
     end

@@ -325,18 +325,6 @@ end
 
 local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext
 local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext
-
-local error = function()
-    -- fate admin console error
-end
-
-local warn = function()
-    -- fate admin console warn
-end
-
-local print = function()
-    -- fate admin console print
-end
 --END IMPORT [var]
 
 
@@ -444,7 +432,7 @@ do
     });
     Hooks.SpoofedProperties = SpoofedProperties
 
-    ProtectInstance = function(Instance_, disallow)
+    ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
         end
@@ -1138,7 +1126,7 @@ ParentGui = function(Gui, Parent)
     Guis[#Guis + 1] = Gui
     return Gui
 end
-UI = Clone(Services.InsertService:LoadLocalAsset("rbxassetid://7882275026"));
+UI = Clone(Services.InsertService:LoadLocalAsset(getsynasset("fates-admin/ui.rbxm")));
 UI.Enabled = true
 
 local CommandBarPrefix;
@@ -1148,6 +1136,7 @@ local ConfigElements = ConfigUI.GuiElements
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
 local ChatLogs = UI.ChatLogs
+local Console = UI.Console
 local GlobalChatLogs = Clone(UI.ChatLogs);
 local HttpLogs = Clone(UI.ChatLogs);
 local Notification = UI.Notification
@@ -1155,12 +1144,11 @@ local Command = UI.Command
 local ChatLogMessage = UI.Message
 local GlobalChatLogMessage = Clone(UI.Message);
 local NotificationBar = UI.NotificationBar
-local Stats = Clone(UI.Notification);
-local StatsBar = Clone(UI.NotificationBar);
 
 CommandBarOpen = false
 CommandBarTransparencyClone = Clone(CommandBar);
 ChatLogsTransparencyClone = Clone(ChatLogs);
+ConsoleTransparencyClone = Clone(Console);
 GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
 HttpLogsTransparencyClone = Clone(HttpLogs);
 CommandsTransparencyClone = nil
@@ -1180,8 +1168,10 @@ do
 end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
-ProtectInstance(CommandBar.Input, true);
-ProtectInstance(Commands.Search, true);
+ProtectInstance(CommandBar.Input);
+ProtectInstance(Commands.Search);
+ProtectInstance(Console.Search);
+ProtectInstance(ChatLogs.Search);
 
 local UITheme, Values;
 do
@@ -1207,6 +1197,8 @@ do
                         Command.BackgroundColor3 = Value
                         ChatLogs.BackgroundColor3 = Value
                         ChatLogs.Frame.BackgroundColor3 = Value
+                        Console.BackgroundColor3 = Value
+                        Console.Frame.BackgroundColor3 = Value
                         HttpLogs.BackgroundColor3 = Value
                         HttpLogs.Frame.BackgroundColor3 = Value
                         UI.ToolTip.BackgroundColor3 = Value
@@ -1252,6 +1244,9 @@ do
                         ChatLogs.Frame.BackgroundColor3 = Value
                         HttpLogs.BackgroundColor3 = Value
                         HttpLogs.Frame.BackgroundColor3 = Value
+                    elseif (Object == "Console") then
+                        Console.BackgroundColor3 = Value
+                        Console.Frame.BackgroundColor3 = Value
                     elseif (Object == "Config") then
                         ConfigUI.BackgroundColor3 = Value
                         ConfigUI.Container.BackgroundColor3 = Value
@@ -1834,6 +1829,9 @@ Utils.Notify = function(Caller, Title, Message, Time)
         end)()
 
         AddConnection(CConnect(Clone.Close.MouseButton1Click, TweenDestroy));
+        if (Title ~= "Warning" and Title ~= "Error") then
+            Utils.Print(Message, Caller, true);
+        end
 
         return Clone
     else
@@ -2209,6 +2207,70 @@ Utils.ToggleFunction = function(Container, Enabled, Callback) -- fpr color picke
         Callback(Enabled);
     end));
 end
+
+do
+    local AmountPrint, AmountWarn, AmountError = 0, 0, 0;
+
+    Utils.Warn = function(Text, Plr)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "W" .. tostring(AmountWarn + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.TextColor3 = Color3.fromRGB(255, 218, 68);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountWarn = AmountWarn + 1
+        Utils.Notify(Plr, "Warning", Text);
+    end
+    
+    Utils.Error = function(Text, Caller, FromNotif)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "E" .. tostring(AmountError + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.TextColor3 = Color3.fromRGB(215, 90, 74);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountError = AmountError + 1
+    end
+    
+    Utils.Print = function(Text, Caller, FromNotif)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "P" .. tostring(AmountPrint + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountPrint = AmountPrint + 1
+        if (len(Text) <= 35 and not FromNotif) then
+            Utils.Notify(Caller, "Output", Text);
+        end
+    end
+end
 --END IMPORT [utils]
 
 
@@ -2303,10 +2365,10 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Function = function()
             for i, v in next, options do
                 if (type(v) == 'function' and v() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", ("You are missing something that is needed for this command"));
+                    Utils.Warn("You are missing something that is needed for this command", LocalPlayer);
                     return nil
                 elseif (type(v) == 'number' and CommandRequirements[v].Func() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", CommandRequirements[v].Message);
+                    Utils.Warn(CommandRequirements[v].Message, LocalPlayer);
                     return nil
                 end
             end
@@ -2354,7 +2416,7 @@ local ExecuteCommand = function(Name, Args, Caller)
     local Command = LoadCommand(Name);
     if (Command) then
         if (Command.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
+            return Utils.Warn(format("Insuficient Args (you need %d)", Command.ArgsNeeded), LocalPlayer);
         end
 
         local Context;
@@ -2380,16 +2442,15 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
-                warn("[FA Error]: " .. debug.traceback(Err));
-                Utils.Notify(Caller, "Error", Err);
+                Utils.Error(format("[FA CMD Error]: Command = '%s' Traceback = '%s'", Name, debug.traceback(Err)), Caller);
+                Utils.Notify(Caller, "Error", format("error in the '%s' command, more info shown in console", Name));
             end
         end);
         if (Command.IsPlugin and sett and PluginConf.SafePlugins and Context) then
             sett(Context);
         end
     else
-        warn("couldn't find the command ".. Name);
-        Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
+        Utils.Warn("couldn't find the command " .. Name, Caller);
     end
 end
 
@@ -2485,6 +2546,49 @@ do
                 else
                     ExecuteCommand(Macro.Command, Macro.Args);
                 end
+            end
+        end
+
+        if (Input.KeyCode == Enum.KeyCode.F8) then
+            if (Console.Visible) then
+                local Tween = Utils.TweenAllTrans(Console, .25)
+                CWait(Tween.Completed);
+                Console.Visible = false
+            else
+                local MessageClone = Clone(Console.Frame.List);
+    
+                Utils.ClearAllObjects(Console.Frame.List)
+                Console.Visible = true
+            
+                local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+            
+                Destroy(Console.Frame.List)
+                MessageClone.Parent = Console.Frame
+            
+                for i, v in next, GetChildren(Console.Frame.List) do
+                    if (not IsA(v, "UIListLayout")) then
+                        Utils.Tween(v, "Sine", "Out", .25, {
+                            TextTransparency = 0
+                        })
+                    end
+                end
+            
+                local ConsoleListLayout = Console.Frame.List.UIListLayout
+            
+                CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+                    local CanvasPosition = Console.Frame.List.CanvasPosition
+                    local CanvasSize = Console.Frame.List.CanvasSize
+                    local AbsoluteSize = Console.Frame.List.AbsoluteSize
+            
+                    if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+                       wait();
+                       Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+                    end
+                end)
+            
+                Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+                    ScrollBarImageTransparency = 0
+                })
             end
         end
     end));
@@ -5269,7 +5373,7 @@ AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, fun
         }
     end)
     for i, v in next, ChangeLogs do
-        print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
+        Utils.Print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
     end
 
     return "changelogs loaded, press f9"
@@ -6354,6 +6458,42 @@ AddCommand("pathfind", {"follow2"}, "finds a user with pathfinding", {"1",3}, fu
     end
 end)
 
+AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates admin has made", {}, function()
+    local MessageClone = Clone(Console.Frame.List);
+    
+    Utils.ClearAllObjects(Console.Frame.List)
+    Console.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+
+    Destroy(Console.Frame.List)
+    MessageClone.Parent = Console.Frame
+
+    for i, v in next, GetChildren(Console.Frame.List) do
+        if (not IsA(v, "UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local ConsoleListLayout = Console.Frame.List.UIListLayout
+
+    CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+        local CanvasPosition = Console.Frame.List.CanvasPosition
+        local CanvasSize = Console.Frame.List.CanvasSize
+        local AbsoluteSize = Console.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait();
+           Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+        end
+    end)
+
+    Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    })
+end)
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
@@ -6429,18 +6569,20 @@ end
 
 --IMPORT [uimore]
 Notification.Visible = false
-Stats.Visible = false
-Utils.SetAllTrans(CommandBar)
-Utils.SetAllTrans(ChatLogs)
-Utils.SetAllTrans(GlobalChatLogs)
+Utils.SetAllTrans(CommandBar);
+Utils.SetAllTrans(ChatLogs);
+Utils.SetAllTrans(GlobalChatLogs);
 Utils.SetAllTrans(HttpLogs);
+Utils.SetAllTrans(Console);
 Commands.Visible = false
 ChatLogs.Visible = false
+Console.Visible = false
 GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
 Utils.Draggable(Commands);
 Utils.Draggable(ChatLogs);
+Utils.Draggable(Console);
 Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
 Utils.Draggable(ConfigUI);
@@ -6528,6 +6670,10 @@ Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")
 Utils.Click(ChatLogs.Close, "TextColor3")
 
+Utils.Click(Console.Clear, "BackgroundColor3");
+Utils.Click(Console.Save, "BackgroundColor3");
+Utils.Click(Console.Close, "TextColor3");
+
 Utils.Click(GlobalChatLogs.Clear, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Save, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Toggle, "BackgroundColor3")
@@ -6577,6 +6723,13 @@ AddConnection(CConnect(HttpLogs.Close.MouseButton1Click, function()
     HttpLogs.Visible = false
 end), Connections.UI, true);
 
+AddConnection(CConnect(Console.Close.MouseButton1Click, function()
+    local Tween = Utils.TweenAllTrans(Console, .25)
+
+    CWait(Tween.Completed);
+    Console.Visible = false
+end), Connections.UI, true);
+
 ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
@@ -6607,18 +6760,62 @@ AddConnection(CConnect(HttpLogs.Clear.MouseButton1Click, function()
     HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end), Connections.UI, true);
 
+AddConnection(CConnect(Console.Clear.MouseButton1Click, function()
+    Utils.ClearAllObjects(Console.Frame.List);
+    Console.Frame.List.CanvasSize = UDim2.fromOffset(0, 0);
+end), Connections.UI, true);
+
+do
+    local ShowWarns, ShowErrors, ShowOutput = true, true, true
+    AddConnection(CConnect(Console.Warns.MouseButton1Click, function()
+        ShowWarns = not ShowWarns
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "W") then
+                v.Visible = ShowWarns
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Warns.Text = ShowWarns and "Hide Warns" or "Show Warns"
+    end), Connections.UI, true);
+    AddConnection(CConnect(Console.Errors.MouseButton1Click, function()
+        ShowErrors = not ShowErrors
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "E") then
+                v.Visible = ShowErrors
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Errors.Text = ShowErrors and "Hide Errors" or "Show Errors"
+    end), Connections.UI, true);
+    AddConnection(CConnect(Console.Output.MouseButton1Click, function()
+        ShowOutput = not ShowOutput
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "P") then
+                v.Visible = ShowOutput
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Output.Text = ShowOutput and "Hide Output" or "Show Output"
+    end), Connections.UI, true);
+end
+
 AddConnection(CConnect(GetPropertyChangedSignal(ChatLogs.Search, "Text"), function()
     local Text = ChatLogs.Search.Text
     local Children = GetChildren(ChatLogs.Frame.List);
     for i = 1, #Children do
         local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
-            local Message = split(v.Text, ": ")[2]
-            v.Visible = Sfind(lower(Message), Text, 1, true)
+            local Message = v.Text
+            v.Visible = Sfind(lower(Message), Text, 1, true);
         end
     end
-
-    ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+    ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
 end), Connections.UI, true);
 
 AddConnection(CConnect(GetPropertyChangedSignal(GlobalChatLogs.Search, "Text"), function()
@@ -6647,6 +6844,20 @@ AddConnection(CConnect(GetPropertyChangedSignal(HttpLogs.Search, "Text"), functi
         end
     end
 end), Connections.UI, true);
+
+AddConnection(CConnect(GetPropertyChangedSignal(Console.Search, "Text"), function()
+    local Text = Console.Search.Text
+    local Children = GetChildren(Console.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            local Message = v.Text
+            v.Visible = Sfind(lower(Message), Text, 1, true)
+        end
+    end
+    Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+end), Connections.UI, true);
+
 
 AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
     local GameName = Services.MarketplaceService.GetProductInfo(Services.MarketplaceService, game.PlaceId).Name
@@ -6678,6 +6889,22 @@ AddConnection(CConnect(HttpLogs.Save.MouseButton1Click, function()
     end
     writefile(format("fates-admin/httplogs/HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")) .. ".txt", gsub(Logs, "%b<>", ""));
     Utils.Notify(LocalPlayer, "Saved", "Http logs saved!");
+end), Connections.UI, true);
+
+AddConnection(CConnect(Console.Save.MouseButton1Click, function()
+    local GameName = Services.MarketplaceService.GetProductInfo(Services.MarketplaceService, game.PlaceId).Name
+    local TimeSaved = gsub(tostring(os.date("%x")), "/", "-") .. " " .. gsub(tostring(os.date("%X")), ":", "-");
+    local Children = GetChildren(Console.Frame.List);
+    local String =  format("Fates Admin logs %s\nGame: %s - %d\n\n", TimeSaved, GameName, game.PlaceId);
+    local Names = { ["P"] = "OUTPUT", ["W"] = "WARNING", ["E"] = "ERROR" }
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            String = format("%s[%s] %s\n", String, Names[sub(v.Name, 1, 1)] or "", v.Text);
+        end
+    end
+    writefile("fates-admin/logs.txt", String);
+    Utils.Notify(LocalPlayer, "Saved", "Console Logs saved!");
 end), Connections.UI, true);
 
 -- auto correct
@@ -8119,7 +8346,7 @@ local PlayerAdded = function(plr)
         if (Tag.Rainbow) then
             Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
         end
-        if (Tag._L.AntiFeList) then
+        if (Tag and _L.AntiFeList) then
             _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
         end
     end
