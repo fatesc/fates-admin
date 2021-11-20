@@ -1,5 +1,5 @@
 --[[
-	fates admin - 19/11/2021
+	fates admin - 20/11/2021
 ]]
 
 local game = game
@@ -1784,6 +1784,11 @@ Utils.TweenAllTrans = function(Object, Time)
     return Tween
 end
 
+Utils.TextSize = function(Object)
+    local TextService = Services.TextService
+    return TextService.GetTextSize(TextService, Object.Text, Object.TextSize, Object.Font, Vector2.new(Object.AbsoluteSize.X, 1000)).Y
+end
+
 Utils.Notify = function(Caller, Title, Message, Time)
     if (not Caller or Caller == LocalPlayer) then
         local Notification = UI.Notification
@@ -1805,16 +1810,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         Utils.SetAllTrans(Clone)
         Utils.Click(Clone.Close, "TextColor3")
         Clone.Visible = true
-
-        if (len(Message) >= 35) then
-            Clone.AutomaticSize = Enum.AutomaticSize.Y
-            Clone.Message.AutomaticSize = Enum.AutomaticSize.Y
-            Clone.Message.RichText = true
-            Clone.Message.TextScaled = false
-            Clone.Message.TextYAlignment = Enum.TextYAlignment.Top
-            Clone.DropShadow.AutomaticSize = Enum.AutomaticSize.Y
-        end
-
+	    Clone.Size = UDim2.fromOffset(Clone.Size.X.Offset, Utils.TextSize(Clone.Message) + Clone.Size.Y.Offset - Clone.Message.TextSize);
         Clone.Parent = NotificationBar
 
         coroutine.wrap(function()
