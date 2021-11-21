@@ -1126,15 +1126,57 @@ AddCommand("unview", {"unv"}, "unviews a user", {3}, function(Caller, Args)
     return "unviewing"
 end)
 
-AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function()
-    local OldPos = GetRoot().CFrame
-    GetRoot().CFrame = CFrameNew(9e9, 9e9, 9e9);
-    local Clone = Clone(GetRoot());
+AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function(Caller, Args, CEnv)
+    local Root = GetRoot();
+    local OldPos = Root.CFrame
+    local Seat = InstanceNew("Seat");
+    local Weld = InstanceNew("Weld");
+    Root.CFrame = CFrameNew(9e9, 9e9, 9e9);
     wait(.2);
-    Destroy(GetRoot());
-    Clone.CFrame = OldPos
-    Clone.Parent = GetCharacter();
+    Root.Anchored = true
+    ProtectInstance(Seat);
+    Seat.Parent = Services.Workspace
+    Seat.CFrame = Root.CFrame
+    Seat.Anchored = false
+    Weld.Parent = Seat
+    Weld.Part0 = Seat
+    Weld.Part1 = Root
+    Root.Anchored = false
+    Seat.CFrame = OldPos
+    CEnv.Seat = Seat
+    CEnv.Weld = Weld
+    for i, v in next, GetChildren(Root.Parent) do
+        if (IsA(v, "BasePart") or IsA(v, "MeshPart") or IsA(v, "Part")) then
+            CEnv[v] = v.Transparency
+            v.Transparency = v.Transparency <= 0.3 and 0.4 or v.Transparency
+        elseif (IsA(v, "Accessory")) then
+            local Handle = FindFirstChildWhichIsA(v, "MeshPart") or FindFirstChildWhichIsA(v, "Part");
+            if (Handle) then
+                CEnv[Handle] = Handle.Transparency
+                Handle.Transparency = Handle.Transparency <= 0.3 and 0.4 or Handle.Transparency    
+            end
+        end
+    end
     return "you are now invisible"
+end)
+
+AddCommand("uninvisible", {"uninvis", "noinvis", "visible", "vis"}, "gives you back visiblity", {3}, function(Caller, Args, CEnv)
+    local CmdEnv = LoadCommand("invisible").CmdEnv
+    local Seat = CmdEnv.Seat
+    local Weld = CmdEnv.Weld
+    if (Seat and Weld) then
+        Destroy(Seat);
+        Destroy(Weld);
+        CmdEnv.Seat = nil
+        CmdEnv.Weld = nil
+        for i, v in next, CmdEnv do
+            if (type(v) == 'number') then
+                i.Transparency = v
+            end
+        end
+        return "you are now visible"
+    end
+    return "you are already visible"
 end)
 
 AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, function(Caller, Args, CEnv)
@@ -1224,7 +1266,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);
 end)
 
-AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
+AddCommand("dupetools2", {"rejoindupe", "dupe2"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
     local Amount = tonumber(Args[1])
     if (not Amount) then
         return "amount must be a number"
