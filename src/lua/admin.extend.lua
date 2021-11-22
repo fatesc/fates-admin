@@ -327,7 +327,7 @@ do
                 local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
-                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Instance_, ProtectedInstance_)) then
+                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Value, ProtectedInstance_)) then
                         ProtectedInstance = true
                     end
                 end

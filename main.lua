@@ -1,5 +1,5 @@
 --[[
-	fates admin - 21/11/2021
+	fates admin - 22/11/2021
 ]]
 
 local game = game
@@ -665,7 +665,7 @@ do
                 local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
-                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Instance_, ProtectedInstance_)) then
+                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Value, ProtectedInstance_)) then
                         ProtectedInstance = true
                     end
                 end
@@ -5667,7 +5667,7 @@ AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, fun
     local random = random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(CConnect(Heartbeat, function()
-        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() + random * Speed) * Radius, 0, cos(tick() + random * Speed) * Radius), TRoot.Position);
+        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() * Speed) * Radius, 0, cos(tick() * Speed) * Radius), TRoot.Position);
     end), CEnv);
     return "now orbiting around " .. Target.Name
 end)

@@ -3655,7 +3655,7 @@ AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, fun
     local random = random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(CConnect(Heartbeat, function()
-        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() + random * Speed) * Radius, 0, cos(tick() + random * Speed) * Radius), TRoot.Position);
+        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() * Speed) * Radius, 0, cos(tick() * Speed) * Radius), TRoot.Position);
     end), CEnv);
     return "now orbiting around " .. Target.Name
 end)
