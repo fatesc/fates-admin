@@ -228,12 +228,22 @@ do
 
         if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
-                return not Tfind(ProtectedInstances, v);
+                local Protected = false
+                for i2 = 1, #ProtectedInstances do
+                    local ProtectedInstance = ProtectedInstances[i2]
+                    Protected = not Tfind(ProtectedInstances, v) or v.IsDescendantOf(v, ProtectedInstance)
+                end
+                return not Protected
             end)
         end
 
         if (Method == "GetFocusedTextBox") then
-            if (Tfind(ProtectedInstances, __Namecall(...))) then
+            local Protected = false
+            for i = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i]
+                Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+            end
+            if (Protected) then
                 return nil
             end
         end
@@ -438,7 +448,12 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
         return filter(Descendants, function(i, v)
-            return not Tfind(ProtectedInstances, v);
+            local Protected = false
+            for i = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i]
+                Protected = not Tfind(ProtectedInstances, v) or v.IsDescendantOf(v, ProtectedInstance)
+            end
+            return not Protected
         end)
     end
     return Hooks.OldGetDescendants(...);
@@ -489,7 +504,12 @@ local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
-        if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
+        local Protected = false
+        for i = 1, #ProtectedInstances do
+            local ProtectedInstance = ProtectedInstances[i]
+            Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+        end
+        if (Protected) then
             return nil
         end
     end

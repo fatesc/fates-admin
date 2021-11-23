@@ -364,7 +364,7 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Args = filter(options, function(i, v)
             return type(v) == "table"
         end)[1] or {},
-        CmdEnv = {},
+        CmdEnv = setmetatable({}, { __mode = "v" }),
         IsPlugin = isplugin == true
     }
 

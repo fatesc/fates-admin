@@ -48,10 +48,6 @@ do
 end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
-ProtectInstance(CommandBar.Input);
-ProtectInstance(Commands.Search);
-ProtectInstance(Console.Search);
-ProtectInstance(ChatLogs.Search);
 
 local UITheme, Values;
 do
