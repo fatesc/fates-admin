@@ -1,5 +1,5 @@
 --[[
-	fates admin - 23/11/2021
+	fates admin - 22/11/2021
 ]]
 
 local game = game
@@ -566,22 +566,12 @@ do
 
         if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
-                local Protected = false
-                for i2 = 1, #ProtectedInstances do
-                    local ProtectedInstance = ProtectedInstances[i2]
-                    Protected = not Tfind(ProtectedInstances, v) or v.IsDescendantOf(v, ProtectedInstance)
-                end
-                return not Protected
+                return not Tfind(ProtectedInstances, v);
             end)
         end
 
         if (Method == "GetFocusedTextBox") then
-            local Protected = false
-            for i = 1, #ProtectedInstances do
-                local ProtectedInstance = ProtectedInstances[i]
-                Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
-            end
-            if (Protected) then
+            if (Tfind(ProtectedInstances, __Namecall(...))) then
                 return nil
             end
         end
@@ -786,12 +776,7 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
         return filter(Descendants, function(i, v)
-            local Protected = false
-            for i = 1, #ProtectedInstances do
-                local ProtectedInstance = ProtectedInstances[i]
-                Protected = not Tfind(ProtectedInstances, v) or v.IsDescendantOf(v, ProtectedInstance)
-            end
-            return not Protected
+            return not Tfind(ProtectedInstances, v);
         end)
     end
     return Hooks.OldGetDescendants(...);
@@ -842,12 +827,7 @@ local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
-        local Protected = false
-        for i = 1, #ProtectedInstances do
-            local ProtectedInstance = ProtectedInstances[i]
-            Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
-        end
-        if (Protected) then
+        if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
             return nil
         end
     end
@@ -1188,6 +1168,10 @@ do
 end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
+ProtectInstance(CommandBar.Input);
+ProtectInstance(Commands.Search);
+ProtectInstance(Console.Search);
+ProtectInstance(ChatLogs.Search);
 
 local UITheme, Values;
 do
@@ -2392,7 +2376,7 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Args = filter(options, function(i, v)
             return type(v) == "table"
         end)[1] or {},
-        CmdEnv = setmetatable({}, { __mode = "v" }),
+        CmdEnv = {},
         IsPlugin = isplugin == true
     }
 
