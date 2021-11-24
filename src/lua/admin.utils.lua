@@ -473,17 +473,6 @@ Utils.Vector3toVector2 = function(Vector)
     return Vector2New(Tuple.X, Tuple.Y);
 end
 
-Utils.CheckTag = function(Plr)
-    if (not Plr or not IsA(Plr, "Player")) then
-        return nil
-    end
-    local UserId = tostring(Plr.UserId);
-    local Tag = PlayerTags[gsub(UserId, ".", function(x)
-        return byte(x);
-    end)]
-    return Tag or nil
-end
-
 Utils.AddTag = function(Tag)
     if (not Tag) then
         return
