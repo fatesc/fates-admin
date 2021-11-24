@@ -1,5 +1,5 @@
 --[[
-	fates admin - 22/11/2021
+	fates admin - 24/11/2021
 ]]
 
 local game = game
@@ -566,12 +566,25 @@ do
 
         if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
-                return not Tfind(ProtectedInstances, v);
+                local Protected = false
+                for i2 = 1, #ProtectedInstances do
+                    local ProtectedInstance = ProtectedInstances[i2]
+                    Protected = ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance);
+                    if (Protected) then
+                        break;
+                    end
+                end
+                return not Protected
             end)
         end
 
         if (Method == "GetFocusedTextBox") then
-            if (Tfind(ProtectedInstances, __Namecall(...))) then
+            local Protected = false
+            for i = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i]
+                Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+            end
+            if (Protected) then
                 return nil
             end
         end
@@ -661,7 +674,7 @@ do
         local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
         if (checkcaller()) then
-            if (Index == "Parent") then
+            if (Index == "Parent" and Value) then
                 local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
@@ -776,7 +789,15 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
         return filter(Descendants, function(i, v)
-            return not Tfind(ProtectedInstances, v);
+            local Protected = false
+            for i2 = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i2]
+                Protected = v and ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance)
+                if (Protected) then
+                    break;
+                end
+            end
+            return not Protected
         end)
     end
     return Hooks.OldGetDescendants(...);
@@ -827,7 +848,12 @@ local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
-        if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
+        local Protected = false
+        for i = 1, #ProtectedInstances do
+            local ProtectedInstance = ProtectedInstances[i]
+            Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+        end
+        if (Protected) then
             return nil
         end
     end
@@ -1168,10 +1194,6 @@ do
 end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
-ProtectInstance(CommandBar.Input);
-ProtectInstance(Commands.Search);
-ProtectInstance(Console.Search);
-ProtectInstance(ChatLogs.Search);
 
 local UITheme, Values;
 do
@@ -1436,57 +1458,6 @@ do
 end
 --END IMPORT [ui]
 
-
---IMPORT [tags]
-PlayerTags = {
-    ["545255484852504852"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "Iaying",
-        ["Rainbow"] = true
-    },
-    ["505156575355565455"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "fate",
-        ["Rainbow"] = true,
-    },
-    ["555352544955574849"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "misrepresenting",
-        ["Rainbow"] = true,
-    },
-    ["495656525454515248"] = {
-        ["Tag"] = "Cool",
-        ["Name"] = "David",
-        ["Rainbow"] = true,
-    },
-    ["49565649565652"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "Owner",
-        ["Rainbow"] = true
-    },
-    ["49555054485248545349"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "dsf",
-        ["Rainbow"] = true
-    },
-    ["495357485451505151"] = {
-        ["Tag"] = "Contributor",
-        ["Name"] = "Tes",
-        ["Rainbow"] = true
-    },
-    ["5557545653575750"] = {
-        ["Tag"] = "CatGirl",
-        ["Name"] = "Kaid",
-        ["Colour"] = {252, 202, 241}
-    },
-    ["494849485257484851"] = {
-        ["Tag"] = "Cool 😎",
-        ["Name"] = "Xurco",
-        ["Colour"] = {153, 9, 242},
-        ["AntiFeList"] = true
-    }
-}
---END IMPORT [tags]
 
 
 --IMPORT [utils]
@@ -1965,17 +1936,6 @@ Utils.Vector3toVector2 = function(Vector)
     return Vector2New(Tuple.X, Tuple.Y);
 end
 
-Utils.CheckTag = function(Plr)
-    if (not Plr or not IsA(Plr, "Player")) then
-        return nil
-    end
-    local UserId = tostring(Plr.UserId);
-    local Tag = PlayerTags[gsub(UserId, ".", function(x)
-        return byte(x);
-    end)]
-    return Tag or nil
-end
-
 Utils.AddTag = function(Tag)
     if (not Tag) then
         return
@@ -2376,7 +2336,7 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Args = filter(options, function(i, v)
             return type(v) == "table"
         end)[1] or {},
-        CmdEnv = {},
+        CmdEnv = setmetatable({}, { __mode = "v" }),
         IsPlugin = isplugin == true
     }
 
@@ -2629,8 +2589,6 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
-_L.AntiFeList = {}
-
 _L.KillCam = {};
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -2659,9 +2617,6 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             TChar = GetCharacter(v);
             if (TChar) then
                 if (isSat(v)) then
@@ -2727,9 +2682,6 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
@@ -2789,9 +2741,6 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         end
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             local TargetRoot = GetRoot(v)
             local Children = GetChildren(LocalPlayer.Backpack);
             for i2 = 1, #Children do
@@ -2850,9 +2799,6 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     if (#Target == 1) then
@@ -2920,9 +2866,6 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Destroy_;
     CThread(function()
         for i, v in next, Target do
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
@@ -2990,9 +2933,6 @@ AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
-            continue
-        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -3062,9 +3002,6 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
-            continue
-        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -6557,24 +6494,15 @@ local PlrChat = function(i, plr)
         local message = raw
 
         if (_L.ChatLogsEnabled) then
-            local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
-            local Text = format("%s - [%s]: %s", time, Tag and Tag.Name or plr.Name, raw);
+            local Text = format("%s - [%s]: %s", time, plr.Name, raw);
             local Clone = Clone(ChatLogMessage);
 
             Clone.Text = Text
             Clone.Visible = true
             Clone.TextTransparency = 1
             Clone.Parent = ChatLogs.Frame.List
-
-            if (Tag and Tag.Rainbow) then
-                Utils.Rainbow(Clone);
-            end
-            if (Tag and Tag.Colour) then
-                local TColour = Tag.Colour
-                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
-            end
 
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
@@ -8377,17 +8305,6 @@ local PlayerAdded = function(plr)
     AddConnection(CConnect(plr.CharacterAdded, function()
         RespawnTimes[plr.Name] = tick();
     end));
-    local Tag = Utils.CheckTag(plr);
-    if (Tag and plr ~= LocalPlayer) then
-        Tag.Player = plr
-        Utils.AddTag(Tag);
-        if (Tag.Rainbow) then
-            Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
-        end
-        if (Tag and _L.AntiFeList) then
-            _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
-        end
-    end
 end
 
 forEach(GetPlayers(Players), function(i,v)

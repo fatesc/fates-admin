@@ -231,7 +231,10 @@ do
                 local Protected = false
                 for i2 = 1, #ProtectedInstances do
                     local ProtectedInstance = ProtectedInstances[i2]
-                    Protected = not Tfind(ProtectedInstances, v) or v.IsDescendantOf(v, ProtectedInstance)
+                    Protected = ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance);
+                    if (Protected) then
+                        break;
+                    end
                 end
                 return not Protected
             end)
@@ -333,7 +336,7 @@ do
         local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
         if (checkcaller()) then
-            if (Index == "Parent") then
+            if (Index == "Parent" and Value) then
                 local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
@@ -449,9 +452,12 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
         local Descendants = Hooks.OldGetDescendants(...);
         return filter(Descendants, function(i, v)
             local Protected = false
-            for i = 1, #ProtectedInstances do
-                local ProtectedInstance = ProtectedInstances[i]
-                Protected = not Tfind(ProtectedInstances, v) or v.IsDescendantOf(v, ProtectedInstance)
+            for i2 = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i2]
+                Protected = v and ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance)
+                if (Protected) then
+                    break;
+                end
             end
             return not Protected
         end)
