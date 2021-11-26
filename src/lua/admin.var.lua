@@ -64,19 +64,23 @@ local JSONEncode, JSONDecode, GenerateGUID =
 
 local Camera = Services.Workspace.CurrentCamera
 
-local table = table
-local Tfind, sort, concat, pack, unpack = 
-    table.find, 
-    table.sort,
-    table.concat,
-    table.pack,
-    table.unpack
+local Tfind, sort, concat, pack, unpack;
+do
+    local table = table
+    Tfind, sort, concat, pack, unpack = 
+        table.find, 
+        table.sort,
+        table.concat,
+        table.pack,
+        table.unpack
+end
 
-local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte;
+local lower, upper, Sfind, split, sub, format, len, match, gmatch, gsub, byte;
 do
     local string = string
-    lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
+    lower, upper, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
         string.lower,
+        string.upper,
         string.find,
         string.split, 
         string.sub,

@@ -1,3 +1,4 @@
+local SocialService = game:GetService("SocialService")
 local firetouchinterest, hookfunction, getconnections;
 do
     local GEnv = getgenv();
@@ -89,9 +90,7 @@ do
     local SpoofedInstances = setmetatable({}, {
         __mode = "v"
     });
-    local SpoofedProperties = setmetatable({}, {
-        __mode = "v"
-    });
+    local SpoofedProperties = {}
     Hooks.SpoofedProperties = SpoofedProperties
 
     ProtectInstance = function(Instance_)
@@ -164,6 +163,7 @@ do
         "FindFirstChildOfClass",
         "IsA"
     }
+
     MetaMethodHooks.Namecall = function(...)
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
@@ -171,9 +171,7 @@ do
         local Method = getnamecallmethod() or "";
 
         if (Method ~= "") then
-            local Success, Error = pcall(function()
-                return self and self[Method]
-            end)
+            local Success = pcall(OldMetaMethods.__index, self, Method);
             if (not Success) then
                 return __Namecall(...);
             end
@@ -217,7 +215,6 @@ do
             return __Namecall(...);
         end
 
-
         if (Tfind(Methods, Method)) then
             local ReturnedInstance = __Namecall(...);
             if (Tfind(ProtectedInstances, ReturnedInstance)) then
@@ -225,7 +222,6 @@ do
             end
         end
         
-
         if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
                 local Protected = false
@@ -295,16 +291,15 @@ do
 
         if (SpoofedPropertiesForInstance) then
             for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                local SanitisedIndex = gsub(SanitisedIndex, "^%l", upper);
                 if (SanitisedIndex == SpoofedProperty.Property) then
                     local ClientChangedData = ChangedSpoofedProperties[Instance_][SanitisedIndex]
                     local IndexedSpoofed = __Index(SpoofedProperty.SpoofedProperty, Index);
                     local Indexed = __Index(Instance_, Index);
-                    if (not ClientChangedData and IndexedSpoofed ~= Indexed) then
+                    if (ClientChangedData.Caller and ClientChangedData.Value ~= Indexed) then
                         OldMetaMethods.__newindex(SpoofedProperty.SpoofedProperty, Index, Indexed);
-                        return __Index(SpoofedProperty.SpoofedProperty, Index);
-                    end
-                    if (ClientChangedData.Caller) then
-                        ChangedSpoofedProperties[Instance_][SanitisedIndex] = nil
+                        OldMetaMethods.__newindex(Instance_, Index, ClientChangedData.Value);
+                        return Indexed
                     end
                     return IndexedSpoofed
                 end
