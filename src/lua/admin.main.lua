@@ -361,7 +361,7 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Args = filter(options, function(i, v)
             return type(v) == "table"
         end)[1] or {},
-        CmdEnv = setmetatable({}, { __mode = "v" }),
+        CmdEnv = {},
         IsPlugin = isplugin == true
     }
 
@@ -1139,6 +1139,8 @@ AddCommand("uninvisible", {"uninvis", "noinvis", "visible", "vis"}, "gives you b
     local Seat = CmdEnv.Seat
     local Weld = CmdEnv.Weld
     if (Seat and Weld) then
+        Weld.Part0 = nil
+        Weld.Part1 = nil
         Destroy(Seat);
         Destroy(Weld);
         CmdEnv.Seat = nil
@@ -1716,20 +1718,18 @@ AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local Counter = Utils.Notify(LocalPlayer, "FPS", "", 10);
-    local a = tick();
-    local Running
-    local fpsget = function()
+    local FPS = 1 / CWait(RenderStepped);
+    local Counter = Utils.Notify(LocalPlayer, "FPS", round(FPS));
+    local Running;
+    delay(4.5, function()
+        Disconnect(Running);
+    end);
+    Running = CConnect(Heartbeat, function()
         if (not Counter or not Counter.Message) then
             Disconnect(Running);
         end
-        Counter.Message.Text = bit32.bnot(bit32.bnot((1 / (tick() - a))));
-        a = tick();
-    end
-    delay(3, function()
-        Disconnect(Running);
+        Counter.Message.Text = round(1 / CWait(RenderStepped));
     end);
-    Running = CConnect(Heartbeat, fpsget);
 end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, CEnv)

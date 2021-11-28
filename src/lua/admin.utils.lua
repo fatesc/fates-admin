@@ -334,7 +334,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
 
         AddConnection(CConnect(Clone.Close.MouseButton1Click, TweenDestroy));
         if (Title ~= "Warning" and Title ~= "Error") then
-            Utils.Print(Message, Caller, true);
+            Utils.Print(format("%s - %s", Title, Message), Caller, true);
         end
 
         return Clone
