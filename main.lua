@@ -5309,7 +5309,7 @@ end)
 
 AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
-        Utils.Notify(Caller or LocalPlayer, nil, "Looking for servers...");
+        Utils.Notify(Caller or LocalPlayer, "Command", "Looking for servers...");
         local TeleportService = Services.TeleportService
         local Servers = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId))).data
         if (#Servers > 1) then
