@@ -1,5 +1,5 @@
 --[[
-	fates admin - 14/11/2021
+	fates admin - 6/12/2021
 ]]
 
 local game = game
@@ -93,19 +93,23 @@ local JSONEncode, JSONDecode, GenerateGUID =
 
 local Camera = Services.Workspace.CurrentCamera
 
-local table = table
-local Tfind, sort, concat, pack, unpack = 
-    table.find, 
-    table.sort,
-    table.concat,
-    table.pack,
-    table.unpack
+local Tfind, sort, concat, pack, unpack;
+do
+    local table = table
+    Tfind, sort, concat, pack, unpack = 
+        table.find, 
+        table.sort,
+        table.concat,
+        table.pack,
+        table.unpack
+end
 
-local lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte;
+local lower, upper, Sfind, split, sub, format, len, match, gmatch, gsub, byte;
 do
     local string = string
-    lower, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
+    lower, upper, Sfind, split, sub, format, len, match, gmatch, gsub, byte = 
         string.lower,
+        string.upper,
         string.find,
         string.split, 
         string.sub,
@@ -328,13 +332,6 @@ local getthreadidentity = getthreadidentity or syn_context_get or getthreadconte
 --END IMPORT [var]
 
 
-do
-    local ErrorConnections = getconnections(Services.ScriptContext.Error);
-    if (next(ErrorConnections)) then
-        getfenv().error = warn
-        getgenv().error = warn
-    end
-end
 
 local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
@@ -343,7 +340,8 @@ end
 local Utils = {}
 
 --IMPORT [extend]
-local firetouchinterest, hookfunction;
+local SocialService = game:GetService("SocialService")
+local firetouchinterest, hookfunction, getconnections;
 do
     local GEnv = getgenv();
     local touched = {}
@@ -370,15 +368,13 @@ do
         func = applycclosure and newcclosure or newfunc
         return func
     end
-end
 
-local getconnections;
-do
     local CachedConnections = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
-    getconnections = function(Connection, FromCache)
-        local getconnections = getgenv().getconnections
+
+    getconnections = function(Connection, FromCache, AddOnConnect)
+        local getconnections = GEnv.getconnections
         if (not getconnections) then
             return {}
         end
@@ -394,7 +390,7 @@ do
             return CachedConnection
         end
 
-        local Connections = getgenv().getconnections(Connection);
+        local Connections = GEnv.getconnections(Connection);
         CachedConnections[Connection] = Connections
         return Connections
     end
@@ -412,31 +408,10 @@ local checkcaller = checkcaller or function()
     return false
 end
 
-local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
-    setreadonly(metatable, false);
-    Old = hookfunction(metatable[metamethod], func, true);
-    setreadonly(metatable, true);
-    return Old
-end
-
-local GetAllParents = function(Instance_)
-    if (typeof(Instance_) == "Instance") then
-        local Parents = {}
-        local Current = Instance_
-        repeat
-            local Parent = Current.Parent
-            Parents[#Parents + 1] = Parent
-            Current = Parent
-        until not Current
-        return Parents
-    end
-    return {}
-end
 local Hooks = {
     AntiKick = false,
     AntiTeleport = false,
     NoJumpCooldown = false,
-    UndetectedMessageOut = true
 }
 
 local mt = getrawmetatable(game);
@@ -451,18 +426,16 @@ local MetaMethodHooks = {}
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
 local ProtectedInstances = setmetatable({}, {
-    mode = "v"
+    __mode = "v"
 });
 do
     local SpoofedInstances = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
-    local SpoofedProperties = setmetatable({}, {
-        mode = "v"
-    });
+    local SpoofedProperties = {}
     Hooks.SpoofedProperties = SpoofedProperties
 
-    ProtectInstance = function(Instance_, disallow)
+    ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
         end
@@ -509,12 +482,30 @@ do
         end
     end
 
+    local GetAllParents = function(Instance_, NIV)
+        if (typeof(Instance_) == "Instance") then
+            local Parents = {}
+            local Current = NIV or Instance_
+            if (NIV) then
+                Parents[#Parents + 1] = Current
+            end
+            repeat
+                local Parent = Current.Parent
+                Parents[#Parents + 1] = Parent
+                Current = Parent
+            until not Current
+            return Parents
+        end
+        return {}
+    end
+    
     local Methods = {
         "FindFirstChild",
         "FindFirstChildWhichIsA",
         "FindFirstChildOfClass",
         "IsA"
     }
+
     MetaMethodHooks.Namecall = function(...)
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
@@ -522,9 +513,7 @@ do
         local Method = getnamecallmethod() or "";
 
         if (Method ~= "") then
-            local Success, Error = pcall(function()
-                return self and self[Method]
-            end)
+            local Success = pcall(OldMetaMethods.__index, self, Method);
             if (not Success) then
                 return __Namecall(...);
             end
@@ -568,7 +557,6 @@ do
             return __Namecall(...);
         end
 
-
         if (Tfind(Methods, Method)) then
             local ReturnedInstance = __Namecall(...);
             if (Tfind(ProtectedInstances, ReturnedInstance)) then
@@ -576,30 +564,28 @@ do
             end
         end
         
-
         if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
-                return not Tfind(ProtectedInstances, v);
+                local Protected = false
+                for i2 = 1, #ProtectedInstances do
+                    local ProtectedInstance = ProtectedInstances[i2]
+                    Protected = ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance);
+                    if (Protected) then
+                        break;
+                    end
+                end
+                return not Protected
             end)
         end
 
         if (Method == "GetFocusedTextBox") then
-            if (Tfind(ProtectedInstances, __Namecall(...))) then
-                return nil
+            local Protected = false
+            for i = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i]
+                Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
             end
-        end
-
-        if (Hooks.UndetectedMessageOut and Method == "GetLogHistory") then
-            if (self == Services.LogService) then
-                local LogHistory = __Namecall(...);
-                local MessagesOut = Hooks.MessagesOut
-                local FilteredLogHistory = {}
-                for i, v in next, LogHistory do
-                    if (not Tfind(MessagesOut, v.message)) then
-                        FilteredLogHistory[#FilteredLogHistory + 1] = v
-                    end
-                end
-                return FilteredLogHistory
+            if (Protected) then
+                return nil
             end
         end
 
@@ -612,7 +598,7 @@ do
                 return false
             end
         end
-        
+
         return __Namecall(...);
     end
 
@@ -647,16 +633,15 @@ do
 
         if (SpoofedPropertiesForInstance) then
             for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                local SanitisedIndex = gsub(SanitisedIndex, "^%l", upper);
                 if (SanitisedIndex == SpoofedProperty.Property) then
                     local ClientChangedData = ChangedSpoofedProperties[Instance_][SanitisedIndex]
                     local IndexedSpoofed = __Index(SpoofedProperty.SpoofedProperty, Index);
                     local Indexed = __Index(Instance_, Index);
-                    if (not ClientChangedData and IndexedSpoofed ~= Indexed) then
+                    if (ClientChangedData.Caller and ClientChangedData.Value ~= Indexed) then
                         OldMetaMethods.__newindex(SpoofedProperty.SpoofedProperty, Index, Indexed);
-                        return __Index(SpoofedProperty.SpoofedProperty, Index);
-                    end
-                    if (ClientChangedData.Caller) then
-                        ChangedSpoofedProperties[Instance_][SanitisedIndex] = nil
+                        OldMetaMethods.__newindex(Instance_, Index, ClientChangedData.Value);
+                        return Indexed
                     end
                     return IndexedSpoofed
                 end
@@ -688,16 +673,16 @@ do
         local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
         if (checkcaller()) then
-            if (Index == "Parent") then
+            if (Index == "Parent" and Value) then
                 local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
-                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Instance_, ProtectedInstance_)) then
+                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Value, ProtectedInstance_)) then
                         ProtectedInstance = true
                     end
                 end
                 if (ProtectedInstance) then
-                    local Parents = GetAllParents(Value);
+                    local Parents = GetAllParents(Instance_, Value);
                     for i, v in next, getconnections(Parents[1].ChildAdded, true) do
                         v.Disable(v);
                     end
@@ -776,11 +761,18 @@ do
 
         return __NewIndex(...);
     end
-end
 
-OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
-OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
-OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+    local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
+        setreadonly(metatable, false);
+        Old = hookfunction(metatable[metamethod], func, true);
+        setreadonly(metatable, true);
+        return Old
+    end
+
+    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
@@ -796,7 +788,15 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
         return filter(Descendants, function(i, v)
-            return not Tfind(ProtectedInstances, v);
+            local Protected = false
+            for i2 = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i2]
+                Protected = v and ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance)
+                if (Protected) then
+                    break;
+                end
+            end
+            return not Protected
         end)
     end
     return Hooks.OldGetDescendants(...);
@@ -805,7 +805,7 @@ end));
 Hooks.FindFirstChild = hookfunction(game.FindFirstChild, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChild(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -814,7 +814,7 @@ end));
 Hooks.FindFirstChildOfClass = hookfunction(game.FindFirstChildOfClass, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChildOfClass(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -823,7 +823,7 @@ end));
 Hooks.FindFirstChildWhichIsA = hookfunction(game.FindFirstChildWhichIsA, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChildWhichIsA(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -833,9 +833,11 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     if (not checkcaller()) then
         local Args = {...}
         local IsACheck = Args[1]
-        local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
-        if (ProtectedInstance and Args[2]) then
-            return false
+        if (IsACheck) then
+            local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
+            if (ProtectedInstance and Args[2]) then
+                return false
+            end
         end
     end
     return Hooks.IsA(...);
@@ -845,7 +847,12 @@ local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
-        if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
+        local Protected = false
+        for i = 1, #ProtectedInstances do
+            local ProtectedInstance = ProtectedInstances[i]
+            Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+        end
+        if (Protected) then
             return nil
         end
     end
@@ -923,84 +930,6 @@ Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     end
     return Ret
 end)
-
-do
-    local LogService = Services.LogService
-    local MessageOut = LogService.MessageOut
-    Hooks.MessagesOut = {}
-    local MessagesOut = Hooks.MessagesOut
-
-    Hooks.Print = hookfunction(print, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Print = Hooks.Print(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Print
-        end
-        return Hooks.Print(...);
-    end));
-    
-    Hooks.Warn = hookfunction(warn, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Warn = Hooks.Warn(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Warn
-        end
-        return Hooks.Warn(...);
-    end))
-
-    Hooks.OldGetLogHistory = hookfunction(LogService.GetLogHistory, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut) then
-            local LogHistory = Hooks.OldGetLogHistory(...);
-            local FilteredLogHistory = {}
-            for i, v in next, LogHistory do
-                if (not Tfind(MessagesOut, v.message)) then
-                    FilteredLogHistory[#FilteredLogHistory + 1] = v
-                end
-            end
-            return FilteredLogHistory
-        end
-        return Hooks.OldGetLogHistory(...);
-    end))
-end
-
--- local UnProtectInstance = function(Instance_)
---     for i, v in next, ProtectedInstances do
---         if (v == Instance_) then
---             ProtectedInstances[i] = nil
---             if (syn and syn.unprotect_gui) then
---                 pcall(function()
---                     syn.unprotect_gui(Instance_);
---                 end)
---             end
---         end
---     end
--- end
-
--- local UnSpoofProperty = function(Instance_, Property)
---     local SpoofedProperty = SpoofedProperties[Instance_]
---     if (SpoofedProperty and SpoofedProperty.Property == Property) then
---         Destroy(SpoofedProperty.SpoofedProperty);
---         SpoofedInstances[Instance_] = nil
---     end
--- end
 --END IMPORT [extend]
 
 
@@ -1232,6 +1161,7 @@ local ConfigElements = ConfigUI.GuiElements
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
 local ChatLogs = UI.ChatLogs
+local Console = UI.Console
 local GlobalChatLogs = Clone(UI.ChatLogs);
 local HttpLogs = Clone(UI.ChatLogs);
 local Notification = UI.Notification
@@ -1239,12 +1169,11 @@ local Command = UI.Command
 local ChatLogMessage = UI.Message
 local GlobalChatLogMessage = Clone(UI.Message);
 local NotificationBar = UI.NotificationBar
-local Stats = Clone(UI.Notification);
-local StatsBar = Clone(UI.NotificationBar);
 
 CommandBarOpen = false
 CommandBarTransparencyClone = Clone(CommandBar);
 ChatLogsTransparencyClone = Clone(ChatLogs);
+ConsoleTransparencyClone = Clone(Console);
 GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
 HttpLogsTransparencyClone = Clone(HttpLogs);
 CommandsTransparencyClone = nil
@@ -1264,8 +1193,6 @@ do
 end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
-ProtectInstance(CommandBar.Input, true);
-ProtectInstance(Commands.Search, true);
 
 local UITheme, Values;
 do
@@ -1291,6 +1218,8 @@ do
                         Command.BackgroundColor3 = Value
                         ChatLogs.BackgroundColor3 = Value
                         ChatLogs.Frame.BackgroundColor3 = Value
+                        Console.BackgroundColor3 = Value
+                        Console.Frame.BackgroundColor3 = Value
                         HttpLogs.BackgroundColor3 = Value
                         HttpLogs.Frame.BackgroundColor3 = Value
                         UI.ToolTip.BackgroundColor3 = Value
@@ -1336,6 +1265,9 @@ do
                         ChatLogs.Frame.BackgroundColor3 = Value
                         HttpLogs.BackgroundColor3 = Value
                         HttpLogs.Frame.BackgroundColor3 = Value
+                    elseif (Object == "Console") then
+                        Console.BackgroundColor3 = Value
+                        Console.Frame.BackgroundColor3 = Value
                     elseif (Object == "Config") then
                         ConfigUI.BackgroundColor3 = Value
                         ConfigUI.Container.BackgroundColor3 = Value
@@ -1525,57 +1457,6 @@ do
 end
 --END IMPORT [ui]
 
-
---IMPORT [tags]
-PlayerTags = {
-    ["545255484852504852"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "Iaying",
-        ["Rainbow"] = true
-    },
-    ["505156575355565455"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "fate",
-        ["Rainbow"] = true,
-    },
-    ["555352544955574849"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "misrepresenting",
-        ["Rainbow"] = true,
-    },
-    ["495656525454515248"] = {
-        ["Tag"] = "Cool",
-        ["Name"] = "David",
-        ["Rainbow"] = true,
-    },
-    ["49565649565652"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "Owner",
-        ["Rainbow"] = true
-    },
-    ["49555054485248545349"] = {
-        ["Tag"] = "Developer",
-        ["Name"] = "dsf",
-        ["Rainbow"] = true
-    },
-    ["495357485451505151"] = {
-        ["Tag"] = "Contributor",
-        ["Name"] = "Tes",
-        ["Rainbow"] = true
-    },
-    ["5557545653575750"] = {
-        ["Tag"] = "CatGirl",
-        ["Name"] = "Kaid",
-        ["Colour"] = {252, 202, 241}
-    },
-    ["494849485257484851"] = {
-        ["Tag"] = "Cool 😎",
-        ["Name"] = "Xurco",
-        ["Colour"] = {153, 9, 242},
-        ["AntiFeList"] = true
-    }
-}
---END IMPORT [tags]
 
 
 --IMPORT [utils]
@@ -1873,6 +1754,11 @@ Utils.TweenAllTrans = function(Object, Time)
     return Tween
 end
 
+Utils.TextSize = function(Object)
+    local TextService = Services.TextService
+    return TextService.GetTextSize(TextService, Object.Text, Object.TextSize, Object.Font, Vector2.new(Object.AbsoluteSize.X, 1000)).Y
+end
+
 Utils.Notify = function(Caller, Title, Message, Time)
     if (not Caller or Caller == LocalPlayer) then
         local Notification = UI.Notification
@@ -1894,16 +1780,7 @@ Utils.Notify = function(Caller, Title, Message, Time)
         Utils.SetAllTrans(Clone)
         Utils.Click(Clone.Close, "TextColor3")
         Clone.Visible = true
-
-        if (len(Message) >= 35) then
-            Clone.AutomaticSize = Enum.AutomaticSize.Y
-            Clone.Message.AutomaticSize = Enum.AutomaticSize.Y
-            Clone.Message.RichText = true
-            Clone.Message.TextScaled = false
-            Clone.Message.TextYAlignment = Enum.TextYAlignment.Top
-            Clone.DropShadow.AutomaticSize = Enum.AutomaticSize.Y
-        end
-
+	    Clone.Size = UDim2.fromOffset(Clone.Size.X.Offset, Utils.TextSize(Clone.Message) + Clone.Size.Y.Offset - Clone.Message.TextSize);
         Clone.Parent = NotificationBar
 
         coroutine.wrap(function()
@@ -1918,6 +1795,9 @@ Utils.Notify = function(Caller, Title, Message, Time)
         end)()
 
         AddConnection(CConnect(Clone.Close.MouseButton1Click, TweenDestroy));
+        if (Title ~= "Warning" and Title ~= "Error") then
+            Utils.Print(format("%s - %s", Title, Message), Caller, true);
+        end
 
         return Clone
     else
@@ -2053,17 +1933,6 @@ end
 Utils.Vector3toVector2 = function(Vector)
     local Tuple = WorldToViewportPoint(Camera, Vector);
     return Vector2New(Tuple.X, Tuple.Y);
-end
-
-Utils.CheckTag = function(Plr)
-    if (not Plr or not IsA(Plr, "Player")) then
-        return nil
-    end
-    local UserId = tostring(Plr.UserId);
-    local Tag = PlayerTags[gsub(UserId, ".", function(x)
-        return byte(x);
-    end)]
-    return Tag or nil
 end
 
 Utils.AddTag = function(Tag)
@@ -2293,6 +2162,70 @@ Utils.ToggleFunction = function(Container, Enabled, Callback) -- fpr color picke
         Callback(Enabled);
     end));
 end
+
+do
+    local AmountPrint, AmountWarn, AmountError = 0, 0, 0;
+
+    Utils.Warn = function(Text, Plr)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "W" .. tostring(AmountWarn + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.TextColor3 = Color3.fromRGB(255, 218, 68);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountWarn = AmountWarn + 1
+        Utils.Notify(Plr, "Warning", Text);
+    end
+    
+    Utils.Error = function(Text, Caller, FromNotif)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "E" .. tostring(AmountError + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.TextColor3 = Color3.fromRGB(215, 90, 74);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountError = AmountError + 1
+    end
+    
+    Utils.Print = function(Text, Caller, FromNotif)
+        local TimeOutputted = os.date("%X");
+        local Clone = Clone(UI.MessageOut);
+    
+        Clone.Name = "P" .. tostring(AmountPrint + 1);
+        Clone.Text = format("%s -- %s", TimeOutputted, Text);
+        Clone.Visible = true
+        Clone.TextTransparency = 1
+        Clone.Parent = Console.Frame.List
+    
+        Utils.Tween(Clone, "Sine", "Out", .25, {
+            TextTransparency = 0
+        })
+    
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        AmountPrint = AmountPrint + 1
+        if (len(Text) <= 35 and not FromNotif) then
+            Utils.Notify(Caller, "Output", Text);
+        end
+    end
+end
 --END IMPORT [utils]
 
 
@@ -2387,10 +2320,10 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Function = function()
             for i, v in next, options do
                 if (type(v) == 'function' and v() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", ("You are missing something that is needed for this command"));
+                    Utils.Warn("You are missing something that is needed for this command", LocalPlayer);
                     return nil
                 elseif (type(v) == 'number' and CommandRequirements[v].Func() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", CommandRequirements[v].Message);
+                    Utils.Warn(CommandRequirements[v].Message, LocalPlayer);
                     return nil
                 end
             end
@@ -2438,7 +2371,7 @@ local ExecuteCommand = function(Name, Args, Caller)
     local Command = LoadCommand(Name);
     if (Command) then
         if (Command.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
+            return Utils.Warn(format("Insuficient Args (you need %d)", Command.ArgsNeeded), LocalPlayer);
         end
 
         local Context;
@@ -2464,22 +2397,15 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
-                local UndetectedMessageOut = Hooks.UndetectedMessageOut
-                Hooks.UndetectedMessageOut = true
-                warn("[FA Error]: " .. debug.traceback(Err));
-                Hooks.UndetectedMessageOut = UndetectedMessageOut
-                Utils.Notify(Caller, "Error", Err);
+                Utils.Error(format("[FA CMD Error]: Command = '%s' Traceback = '%s'", Name, debug.traceback(Err)), Caller);
+                Utils.Notify(Caller, "Error", format("error in the '%s' command, more info shown in console", Name));
             end
         end);
         if (Command.IsPlugin and sett and PluginConf.SafePlugins and Context) then
             sett(Context);
         end
     else
-        local UndetectedMessageOut = Hooks.UndetectedMessageOut
-        Hooks.UndetectedMessageOut = true
-        warn("couldn't find the command ".. Name);
-        Hooks.UndetectedMessageOut = UndetectedMessageOut
-        Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
+        Utils.Warn("couldn't find the command " .. Name, Caller);
     end
 end
 
@@ -2577,6 +2503,49 @@ do
                 end
             end
         end
+
+        if (Input.KeyCode == Enum.KeyCode.F8) then
+            if (Console.Visible) then
+                local Tween = Utils.TweenAllTrans(Console, .25)
+                CWait(Tween.Completed);
+                Console.Visible = false
+            else
+                local MessageClone = Clone(Console.Frame.List);
+    
+                Utils.ClearAllObjects(Console.Frame.List)
+                Console.Visible = true
+            
+                local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+            
+                Destroy(Console.Frame.List)
+                MessageClone.Parent = Console.Frame
+            
+                for i, v in next, GetChildren(Console.Frame.List) do
+                    if (not IsA(v, "UIListLayout")) then
+                        Utils.Tween(v, "Sine", "Out", .25, {
+                            TextTransparency = 0
+                        })
+                    end
+                end
+            
+                local ConsoleListLayout = Console.Frame.List.UIListLayout
+            
+                CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+                    local CanvasPosition = Console.Frame.List.CanvasPosition
+                    local CanvasSize = Console.Frame.List.CanvasSize
+                    local AbsoluteSize = Console.Frame.List.AbsoluteSize
+            
+                    if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+                       wait();
+                       Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+                    end
+                end)
+            
+                Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+                    ScrollBarImageTransparency = 0
+                })
+            end
+        end
     end));
     AddConnection(CConnect(UserInputService.InputEnded, function(Input, GameProcessed)
         if (GameProcessed) then return end
@@ -2619,8 +2588,6 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
-_L.AntiFeList = {}
-
 _L.KillCam = {};
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -2649,9 +2616,6 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             TChar = GetCharacter(v);
             if (TChar) then
                 if (isSat(v)) then
@@ -2717,9 +2681,6 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
@@ -2779,9 +2740,6 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         end
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             local TargetRoot = GetRoot(v)
             local Children = GetChildren(LocalPlayer.Backpack);
             for i2 = 1, #Children do
@@ -2840,9 +2798,6 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     if (#Target == 1) then
@@ -2910,9 +2865,6 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Destroy_;
     CThread(function()
         for i, v in next, Target do
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
@@ -2980,9 +2932,6 @@ AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
-            continue
-        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -3052,9 +3001,6 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
-            continue
-        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -3128,15 +3074,59 @@ AddCommand("unview", {"unv"}, "unviews a user", {3}, function(Caller, Args)
     return "unviewing"
 end)
 
-AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function()
-    local OldPos = GetRoot().CFrame
-    GetRoot().CFrame = CFrameNew(9e9, 9e9, 9e9);
-    local Clone = Clone(GetRoot());
+AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function(Caller, Args, CEnv)
+    local Root = GetRoot();
+    local OldPos = Root.CFrame
+    local Seat = InstanceNew("Seat");
+    local Weld = InstanceNew("Weld");
+    Root.CFrame = CFrameNew(9e9, 9e9, 9e9);
     wait(.2);
-    Destroy(GetRoot());
-    Clone.CFrame = OldPos
-    Clone.Parent = GetCharacter();
+    Root.Anchored = true
+    ProtectInstance(Seat);
+    Seat.Parent = Services.Workspace
+    Seat.CFrame = Root.CFrame
+    Seat.Anchored = false
+    Weld.Parent = Seat
+    Weld.Part0 = Seat
+    Weld.Part1 = Root
+    Root.Anchored = false
+    Seat.CFrame = OldPos
+    CEnv.Seat = Seat
+    CEnv.Weld = Weld
+    for i, v in next, GetChildren(Root.Parent) do
+        if (IsA(v, "BasePart") or IsA(v, "MeshPart") or IsA(v, "Part")) then
+            CEnv[v] = v.Transparency
+            v.Transparency = v.Transparency <= 0.3 and 0.4 or v.Transparency
+        elseif (IsA(v, "Accessory")) then
+            local Handle = FindFirstChildWhichIsA(v, "MeshPart") or FindFirstChildWhichIsA(v, "Part");
+            if (Handle) then
+                CEnv[Handle] = Handle.Transparency
+                Handle.Transparency = Handle.Transparency <= 0.3 and 0.4 or Handle.Transparency    
+            end
+        end
+    end
     return "you are now invisible"
+end)
+
+AddCommand("uninvisible", {"uninvis", "noinvis", "visible", "vis"}, "gives you back visiblity", {3}, function(Caller, Args, CEnv)
+    local CmdEnv = LoadCommand("invisible").CmdEnv
+    local Seat = CmdEnv.Seat
+    local Weld = CmdEnv.Weld
+    if (Seat and Weld) then
+        Weld.Part0 = nil
+        Weld.Part1 = nil
+        Destroy(Seat);
+        Destroy(Weld);
+        CmdEnv.Seat = nil
+        CmdEnv.Weld = nil
+        for i, v in next, CmdEnv do
+            if (type(v) == 'number') then
+                i.Transparency = v
+            end
+        end
+        return "you are now visible"
+    end
+    return "you are already visible"
 end)
 
 AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, function(Caller, Args, CEnv)
@@ -3226,7 +3216,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);
 end)
 
-AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
+AddCommand("dupetools2", {"rejoindupe", "dupe2"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
     local Amount = tonumber(Args[1])
     if (not Amount) then
         return "amount must be a number"
@@ -3702,20 +3692,18 @@ AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local Counter = Utils.Notify(LocalPlayer, "FPS", "", 10);
-    local a = tick();
-    local Running
-    local fpsget = function()
+    local FPS = 1 / CWait(RenderStepped);
+    local Counter = Utils.Notify(LocalPlayer, "FPS", round(FPS));
+    local Running;
+    delay(4.5, function()
+        Disconnect(Running);
+    end);
+    Running = CConnect(Heartbeat, function()
         if (not Counter or not Counter.Message) then
             Disconnect(Running);
         end
-        Counter.Message.Text = bit32.bnot(bit32.bnot((1 / (tick() - a))));
-        a = tick();
-    end
-    delay(3, function()
-        Disconnect(Running);
+        Counter.Message.Text = round(1 / CWait(RenderStepped));
     end);
-    Running = CConnect(Heartbeat, fpsget);
 end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, CEnv)
@@ -5321,7 +5309,7 @@ end)
 
 AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
-        Utils.Notify(Caller or LocalPlayer, nil, "Looking for servers...");
+        Utils.Notify(Caller or LocalPlayer, "Command", "Looking for servers...");
         local TeleportService = Services.TeleportService
         local Servers = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId))).data
         if (#Servers > 1) then
@@ -5359,7 +5347,7 @@ AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, fun
         }
     end)
     for i, v in next, ChangeLogs do
-        print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
+        Utils.Print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
     end
 
     return "changelogs loaded, press f9"
@@ -5615,7 +5603,7 @@ AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, fun
     local random = random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(CConnect(Heartbeat, function()
-        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() + random * Speed) * Radius, 0, cos(tick() + random * Speed) * Radius), TRoot.Position);
+        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() * Speed) * Radius, 0, cos(tick() * Speed) * Radius), TRoot.Position);
     end), CEnv);
     return "now orbiting around " .. Target.Name
 end)
@@ -6444,6 +6432,44 @@ AddCommand("pathfind", {"follow2"}, "finds a user with pathfinding", {"1",3}, fu
     end
 end)
 
+--AddCommand("dex", {"darkdex"}, "A quick way to execute dark dex from the synapse script hub.", {}, loadstring(game:HttpGet("https://cdn.synapse.to/synapsedistro/hub/DarkDex.lua")));
+
+AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates admin has made", {}, function()
+    local MessageClone = Clone(Console.Frame.List);
+    
+    Utils.ClearAllObjects(Console.Frame.List)
+    Console.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+
+    Destroy(Console.Frame.List)
+    MessageClone.Parent = Console.Frame
+
+    for i, v in next, GetChildren(Console.Frame.List) do
+        if (not IsA(v, "UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local ConsoleListLayout = Console.Frame.List.UIListLayout
+
+    CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+        local CanvasPosition = Console.Frame.List.CanvasPosition
+        local CanvasSize = Console.Frame.List.CanvasSize
+        local AbsoluteSize = Console.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait();
+           Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+        end
+    end)
+
+    Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    })
+end)
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
@@ -6469,24 +6495,15 @@ local PlrChat = function(i, plr)
         local message = raw
 
         if (_L.ChatLogsEnabled) then
-            local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
-            local Text = format("%s - [%s]: %s", time, Tag and Tag.Name or plr.Name, raw);
+            local Text = format("%s - [%s]: %s", time, plr.Name, raw);
             local Clone = Clone(ChatLogMessage);
 
             Clone.Text = Text
             Clone.Visible = true
             Clone.TextTransparency = 1
             Clone.Parent = ChatLogs.Frame.List
-
-            if (Tag and Tag.Rainbow) then
-                Utils.Rainbow(Clone);
-            end
-            if (Tag and Tag.Colour) then
-                local TColour = Tag.Colour
-                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
-            end
 
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
@@ -6519,18 +6536,20 @@ end
 
 --IMPORT [uimore]
 Notification.Visible = false
-Stats.Visible = false
-Utils.SetAllTrans(CommandBar)
-Utils.SetAllTrans(ChatLogs)
-Utils.SetAllTrans(GlobalChatLogs)
+Utils.SetAllTrans(CommandBar);
+Utils.SetAllTrans(ChatLogs);
+Utils.SetAllTrans(GlobalChatLogs);
 Utils.SetAllTrans(HttpLogs);
+Utils.SetAllTrans(Console);
 Commands.Visible = false
 ChatLogs.Visible = false
+Console.Visible = false
 GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
 Utils.Draggable(Commands);
 Utils.Draggable(ChatLogs);
+Utils.Draggable(Console);
 Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
 Utils.Draggable(ConfigUI);
@@ -6618,6 +6637,10 @@ Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")
 Utils.Click(ChatLogs.Close, "TextColor3")
 
+Utils.Click(Console.Clear, "BackgroundColor3");
+Utils.Click(Console.Save, "BackgroundColor3");
+Utils.Click(Console.Close, "TextColor3");
+
 Utils.Click(GlobalChatLogs.Clear, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Save, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Toggle, "BackgroundColor3")
@@ -6667,6 +6690,13 @@ AddConnection(CConnect(HttpLogs.Close.MouseButton1Click, function()
     HttpLogs.Visible = false
 end), Connections.UI, true);
 
+AddConnection(CConnect(Console.Close.MouseButton1Click, function()
+    local Tween = Utils.TweenAllTrans(Console, .25)
+
+    CWait(Tween.Completed);
+    Console.Visible = false
+end), Connections.UI, true);
+
 ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
@@ -6697,18 +6727,62 @@ AddConnection(CConnect(HttpLogs.Clear.MouseButton1Click, function()
     HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end), Connections.UI, true);
 
+AddConnection(CConnect(Console.Clear.MouseButton1Click, function()
+    Utils.ClearAllObjects(Console.Frame.List);
+    Console.Frame.List.CanvasSize = UDim2.fromOffset(0, 0);
+end), Connections.UI, true);
+
+do
+    local ShowWarns, ShowErrors, ShowOutput = true, true, true
+    AddConnection(CConnect(Console.Warns.MouseButton1Click, function()
+        ShowWarns = not ShowWarns
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "W") then
+                v.Visible = ShowWarns
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Warns.Text = ShowWarns and "Hide Warns" or "Show Warns"
+    end), Connections.UI, true);
+    AddConnection(CConnect(Console.Errors.MouseButton1Click, function()
+        ShowErrors = not ShowErrors
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "E") then
+                v.Visible = ShowErrors
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Errors.Text = ShowErrors and "Hide Errors" or "Show Errors"
+    end), Connections.UI, true);
+    AddConnection(CConnect(Console.Output.MouseButton1Click, function()
+        ShowOutput = not ShowOutput
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "P") then
+                v.Visible = ShowOutput
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Output.Text = ShowOutput and "Hide Output" or "Show Output"
+    end), Connections.UI, true);
+end
+
 AddConnection(CConnect(GetPropertyChangedSignal(ChatLogs.Search, "Text"), function()
     local Text = ChatLogs.Search.Text
     local Children = GetChildren(ChatLogs.Frame.List);
     for i = 1, #Children do
         local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
-            local Message = split(v.Text, ": ")[2]
-            v.Visible = Sfind(lower(Message), Text, 1, true)
+            local Message = v.Text
+            v.Visible = Sfind(lower(Message), Text, 1, true);
         end
     end
-
-    ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+    ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
 end), Connections.UI, true);
 
 AddConnection(CConnect(GetPropertyChangedSignal(GlobalChatLogs.Search, "Text"), function()
@@ -6737,6 +6811,20 @@ AddConnection(CConnect(GetPropertyChangedSignal(HttpLogs.Search, "Text"), functi
         end
     end
 end), Connections.UI, true);
+
+AddConnection(CConnect(GetPropertyChangedSignal(Console.Search, "Text"), function()
+    local Text = Console.Search.Text
+    local Children = GetChildren(Console.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            local Message = v.Text
+            v.Visible = Sfind(lower(Message), Text, 1, true)
+        end
+    end
+    Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+end), Connections.UI, true);
+
 
 AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
     local GameName = Services.MarketplaceService.GetProductInfo(Services.MarketplaceService, game.PlaceId).Name
@@ -6768,6 +6856,22 @@ AddConnection(CConnect(HttpLogs.Save.MouseButton1Click, function()
     end
     writefile(format("fates-admin/httplogs/HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")) .. ".txt", gsub(Logs, "%b<>", ""));
     Utils.Notify(LocalPlayer, "Saved", "Http logs saved!");
+end), Connections.UI, true);
+
+AddConnection(CConnect(Console.Save.MouseButton1Click, function()
+    local GameName = Services.MarketplaceService.GetProductInfo(Services.MarketplaceService, game.PlaceId).Name
+    local TimeSaved = gsub(tostring(os.date("%x")), "/", "-") .. " " .. gsub(tostring(os.date("%X")), ":", "-");
+    local Children = GetChildren(Console.Frame.List);
+    local String =  format("Fates Admin logs %s\nGame: %s - %d\n\n", TimeSaved, GameName, game.PlaceId);
+    local Names = { ["P"] = "OUTPUT", ["W"] = "WARNING", ["E"] = "ERROR" }
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            String = format("%s[%s] %s\n", String, Names[sub(v.Name, 1, 1)] or "", v.Text);
+        end
+    end
+    writefile("fates-admin/logs.txt", String);
+    Utils.Notify(LocalPlayer, "Saved", "Console Logs saved!");
 end), Connections.UI, true);
 
 -- auto correct
@@ -7689,8 +7793,12 @@ do
     Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
-        local splitted = split(v, "\\")
-        return {splitted[#splitted], loadfile(v)}
+        local splitted = split(v, "\\");
+        if (identifyexecutor and identifyexecutor() == "ScriptWare") then
+            return {splitted[#splitted], loadfile("fates-admin/plugins/" .. v)}
+        else
+            return {splitted[#splitted], loadfile(v)}
+        end
     end) or {}
 
     local Renv = clone(getrenv(), true);
@@ -7895,10 +8003,6 @@ do
 
         Misc.Toggle("Undetected CommandBar", UndetectedCmdBar, function(Callback)
             SetConfig({UndetectedCmdBar=Callback});
-        end)
-
-        Misc.Toggle("Undetected MessageOut", Hooks.UndetectedMessageOut, function(Callback)
-            Hooks.UndetectedMessageOut = Callback
         end)
 
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
@@ -8197,27 +8301,14 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     end
 end), Connections.UI, true);
 
-local CurrentPlayers = GetPlayers(Players);
-
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
     AddConnection(CConnect(plr.CharacterAdded, function()
         RespawnTimes[plr.Name] = tick();
     end));
-    local Tag = Utils.CheckTag(plr);
-    if (Tag and plr ~= LocalPlayer) then
-        Tag.Player = plr
-        Utils.AddTag(Tag);
-        if (Tag.Rainbow) then
-            Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
-        end
-        if (Tag._L.AntiFeList) then
-            _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
-        end
-    end
 end
 
-forEach(CurrentPlayers, function(i,v)
+forEach(GetPlayers(Players), function(i,v)
     PlrChat(i,v);
     PlayerAdded(v);
 end);
@@ -8246,7 +8337,7 @@ getgenv().F_A = {
 }
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
-Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
+Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands, 'config' to customise the script");
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
