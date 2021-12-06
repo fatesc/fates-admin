@@ -26,13 +26,6 @@ end
     require - var
 ]]
 
-do
-    local ErrorConnections = getconnections(Services.ScriptContext.Error);
-    if (next(ErrorConnections)) then
-        getfenv().error = warn
-        getgenv().error = warn
-    end
-end
 
 local GetCharacter = GetCharacter or function(Plr)
     return Plr and Plr.Character or LocalPlayer.Character
@@ -257,9 +250,6 @@ local LastCommand = {}
     require - ui
 ]]
 
---[[
-    require - tags
-]]
 
 --[[
     require - utils
@@ -356,10 +346,10 @@ local AddCommand = function(name, aliases, description, options, func, isplugin)
         Function = function()
             for i, v in next, options do
                 if (type(v) == 'function' and v() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", ("You are missing something that is needed for this command"));
+                    Utils.Warn("You are missing something that is needed for this command", LocalPlayer);
                     return nil
                 elseif (type(v) == 'number' and CommandRequirements[v].Func() == false) then
-                    Utils.Notify(LocalPlayer, "Fail", CommandRequirements[v].Message);
+                    Utils.Warn(CommandRequirements[v].Message, LocalPlayer);
                     return nil
                 end
             end
@@ -407,7 +397,7 @@ local ExecuteCommand = function(Name, Args, Caller)
     local Command = LoadCommand(Name);
     if (Command) then
         if (Command.ArgsNeeded > #Args) then
-            return Utils.Notify(plr, "Error", format("Insuficient Args (you need %d)", Command.ArgsNeeded));
+            return Utils.Warn(format("Insuficient Args (you need %d)", Command.ArgsNeeded), LocalPlayer);
         end
 
         local Context;
@@ -433,22 +423,15 @@ local ExecuteCommand = function(Name, Args, Caller)
             Success = true
         end, function(Err)
             if (Debug) then
-                local UndetectedMessageOut = Hooks.UndetectedMessageOut
-                Hooks.UndetectedMessageOut = true
-                warn("[FA Error]: " .. debug.traceback(Err));
-                Hooks.UndetectedMessageOut = UndetectedMessageOut
-                Utils.Notify(Caller, "Error", Err);
+                Utils.Error(format("[FA CMD Error]: Command = '%s' Traceback = '%s'", Name, debug.traceback(Err)), Caller);
+                Utils.Notify(Caller, "Error", format("error in the '%s' command, more info shown in console", Name));
             end
         end);
         if (Command.IsPlugin and sett and PluginConf.SafePlugins and Context) then
             sett(Context);
         end
     else
-        local UndetectedMessageOut = Hooks.UndetectedMessageOut
-        Hooks.UndetectedMessageOut = true
-        warn("couldn't find the command ".. Name);
-        Hooks.UndetectedMessageOut = UndetectedMessageOut
-        Utils.Notify(plr, "Error", "couldn't find the command " .. Name);
+        Utils.Warn("couldn't find the command " .. Name, Caller);
     end
 end
 
@@ -546,6 +529,49 @@ do
                 end
             end
         end
+
+        if (Input.KeyCode == Enum.KeyCode.F8) then
+            if (Console.Visible) then
+                local Tween = Utils.TweenAllTrans(Console, .25)
+                CWait(Tween.Completed);
+                Console.Visible = false
+            else
+                local MessageClone = Clone(Console.Frame.List);
+    
+                Utils.ClearAllObjects(Console.Frame.List)
+                Console.Visible = true
+            
+                local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+            
+                Destroy(Console.Frame.List)
+                MessageClone.Parent = Console.Frame
+            
+                for i, v in next, GetChildren(Console.Frame.List) do
+                    if (not IsA(v, "UIListLayout")) then
+                        Utils.Tween(v, "Sine", "Out", .25, {
+                            TextTransparency = 0
+                        })
+                    end
+                end
+            
+                local ConsoleListLayout = Console.Frame.List.UIListLayout
+            
+                CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+                    local CanvasPosition = Console.Frame.List.CanvasPosition
+                    local CanvasSize = Console.Frame.List.CanvasSize
+                    local AbsoluteSize = Console.Frame.List.AbsoluteSize
+            
+                    if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+                       wait();
+                       Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+                    end
+                end)
+            
+                Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+                    ScrollBarImageTransparency = 0
+                })
+            end
+        end
     end));
     AddConnection(CConnect(UserInputService.InputEnded, function(Input, GameProcessed)
         if (GameProcessed) then return end
@@ -588,8 +614,6 @@ AddCommand("hipheight", {"hh"}, "changes your hipheight to the second argument",
     return "your hipheight is now " .. Humanoid.HipHeight
 end)
 
-_L.AntiFeList = {}
-
 _L.KillCam = {};
 AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Args)
     local Target = GetPlayer(Args[1]);
@@ -618,9 +642,6 @@ AddCommand("kill", {"tkill"}, "kills someone", {"1", 1, 3}, function(Caller, Arg
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             TChar = GetCharacter(v);
             if (TChar) then
                 if (isSat(v)) then
@@ -686,9 +707,6 @@ AddCommand("kill2", {}, "another variant of kill", {1, "1"}, function(Caller, Ar
     CThread(function()
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not kill");
@@ -748,9 +766,6 @@ AddCommand("loopkill", {}, "loopkill loopkills a character", {3,"1"}, function(C
         end
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             local TargetRoot = GetRoot(v)
             local Children = GetChildren(LocalPlayer.Backpack);
             for i2 = 1, #Children do
@@ -809,9 +824,6 @@ AddCommand("bring", {}, "brings a user", {1}, function(Caller, Args)
         local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
         for i = 1, #Target do
             local v = Target[i]
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     if (#Target == 1) then
@@ -879,9 +891,6 @@ AddCommand("bring2", {}, "another variant of bring", {1, 3, "1"}, function(Calle
     local Destroy_;
     CThread(function()
         for i, v in next, Target do
-            if (Tfind(_L.AntiFeList, v.UserId)) then
-                continue
-            end
             if (GetCharacter(v)) then
                 if (isSat(v)) then
                     Utils.Notify(Caller or LocalPlayer, nil, v.Name .. " is sitting down, could not bring");
@@ -949,9 +958,6 @@ AddCommand("void", {"kill3"}, "voids a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
-            continue
-        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -1021,9 +1027,6 @@ AddCommand("freefall", {}, "freefalls a user", {1,"1"}, function(Caller, Args)
     local Target2Root = Target2 and GetRoot(Target2 and Target2[1] or nil);
     for i = 1, #Target do
         local v = Target[i]
-        if (Tfind(_L.AntiFeList, v.UserId)) then
-            continue
-        end
         if (GetCharacter(v)) then
             if (isSat(v)) then
                 if (#Target == 1) then
@@ -1097,15 +1100,59 @@ AddCommand("unview", {"unv"}, "unviews a user", {3}, function(Caller, Args)
     return "unviewing"
 end)
 
-AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function()
-    local OldPos = GetRoot().CFrame
-    GetRoot().CFrame = CFrameNew(9e9, 9e9, 9e9);
-    local Clone = Clone(GetRoot());
+AddCommand("invisible", {"invis"}, "makes yourself invisible", {3}, function(Caller, Args, CEnv)
+    local Root = GetRoot();
+    local OldPos = Root.CFrame
+    local Seat = InstanceNew("Seat");
+    local Weld = InstanceNew("Weld");
+    Root.CFrame = CFrameNew(9e9, 9e9, 9e9);
     wait(.2);
-    Destroy(GetRoot());
-    Clone.CFrame = OldPos
-    Clone.Parent = GetCharacter();
+    Root.Anchored = true
+    ProtectInstance(Seat);
+    Seat.Parent = Services.Workspace
+    Seat.CFrame = Root.CFrame
+    Seat.Anchored = false
+    Weld.Parent = Seat
+    Weld.Part0 = Seat
+    Weld.Part1 = Root
+    Root.Anchored = false
+    Seat.CFrame = OldPos
+    CEnv.Seat = Seat
+    CEnv.Weld = Weld
+    for i, v in next, GetChildren(Root.Parent) do
+        if (IsA(v, "BasePart") or IsA(v, "MeshPart") or IsA(v, "Part")) then
+            CEnv[v] = v.Transparency
+            v.Transparency = v.Transparency <= 0.3 and 0.4 or v.Transparency
+        elseif (IsA(v, "Accessory")) then
+            local Handle = FindFirstChildWhichIsA(v, "MeshPart") or FindFirstChildWhichIsA(v, "Part");
+            if (Handle) then
+                CEnv[Handle] = Handle.Transparency
+                Handle.Transparency = Handle.Transparency <= 0.3 and 0.4 or Handle.Transparency    
+            end
+        end
+    end
     return "you are now invisible"
+end)
+
+AddCommand("uninvisible", {"uninvis", "noinvis", "visible", "vis"}, "gives you back visiblity", {3}, function(Caller, Args, CEnv)
+    local CmdEnv = LoadCommand("invisible").CmdEnv
+    local Seat = CmdEnv.Seat
+    local Weld = CmdEnv.Weld
+    if (Seat and Weld) then
+        Weld.Part0 = nil
+        Weld.Part1 = nil
+        Destroy(Seat);
+        Destroy(Weld);
+        CmdEnv.Seat = nil
+        CmdEnv.Weld = nil
+        for i, v in next, CmdEnv do
+            if (type(v) == 'number') then
+                i.Transparency = v
+            end
+        end
+        return "you are now visible"
+    end
+    return "you are already visible"
 end)
 
 AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, function(Caller, Args, CEnv)
@@ -1195,7 +1242,7 @@ AddCommand("dupetools", {"dp"}, "dupes your tools", {"1", 1, {"protect"}}, funct
     return format("successfully duped %d tool (s)", #GetChildren(LocalPlayer.Backpack) - ToolAmount);
 end)
 
-AddCommand("dupetools2", {"rejoindupe"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
+AddCommand("dupetools2", {"rejoindupe", "dupe2"}, "sometimes a faster dupetools", {1,"1"}, function(Caller, Args)
     local Amount = tonumber(Args[1])
     if (not Amount) then
         return "amount must be a number"
@@ -1671,20 +1718,18 @@ AddCommand("memory", {"mem"}, "shows you your memory usage", {}, function()
 end)
 
 AddCommand("fps", {"frames"}, "shows you your framerate", {}, function()
-    local Counter = Utils.Notify(LocalPlayer, "FPS", "", 10);
-    local a = tick();
-    local Running
-    local fpsget = function()
+    local FPS = 1 / CWait(RenderStepped);
+    local Counter = Utils.Notify(LocalPlayer, "FPS", round(FPS));
+    local Running;
+    delay(4.5, function()
+        Disconnect(Running);
+    end);
+    Running = CConnect(Heartbeat, function()
         if (not Counter or not Counter.Message) then
             Disconnect(Running);
         end
-        Counter.Message.Text = bit32.bnot(bit32.bnot((1 / (tick() - a))));
-        a = tick();
-    end
-    delay(3, function()
-        Disconnect(Running);
+        Counter.Message.Text = round(1 / CWait(RenderStepped));
     end);
-    Running = CConnect(Heartbeat, fpsget);
 end)
 
 AddCommand("displaynames", {}, "enables/disables display names (on/off)", {{"on","off"}}, function(Caller, Args, CEnv)
@@ -3290,7 +3335,7 @@ end)
 
 AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
-        Utils.Notify(Caller or LocalPlayer, nil, "Looking for servers...");
+        Utils.Notify(Caller or LocalPlayer, "Command", "Looking for servers...");
         local TeleportService = Services.TeleportService
         local Servers = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId))).data
         if (#Servers > 1) then
@@ -3328,7 +3373,7 @@ AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, fun
         }
     end)
     for i, v in next, ChangeLogs do
-        print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
+        Utils.Print(format("Author: %s\nDate: %s\nMessage: %s", v.Author, v.Date, v.Message));
     end
 
     return "changelogs loaded, press f9"
@@ -3584,7 +3629,7 @@ AddCommand("orbit", {}, "orbits a yourself around another player", {3, "1"}, fun
     local random = random(tick() / 2, tick());
     local Root, TRoot = GetRoot(), GetRoot(Target);
     AddConnection(CConnect(Heartbeat, function()
-        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() + random * Speed) * Radius, 0, cos(tick() + random * Speed) * Radius), TRoot.Position);
+        Root.CFrame = CFrameNew(TRoot.Position + Vector3New(sin(tick() * Speed) * Radius, 0, cos(tick() * Speed) * Radius), TRoot.Position);
     end), CEnv);
     return "now orbiting around " .. Target.Name
 end)
@@ -4413,6 +4458,44 @@ AddCommand("pathfind", {"follow2"}, "finds a user with pathfinding", {"1",3}, fu
     end
 end)
 
+AddCommand("dex", {"darkdex"}, "A quick way to execute dark dex from the synapse script hub.", {}, loadstring(game:HttpGet("https://cdn.synapse.to/synapsedistro/hub/DarkDex.lua")));
+
+AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates admin has made", {}, function()
+    local MessageClone = Clone(Console.Frame.List);
+    
+    Utils.ClearAllObjects(Console.Frame.List)
+    Console.Visible = true
+
+    local Tween = Utils.TweenAllTransToObject(Console, .25, ConsoleTransparencyClone)
+
+    Destroy(Console.Frame.List)
+    MessageClone.Parent = Console.Frame
+
+    for i, v in next, GetChildren(Console.Frame.List) do
+        if (not IsA(v, "UIListLayout")) then
+            Utils.Tween(v, "Sine", "Out", .25, {
+                TextTransparency = 0
+            })
+        end
+    end
+
+    local ConsoleListLayout = Console.Frame.List.UIListLayout
+
+    CConnect(GetPropertyChangedSignal(ConsoleListLayout, "AbsoluteContentSize"), function()
+        local CanvasPosition = Console.Frame.List.CanvasPosition
+        local CanvasSize = Console.Frame.List.CanvasSize
+        local AbsoluteSize = Console.Frame.List.AbsoluteSize
+
+        if (CanvasSize.Y.Offset - AbsoluteSize.Y - CanvasPosition.Y < 20) then
+           wait();
+           Console.Frame.List.CanvasPosition = Vector2.new(0, CanvasSize.Y.Offset + 1000);
+        end
+    end)
+
+    Utils.Tween(Console.Frame.List, "Sine", "Out", .25, {
+        ScrollBarImageTransparency = 0
+    })
+end)
 
 local PlrChat = function(i, plr)
     if (not Connections.Players[plr.Name]) then
@@ -4438,24 +4521,15 @@ local PlrChat = function(i, plr)
         local message = raw
 
         if (_L.ChatLogsEnabled) then
-            local Tag = Utils.CheckTag(plr);
 
             local time = os.date("%X");
-            local Text = format("%s - [%s]: %s", time, Tag and Tag.Name or plr.Name, raw);
+            local Text = format("%s - [%s]: %s", time, plr.Name, raw);
             local Clone = Clone(ChatLogMessage);
 
             Clone.Text = Text
             Clone.Visible = true
             Clone.TextTransparency = 1
             Clone.Parent = ChatLogs.Frame.List
-
-            if (Tag and Tag.Rainbow) then
-                Utils.Rainbow(Clone);
-            end
-            if (Tag and Tag.Colour) then
-                local TColour = Tag.Colour
-                Clone.TextColor3 = Color3.fromRGB(TColour[1], TColour[2], TColour[3]);
-            end
 
             Utils.Tween(Clone, "Sine", "Out", .25, {
                 TextTransparency = 0
@@ -4531,27 +4605,14 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     end
 end), Connections.UI, true);
 
-local CurrentPlayers = GetPlayers(Players);
-
 local PlayerAdded = function(plr)
     RespawnTimes[plr.Name] = tick();
     AddConnection(CConnect(plr.CharacterAdded, function()
         RespawnTimes[plr.Name] = tick();
     end));
-    local Tag = Utils.CheckTag(plr);
-    if (Tag and plr ~= LocalPlayer) then
-        Tag.Player = plr
-        Utils.AddTag(Tag);
-        if (Tag.Rainbow) then
-            Utils.Notify(LocalPlayer, Tag.Name, format("%s (%s) has joined", Tag.Name, Tag.Tag));
-        end
-        if (Tag._L.AntiFeList) then
-            _L.AntiFeList[#_L.AntiFeList + 1] = plr.UserId
-        end
-    end
 end
 
-forEach(CurrentPlayers, function(i,v)
+forEach(GetPlayers(Players), function(i,v)
     PlrChat(i,v);
     PlayerAdded(v);
 end);
@@ -4580,7 +4641,7 @@ getgenv().F_A = {
 }
 
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
-Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands");
+Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands, 'config' to customise the script");
 if (debug.info(2, "f") == nil) then
 	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end

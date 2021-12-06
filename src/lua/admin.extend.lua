@@ -1,4 +1,5 @@
-local firetouchinterest, hookfunction;
+local SocialService = game:GetService("SocialService")
+local firetouchinterest, hookfunction, getconnections;
 do
     local GEnv = getgenv();
     local touched = {}
@@ -25,15 +26,13 @@ do
         func = applycclosure and newcclosure or newfunc
         return func
     end
-end
 
-local getconnections;
-do
     local CachedConnections = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
-    getconnections = function(Connection, FromCache)
-        local getconnections = getgenv().getconnections
+
+    getconnections = function(Connection, FromCache, AddOnConnect)
+        local getconnections = GEnv.getconnections
         if (not getconnections) then
             return {}
         end
@@ -49,7 +48,7 @@ do
             return CachedConnection
         end
 
-        local Connections = getgenv().getconnections(Connection);
+        local Connections = GEnv.getconnections(Connection);
         CachedConnections[Connection] = Connections
         return Connections
     end
@@ -67,31 +66,10 @@ local checkcaller = checkcaller or function()
     return false
 end
 
-local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
-    setreadonly(metatable, false);
-    Old = hookfunction(metatable[metamethod], func, true);
-    setreadonly(metatable, true);
-    return Old
-end
-
-local GetAllParents = function(Instance_)
-    if (typeof(Instance_) == "Instance") then
-        local Parents = {}
-        local Current = Instance_
-        repeat
-            local Parent = Current.Parent
-            Parents[#Parents + 1] = Parent
-            Current = Parent
-        until not Current
-        return Parents
-    end
-    return {}
-end
 local Hooks = {
     AntiKick = false,
     AntiTeleport = false,
     NoJumpCooldown = false,
-    UndetectedMessageOut = true
 }
 
 local mt = getrawmetatable(game);
@@ -106,18 +84,16 @@ local MetaMethodHooks = {}
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local UnSpoofInstance;
 local ProtectedInstances = setmetatable({}, {
-    mode = "v"
+    __mode = "v"
 });
 do
     local SpoofedInstances = setmetatable({}, {
-        mode = "v"
+        __mode = "v"
     });
-    local SpoofedProperties = setmetatable({}, {
-        mode = "v"
-    });
+    local SpoofedProperties = {}
     Hooks.SpoofedProperties = SpoofedProperties
 
-    ProtectInstance = function(Instance_, disallow)
+    ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
         end
@@ -164,12 +140,30 @@ do
         end
     end
 
+    local GetAllParents = function(Instance_, NIV)
+        if (typeof(Instance_) == "Instance") then
+            local Parents = {}
+            local Current = NIV or Instance_
+            if (NIV) then
+                Parents[#Parents + 1] = Current
+            end
+            repeat
+                local Parent = Current.Parent
+                Parents[#Parents + 1] = Parent
+                Current = Parent
+            until not Current
+            return Parents
+        end
+        return {}
+    end
+    
     local Methods = {
         "FindFirstChild",
         "FindFirstChildWhichIsA",
         "FindFirstChildOfClass",
         "IsA"
     }
+
     MetaMethodHooks.Namecall = function(...)
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
@@ -177,9 +171,7 @@ do
         local Method = getnamecallmethod() or "";
 
         if (Method ~= "") then
-            local Success, Error = pcall(function()
-                return self and self[Method]
-            end)
+            local Success = pcall(OldMetaMethods.__index, self, Method);
             if (not Success) then
                 return __Namecall(...);
             end
@@ -223,7 +215,6 @@ do
             return __Namecall(...);
         end
 
-
         if (Tfind(Methods, Method)) then
             local ReturnedInstance = __Namecall(...);
             if (Tfind(ProtectedInstances, ReturnedInstance)) then
@@ -231,30 +222,28 @@ do
             end
         end
         
-
         if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
             return filter(__Namecall(...), function(i, v)
-                return not Tfind(ProtectedInstances, v);
+                local Protected = false
+                for i2 = 1, #ProtectedInstances do
+                    local ProtectedInstance = ProtectedInstances[i2]
+                    Protected = ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance);
+                    if (Protected) then
+                        break;
+                    end
+                end
+                return not Protected
             end)
         end
 
         if (Method == "GetFocusedTextBox") then
-            if (Tfind(ProtectedInstances, __Namecall(...))) then
-                return nil
+            local Protected = false
+            for i = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i]
+                Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
             end
-        end
-
-        if (Hooks.UndetectedMessageOut and Method == "GetLogHistory") then
-            if (self == Services.LogService) then
-                local LogHistory = __Namecall(...);
-                local MessagesOut = Hooks.MessagesOut
-                local FilteredLogHistory = {}
-                for i, v in next, LogHistory do
-                    if (not Tfind(MessagesOut, v.message)) then
-                        FilteredLogHistory[#FilteredLogHistory + 1] = v
-                    end
-                end
-                return FilteredLogHistory
+            if (Protected) then
+                return nil
             end
         end
 
@@ -267,7 +256,7 @@ do
                 return false
             end
         end
-        
+
         return __Namecall(...);
     end
 
@@ -302,16 +291,15 @@ do
 
         if (SpoofedPropertiesForInstance) then
             for i, SpoofedProperty in next, SpoofedPropertiesForInstance do
+                local SanitisedIndex = gsub(SanitisedIndex, "^%l", upper);
                 if (SanitisedIndex == SpoofedProperty.Property) then
                     local ClientChangedData = ChangedSpoofedProperties[Instance_][SanitisedIndex]
                     local IndexedSpoofed = __Index(SpoofedProperty.SpoofedProperty, Index);
                     local Indexed = __Index(Instance_, Index);
-                    if (not ClientChangedData and IndexedSpoofed ~= Indexed) then
+                    if (ClientChangedData.Caller and ClientChangedData.Value ~= Indexed) then
                         OldMetaMethods.__newindex(SpoofedProperty.SpoofedProperty, Index, Indexed);
-                        return __Index(SpoofedProperty.SpoofedProperty, Index);
-                    end
-                    if (ClientChangedData.Caller) then
-                        ChangedSpoofedProperties[Instance_][SanitisedIndex] = nil
+                        OldMetaMethods.__newindex(Instance_, Index, ClientChangedData.Value);
+                        return Indexed
                     end
                     return IndexedSpoofed
                 end
@@ -343,16 +331,16 @@ do
         local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
 
         if (checkcaller()) then
-            if (Index == "Parent") then
+            if (Index == "Parent" and Value) then
                 local ProtectedInstance
                 for i = 1, #ProtectedInstances do
                     local ProtectedInstance_ = ProtectedInstances[i]
-                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Instance_, ProtectedInstance_)) then
+                    if (Instance_ == ProtectedInstance_ or Instance_.IsDescendantOf(Value, ProtectedInstance_)) then
                         ProtectedInstance = true
                     end
                 end
                 if (ProtectedInstance) then
-                    local Parents = GetAllParents(Value);
+                    local Parents = GetAllParents(Instance_, Value);
                     for i, v in next, getconnections(Parents[1].ChildAdded, true) do
                         v.Disable(v);
                     end
@@ -431,11 +419,18 @@ do
 
         return __NewIndex(...);
     end
-end
 
-OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
-OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
-OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+    local hookmetamethod = hookmetamethod or function(metatable, metamethod, func)
+        setreadonly(metatable, false);
+        Old = hookfunction(metatable[metamethod], func, true);
+        setreadonly(metatable, true);
+        return Old
+    end
+
+    OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
+    OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
+    OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
     if (not checkcaller()) then
@@ -451,7 +446,15 @@ Hooks.OldGetDescendants = hookfunction(game.GetDescendants, newcclosure(function
     if (not checkcaller()) then
         local Descendants = Hooks.OldGetDescendants(...);
         return filter(Descendants, function(i, v)
-            return not Tfind(ProtectedInstances, v);
+            local Protected = false
+            for i2 = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i2]
+                Protected = v and ProtectedInstance == v or v.IsDescendantOf(v, ProtectedInstance)
+                if (Protected) then
+                    break;
+                end
+            end
+            return not Protected
         end)
     end
     return Hooks.OldGetDescendants(...);
@@ -460,7 +463,7 @@ end));
 Hooks.FindFirstChild = hookfunction(game.FindFirstChild, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChild(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -469,7 +472,7 @@ end));
 Hooks.FindFirstChildOfClass = hookfunction(game.FindFirstChildOfClass, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChildOfClass(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -478,7 +481,7 @@ end));
 Hooks.FindFirstChildWhichIsA = hookfunction(game.FindFirstChildWhichIsA, newcclosure(function(...)
     if (not checkcaller()) then
         local ReturnedInstance = Hooks.FindFirstChildWhichIsA(...);
-        if (Tfind(ProtectedInstances, ReturnedInstance)) then
+        if (ReturnedInstance and Tfind(ProtectedInstances, ReturnedInstance)) then
             return nil
         end
     end
@@ -488,9 +491,11 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     if (not checkcaller()) then
         local Args = {...}
         local IsACheck = Args[1]
-        local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
-        if (ProtectedInstance and Args[2]) then
-            return false
+        if (IsACheck) then
+            local ProtectedInstance = Tfind(ProtectedInstances, IsACheck);
+            if (ProtectedInstance and Args[2]) then
+                return false
+            end
         end
     end
     return Hooks.IsA(...);
@@ -500,7 +505,12 @@ local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
-        if (FocusedTextBox and Tfind(ProtectedInstances, FocusedTextBox)) then
+        local Protected = false
+        for i = 1, #ProtectedInstances do
+            local ProtectedInstance = ProtectedInstances[i]
+            Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+        end
+        if (Protected) then
             return nil
         end
     end
@@ -578,81 +588,3 @@ Hooks.GetStateEnabled = hookfunction(__H.GetStateEnabled, function(...)
     end
     return Ret
 end)
-
-do
-    local LogService = Services.LogService
-    local MessageOut = LogService.MessageOut
-    Hooks.MessagesOut = {}
-    local MessagesOut = Hooks.MessagesOut
-
-    Hooks.Print = hookfunction(print, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Print = Hooks.Print(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Print
-        end
-        return Hooks.Print(...);
-    end));
-    
-    Hooks.Warn = hookfunction(warn, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut and checkcaller() and false) then
-            local MessageOutConnections = getconnections(MessageOut);
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Disable();
-            end
-            local Warn = Hooks.Warn(...);
-            MessagesOut[#MessagesOut + 1] = concat(map({...}, function(i, v)
-                return tostring(v);
-            end), " ") .. " ";
-            for i = 1, #MessageOutConnections do
-                MessageOutConnections[i]:Enable();
-            end
-            return Warn
-        end
-        return Hooks.Warn(...);
-    end))
-
-    Hooks.OldGetLogHistory = hookfunction(LogService.GetLogHistory, newcclosure(function(...)
-        if (Hooks.UndetectedMessageOut) then
-            local LogHistory = Hooks.OldGetLogHistory(...);
-            local FilteredLogHistory = {}
-            for i, v in next, LogHistory do
-                if (not Tfind(MessagesOut, v.message)) then
-                    FilteredLogHistory[#FilteredLogHistory + 1] = v
-                end
-            end
-            return FilteredLogHistory
-        end
-        return Hooks.OldGetLogHistory(...);
-    end))
-end
-
--- local UnProtectInstance = function(Instance_)
---     for i, v in next, ProtectedInstances do
---         if (v == Instance_) then
---             ProtectedInstances[i] = nil
---             if (syn and syn.unprotect_gui) then
---                 pcall(function()
---                     syn.unprotect_gui(Instance_);
---                 end)
---             end
---         end
---     end
--- end
-
--- local UnSpoofProperty = function(Instance_, Property)
---     local SpoofedProperty = SpoofedProperties[Instance_]
---     if (SpoofedProperty and SpoofedProperty.Property == Property) then
---         Destroy(SpoofedProperty.SpoofedProperty);
---         SpoofedInstances[Instance_] = nil
---     end
--- end

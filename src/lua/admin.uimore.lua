@@ -1,16 +1,18 @@
 Notification.Visible = false
-Stats.Visible = false
-Utils.SetAllTrans(CommandBar)
-Utils.SetAllTrans(ChatLogs)
-Utils.SetAllTrans(GlobalChatLogs)
+Utils.SetAllTrans(CommandBar);
+Utils.SetAllTrans(ChatLogs);
+Utils.SetAllTrans(GlobalChatLogs);
 Utils.SetAllTrans(HttpLogs);
+Utils.SetAllTrans(Console);
 Commands.Visible = false
 ChatLogs.Visible = false
+Console.Visible = false
 GlobalChatLogs.Visible = false
 HttpLogs.Visible = false
 
 Utils.Draggable(Commands);
 Utils.Draggable(ChatLogs);
+Utils.Draggable(Console);
 Utils.Draggable(GlobalChatLogs);
 Utils.Draggable(HttpLogs);
 Utils.Draggable(ConfigUI);
@@ -98,6 +100,10 @@ Utils.Click(ChatLogs.Save, "BackgroundColor3")
 Utils.Click(ChatLogs.Toggle, "BackgroundColor3")
 Utils.Click(ChatLogs.Close, "TextColor3")
 
+Utils.Click(Console.Clear, "BackgroundColor3");
+Utils.Click(Console.Save, "BackgroundColor3");
+Utils.Click(Console.Close, "TextColor3");
+
 Utils.Click(GlobalChatLogs.Clear, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Save, "BackgroundColor3")
 Utils.Click(GlobalChatLogs.Toggle, "BackgroundColor3")
@@ -147,6 +153,13 @@ AddConnection(CConnect(HttpLogs.Close.MouseButton1Click, function()
     HttpLogs.Visible = false
 end), Connections.UI, true);
 
+AddConnection(CConnect(Console.Close.MouseButton1Click, function()
+    local Tween = Utils.TweenAllTrans(Console, .25)
+
+    CWait(Tween.Completed);
+    Console.Visible = false
+end), Connections.UI, true);
+
 ChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 GlobalChatLogs.Toggle.Text = _L.ChatLogsEnabled and "Enabled" or "Disabled"
 HttpLogs.Toggle.Text = _L.HttpLogsEnabled and "Enabled" or "Disabled"
@@ -177,18 +190,62 @@ AddConnection(CConnect(HttpLogs.Clear.MouseButton1Click, function()
     HttpLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, 0)
 end), Connections.UI, true);
 
+AddConnection(CConnect(Console.Clear.MouseButton1Click, function()
+    Utils.ClearAllObjects(Console.Frame.List);
+    Console.Frame.List.CanvasSize = UDim2.fromOffset(0, 0);
+end), Connections.UI, true);
+
+do
+    local ShowWarns, ShowErrors, ShowOutput = true, true, true
+    AddConnection(CConnect(Console.Warns.MouseButton1Click, function()
+        ShowWarns = not ShowWarns
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "W") then
+                v.Visible = ShowWarns
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Warns.Text = ShowWarns and "Hide Warns" or "Show Warns"
+    end), Connections.UI, true);
+    AddConnection(CConnect(Console.Errors.MouseButton1Click, function()
+        ShowErrors = not ShowErrors
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "E") then
+                v.Visible = ShowErrors
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Errors.Text = ShowErrors and "Hide Errors" or "Show Errors"
+    end), Connections.UI, true);
+    AddConnection(CConnect(Console.Output.MouseButton1Click, function()
+        ShowOutput = not ShowOutput
+        local Children = GetChildren(Console.Frame.List);
+        for i = 1, #Children do
+            local v = Children[i]
+            if (not IsA(v, "UIListLayout") and sub(v.Name, 1, 1) == "P") then
+                v.Visible = ShowOutput
+            end
+        end
+        Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y);
+        Console.Output.Text = ShowOutput and "Hide Output" or "Show Output"
+    end), Connections.UI, true);
+end
+
 AddConnection(CConnect(GetPropertyChangedSignal(ChatLogs.Search, "Text"), function()
     local Text = ChatLogs.Search.Text
     local Children = GetChildren(ChatLogs.Frame.List);
     for i = 1, #Children do
         local v = Children[i]
         if (not IsA(v, "UIListLayout")) then
-            local Message = split(v.Text, ": ")[2]
-            v.Visible = Sfind(lower(Message), Text, 1, true)
+            local Message = v.Text
+            v.Visible = Sfind(lower(Message), Text, 1, true);
         end
     end
-
-    ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+    ChatLogs.Frame.List.CanvasSize = UDim2.fromOffset(0, ChatLogs.Frame.List.UIListLayout.AbsoluteContentSize.Y);
 end), Connections.UI, true);
 
 AddConnection(CConnect(GetPropertyChangedSignal(GlobalChatLogs.Search, "Text"), function()
@@ -217,6 +274,20 @@ AddConnection(CConnect(GetPropertyChangedSignal(HttpLogs.Search, "Text"), functi
         end
     end
 end), Connections.UI, true);
+
+AddConnection(CConnect(GetPropertyChangedSignal(Console.Search, "Text"), function()
+    local Text = Console.Search.Text
+    local Children = GetChildren(Console.Frame.List);
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            local Message = v.Text
+            v.Visible = Sfind(lower(Message), Text, 1, true)
+        end
+    end
+    Console.Frame.List.CanvasSize = UDim2.fromOffset(0, Console.Frame.List.UIListLayout.AbsoluteContentSize.Y)
+end), Connections.UI, true);
+
 
 AddConnection(CConnect(ChatLogs.Save.MouseButton1Click, function()
     local GameName = Services.MarketplaceService.GetProductInfo(Services.MarketplaceService, game.PlaceId).Name
@@ -248,6 +319,22 @@ AddConnection(CConnect(HttpLogs.Save.MouseButton1Click, function()
     end
     writefile(format("fates-admin/httplogs/HttpLogs for %s", gsub(tostring(os.date("%X")), ":", "-")) .. ".txt", gsub(Logs, "%b<>", ""));
     Utils.Notify(LocalPlayer, "Saved", "Http logs saved!");
+end), Connections.UI, true);
+
+AddConnection(CConnect(Console.Save.MouseButton1Click, function()
+    local GameName = Services.MarketplaceService.GetProductInfo(Services.MarketplaceService, game.PlaceId).Name
+    local TimeSaved = gsub(tostring(os.date("%x")), "/", "-") .. " " .. gsub(tostring(os.date("%X")), ":", "-");
+    local Children = GetChildren(Console.Frame.List);
+    local String =  format("Fates Admin logs %s\nGame: %s - %d\n\n", TimeSaved, GameName, game.PlaceId);
+    local Names = { ["P"] = "OUTPUT", ["W"] = "WARNING", ["E"] = "ERROR" }
+    for i = 1, #Children do
+        local v = Children[i]
+        if (not IsA(v, "UIListLayout")) then
+            String = format("%s[%s] %s\n", String, Names[sub(v.Name, 1, 1)] or "", v.Text);
+        end
+    end
+    writefile("fates-admin/logs.txt", String);
+    Utils.Notify(LocalPlayer, "Saved", "Console Logs saved!");
 end), Connections.UI, true);
 
 -- auto correct

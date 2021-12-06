@@ -16,6 +16,7 @@ local ConfigElements = ConfigUI.GuiElements
 local CommandBar = UI.CommandBar
 local Commands = UI.Commands
 local ChatLogs = UI.ChatLogs
+local Console = UI.Console
 local GlobalChatLogs = Clone(UI.ChatLogs);
 local HttpLogs = Clone(UI.ChatLogs);
 local Notification = UI.Notification
@@ -23,12 +24,11 @@ local Command = UI.Command
 local ChatLogMessage = UI.Message
 local GlobalChatLogMessage = Clone(UI.Message);
 local NotificationBar = UI.NotificationBar
-local Stats = Clone(UI.Notification);
-local StatsBar = Clone(UI.NotificationBar);
 
 CommandBarOpen = false
 CommandBarTransparencyClone = Clone(CommandBar);
 ChatLogsTransparencyClone = Clone(ChatLogs);
+ConsoleTransparencyClone = Clone(Console);
 GlobalChatLogsTransparencyClone = Clone(GlobalChatLogs);
 HttpLogsTransparencyClone = Clone(HttpLogs);
 CommandsTransparencyClone = nil
@@ -48,8 +48,6 @@ do
 end
 -- position CommandBar
 CommandBar.Position = UDim2.new(0.5, -100, 1, 5);
-ProtectInstance(CommandBar.Input, true);
-ProtectInstance(Commands.Search, true);
 
 local UITheme, Values;
 do
@@ -75,6 +73,8 @@ do
                         Command.BackgroundColor3 = Value
                         ChatLogs.BackgroundColor3 = Value
                         ChatLogs.Frame.BackgroundColor3 = Value
+                        Console.BackgroundColor3 = Value
+                        Console.Frame.BackgroundColor3 = Value
                         HttpLogs.BackgroundColor3 = Value
                         HttpLogs.Frame.BackgroundColor3 = Value
                         UI.ToolTip.BackgroundColor3 = Value
@@ -120,6 +120,9 @@ do
                         ChatLogs.Frame.BackgroundColor3 = Value
                         HttpLogs.BackgroundColor3 = Value
                         HttpLogs.Frame.BackgroundColor3 = Value
+                    elseif (Object == "Console") then
+                        Console.BackgroundColor3 = Value
+                        Console.Frame.BackgroundColor3 = Value
                     elseif (Object == "Config") then
                         ConfigUI.BackgroundColor3 = Value
                         ConfigUI.Container.BackgroundColor3 = Value
