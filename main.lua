@@ -4411,7 +4411,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    Services.CoreGui.RobloxPromptGui.Enabled = false
+    Services.CoreGui.PurchasePrompt.Enabled = false
     return "You'll no longer recive sale prompts"
 end)
 
