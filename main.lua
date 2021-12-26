@@ -843,7 +843,7 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     return Hooks.IsA(...);
 end));
 
-local UndetectedCmdBar;
+local UndetectedCmdBar = true;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
@@ -8273,12 +8273,13 @@ end
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     if (UndetectedCmdBar) then
-        CThread(function()
-            wait(.3);
-            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-                v.Enable(v);
-            end
-        end)()
+        spawn(function()
+            CThread(function()
+                for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
+                    v.Enable(v);
+                end
+            end)()
+        end)
     end
 
     local Text = trim(CommandBar.Input.Text);
