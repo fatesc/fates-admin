@@ -7963,8 +7963,6 @@ do
         local Settings = Script.NewSection("Settings");
     
         local CurrentConf = GetConfig();
-        UndetectedCmdBar = CurrentConf.UndetectedCmdBar
-
 
         Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
             if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
@@ -8002,7 +8000,7 @@ do
         end)
 
         Misc.Toggle("Undetected CommandBar", UndetectedCmdBar, function(Callback)
-            SetConfig({UndetectedCmdBar=Callback});
+            UndetectedCmdBar = Callback
         end)
 
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)

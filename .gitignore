@@ -108,3 +108,6 @@ dist
 output.lua
 ProtectInstance.lua
 .gitignore
+build.cpp
+build.exe
+v3
