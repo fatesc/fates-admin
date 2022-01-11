@@ -42,7 +42,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 for i, v in next, TextConnections do
                     v.Disable(v);
                 end
-                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
+                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased, true) do
                     v.Disable(v);
                 end
             end

@@ -1,5 +1,5 @@
 --[[
-	fates admin - 6/12/2021
+	fates admin - 11/1/2022
 ]]
 
 local game = game
@@ -843,7 +843,7 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     return Hooks.IsA(...);
 end));
 
-local UndetectedCmdBar = true;
+local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
@@ -4411,7 +4411,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    Services.CoreGui.PurchasePrompt.Enabled = false
+    Services.CoreGui.RobloxPromptGui.Enabled = false
     return "You'll no longer recive sale prompts"
 end)
 
@@ -6579,7 +6579,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 for i, v in next, TextConnections do
                     v.Disable(v);
                 end
-                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased) do
+                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased, true) do
                     v.Disable(v);
                 end
             end
@@ -7963,6 +7963,8 @@ do
         local Settings = Script.NewSection("Settings");
     
         local CurrentConf = GetConfig();
+        UndetectedCmdBar = CurrentConf.UndetectedCmdBar
+
 
         Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
             if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
@@ -8000,7 +8002,7 @@ do
         end)
 
         Misc.Toggle("Undetected CommandBar", UndetectedCmdBar, function(Callback)
-            UndetectedCmdBar = Callback
+            SetConfig({UndetectedCmdBar=Callback});
         end)
 
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
@@ -8271,13 +8273,12 @@ end
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
     if (UndetectedCmdBar) then
-        spawn(function()
-            CThread(function()
-                for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-                    v.Enable(v);
-                end
-            end)()
-        end)
+        CThread(function()
+            wait(.3);
+            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
+                v.Enable(v);
+            end
+        end)()
     end
 
     local Text = trim(CommandBar.Input.Text);
