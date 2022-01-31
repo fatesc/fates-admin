@@ -165,7 +165,6 @@ local GetState = __H.GetState
 local GetAccessories = __H.GetAccessories
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer.PlayerGui
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
 
 local CThread;
@@ -5953,10 +5952,14 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                 math.atan2(-lookVector.z, lookVector.x) - math.pi/2
             )
             panDeltaMouse = Vector2New();
-            for _, obj in next, GetChildren(PlayerGui) do
-                if IsA(obj, "ScreenGui") and obj.Enabled then
-                    obj.Enabled = false
-                    screenGuis[obj] = true
+
+            local PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
+            if PlayerGui then
+                for _, obj in next, GetChildren(PlayerGui) do
+                    if IsA(obj, "ScreenGui") and obj.Enabled then
+                        obj.Enabled = false
+                        screenGuis[obj] = true
+                    end
                 end
             end
 
@@ -6961,7 +6964,8 @@ do
             return
         end
         if (not Enabled) then
-            local RobloxChat = LocalPlayer.PlayerGui and FindFirstChild(LocalPlayer.PlayerGui, "Chat");
+            local PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
+            local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
             local RobloxChatBarFrame;
             if (RobloxChat) then
                 local RobloxChatFrame = FindFirstChild(RobloxChat, "Frame");
