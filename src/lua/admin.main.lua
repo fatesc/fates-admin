@@ -2437,7 +2437,7 @@ AddCommand("age", {}, "ages a player", {"1"}, function(Caller, Args)
 end)
 
 AddCommand("nosales", {}, "no purchase prompt notifications will be shown", {}, function()
-    Services.CoreGui.RobloxPromptGui.Enabled = false
+    Services.CoreGui.PurchasePrompt.Enabled = false
     return "You'll no longer recive sale prompts"
 end)
 
@@ -2771,7 +2771,7 @@ AddCommand("btools", {}, "gives you btools", {3}, function(Caller, Args)
     for i = 1, 4 do
         local Bin = InstanceNew("HopperBin");
         Bin.BinType = i
-        ProtectInstance(Bin);
+        -- ProtectInstance(Bin);
         Bin.Parent = BP
     end
     return "client sided btools loaded"
