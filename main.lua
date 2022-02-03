@@ -1,5 +1,5 @@
 --[[
-	fates admin - 31/1/2022
+	fates admin - 3/2/2022
 ]]
 
 local game = game
@@ -5310,32 +5310,45 @@ end)
 AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
         Utils.Notify(Caller or LocalPlayer, "Command", "Looking for servers...");
-        local TeleportService = Services.TeleportService
-        local Servers = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId))).data
-        if (#Servers > 1) then
-            Servers = filter(Servers, function(i,v)
-                return v.playing ~= v.maxPlayers and v.id ~= game.JobId
-            end)
-            local Server
-            local Option = Args[1] or ""
-            if (lower(Option) == "min") then
-                Server = Servers[#Servers]
-            elseif (lower(Option) == "max") then
-                Server = Servers[1]
-            else
-                Server = Servers[random(1, #Servers)]
-            end
-            local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
-            if (queue_on_teleport) then
-                queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
-            end
-            TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, Server.id);
-            return format("joining server (%d/%d players)", Server.playing, Server.maxPlayers);
+
+        local TeleportService = Services.TeleportService;
+        local Info = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId)));
+        local Servers = Info.data;
+
+        if #Servers == 0 then return "no servers found" end;
+
+        Servers = filter(Servers, function(i,v) 
+            return v.playing ~= v.maxPlayers and v.id ~= game.JobId;
+        end);
+
+        -- Theres a very small chance a game can be that popular however we better be safe. (cough adopt me)
+        while #Servers == 0 do 
+            Info = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100&cursor=%s", game.PlaceId, Info.nextPageCursor)));
+            Servers = filter(Info.data, function() 
+                return v.playing < v.maxPlayers and v.id ~= game.JobId;
+            end);
+        end;
+
+        local Option, Server = lower(Args[1] or "");
+        if Option == "min" then
+            Server = Servers[#Servers];
+        elseif Option == "max" then
+            Server = Servers[1];
+        elseif Option == "mid" then
+            Server = Servers[floor(#Servers / 2 + .5)];
         else
-            return "no servers found"
-        end
-    end
-end)
+            Server = Servers[random(1, #Servers)];
+        end;
+
+        local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
+        if (queue_on_teleport) then
+            queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
+        end;
+
+        TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, Server.id);
+        return format("joining server (%d/%d players)", Server.playing, Server.maxPlayers);
+    end;
+end);
 
 AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, function()
     local ChangeLogs = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=100&path=main.lua"));
