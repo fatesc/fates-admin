@@ -568,8 +568,8 @@ do
                 local Protected = false
                 for i2 = 1, #ProtectedInstances do
                     local ProtectedInstance = ProtectedInstances[i2]
-		    local Success, Err = pcall(tostring, ProtectedInstance)
-                    Protected = ProtectedInstance == v or Err ~= nil or v.IsDescendantOf(v, ProtectedInstance);
+		    local Success = pcall(tostring, ProtectedInstance)
+                    Protected = ProtectedInstance == v or (Success and v.IsDescendantOf(v, ProtectedInstance));
                     if (Protected) then
                         break;
                     end
