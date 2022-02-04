@@ -1,5 +1,5 @@
 --[[
-	fates admin - 3/2/2022
+	fates admin - 4/2/2022
 ]]
 
 local game = game
@@ -165,6 +165,7 @@ local GetState = __H.GetState
 local GetAccessories = __H.GetAccessories
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
 
 local CThread;
@@ -568,7 +569,7 @@ do
                 local Protected = false
                 for i2 = 1, #ProtectedInstances do
                     local ProtectedInstance = ProtectedInstances[i2]
-		    local Success = pcall(tostring, ProtectedInstance)
+		            local Success = pcall(tostring, ProtectedInstance)
                     Protected = ProtectedInstance == v or (Success and v.IsDescendantOf(v, ProtectedInstance));
                     if (Protected) then
                         break;
@@ -4956,7 +4957,30 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
     local Root = GetRoot();
     local BodyGyro = InstanceNew("BodyGyro");
     local BodyVelocity = InstanceNew("BodyVelocity");
-    SpoofInstance(Root, isR6() and GetCharacter().Torso or GetCharacter().UpperTorso);
+    local IdleAnim1 = "507766388"
+
+    local Character = GetCharacter();
+    local Animate = FindFirstChild(Character, "Animate");
+
+    if (Animate) then
+        pcall(function()
+            CEnv.AnimsChanged = {}
+            local Run = Animate.run.RunAnim
+            CEnv.AnimsChanged[Run] = Run.AnimationId
+            Run.AnimationId = IdleAnim1
+            local Walk = Animate.walk.WalkAnim
+            CEnv.AnimsChanged[Walk] = Walk.AnimationId
+            Walk.AnimationId = IdleAnim1
+            local Fall = Animate.fall.FallAnim
+            CEnv.AnimsChanged[Fall] = Fall.AnimationId
+            Fall.AnimationId = IdleAnim1
+            local Jump = Animate.jump.JumpAnim
+            CEnv.AnimsChanged[Jump] = Jump.AnimationId
+            Jump.AnimationId = IdleAnim1
+        end)
+    end
+
+    SpoofInstance(Root, isR6() and Character.Torso or Character.UpperTorso);
     ProtectInstance(BodyGyro);
     ProtectInstance(BodyVelocity);
     BodyGyro.Parent = Root
@@ -5057,7 +5081,13 @@ end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
     DisableAllCmdConnections("fly");
-    LoadCommand("fly").CmdEnv = {}
+    local FlyCEnv = LoadCommand("fly").CmdEnv
+    if (FlyCEnv.AnimsChanged) then
+        for Anim, AnimId in next, FlyCEnv.AnimsChanged do
+            Anim.AnimationId = AnimId
+        end
+    end
+    table.clear(FlyCEnv);
     LoadCommand("fly2").CmdEnv = {}
     local Root = GetRoot();
     local Instances = { ["BodyPosition"] = true, ["BodyGyro"] = true, ["BodyVelocity"] = true }
@@ -5966,14 +5996,10 @@ AddCommand("freecam", {"fc"}, "enables/disables freecam", {}, function(Caller, A
                 math.atan2(-lookVector.z, lookVector.x) - math.pi/2
             )
             panDeltaMouse = Vector2New();
-
-            local PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
-            if PlayerGui then
-                for _, obj in next, GetChildren(PlayerGui) do
-                    if IsA(obj, "ScreenGui") and obj.Enabled then
-                        obj.Enabled = false
-                        screenGuis[obj] = true
-                    end
+            for _, obj in next, GetChildren(PlayerGui) do
+                if IsA(obj, "ScreenGui") and obj.Enabled then
+                    obj.Enabled = false
+                    screenGuis[obj] = true
                 end
             end
 
@@ -6978,8 +7004,7 @@ do
             return
         end
         if (not Enabled) then
-            local PlayerGui = LocalPlayer:FindFirstChildOfClass('PlayerGui')
-            local RobloxChat = PlayerGui and FindFirstChild(PlayerGui, "Chat");
+            local RobloxChat = LocalPlayer.PlayerGui and FindFirstChild(LocalPlayer.PlayerGui, "Chat");
             local RobloxChatBarFrame;
             if (RobloxChat) then
                 local RobloxChatFrame = FindFirstChild(RobloxChat, "Frame");
