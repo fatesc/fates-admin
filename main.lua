@@ -1,5 +1,5 @@
 --[[
-	fates admin - 4/2/2022
+	fates admin - 8/2/2022
 ]]
 
 local game = game
@@ -7832,7 +7832,7 @@ PluginLibrary = {
 
 do
     local IsDebug = IsSupportedExploit and PluginConf.PluginDebug
-    
+
     Plugins = IsSupportedExploit and map(filter(listfiles("fates-admin/plugins"), function(i, v)
         return lower(split(v, ".")[#split(v, ".")]) == "lua"
     end), function(i, v)
@@ -7844,12 +7844,15 @@ do
         end
     end) or {}
 
-    local Renv = clone(getrenv(), true);
-    for i, v in next, Renv do
-        PluginLibrary[i] = v
+    if (SafePlugins) then
+        local Renv = clone(getrenv(), true);
+        for i, v in next, Renv do
+            PluginLibrary[i] = v
+        end
     end
     PluginLibrary.debug = nil
     PluginLibrary.getfenv = nil
+    PluginLibrary.loadstring = loadstring
 
     if (PluginConf.SafePlugins) then
         local Funcs = {}
