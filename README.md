@@ -17,3 +17,6 @@ please view the [wiki](https://github.com/fatesc/fates-admin/wiki/Plugins) for m
 
 ## Themes
 please view the [wiki](https://github.com/fatesc/fates-admin/wiki/Themes) for more information
+
+## Contact
+If you'd like to get in contact with any of our developers you can join our discord server [here](https://discord.gg/kDUeZezVeA)
