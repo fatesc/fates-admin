@@ -1,5 +1,5 @@
 --[[
-	fates admin - 8/2/2022
+	fates admin - 18/4/2022
 ]]
 
 local game = game
@@ -462,7 +462,7 @@ do
             end)
             if (not Tfind(Properties, Property)) then
                 SpoofedProperties[Instance_][#SpoofedPropertiesForInstance + 1] = {
-                    SpoofedProperty = SpoofedPropertiesForInstance.SpoofedProperty,
+                    SpoofedProperty = SpoofedPropertiesForInstance[1].SpoofedProperty,
                     Property = Property,
                 };
             end
@@ -2441,13 +2441,13 @@ local CFrameTool = function(tool, pos)
     tool.Grip = Frame
 end
 
-_L.Sanitize = function(value)
+local Sanitize = function(value)
     if typeof(value) == 'CFrame' then
         local components = {components(value)}
         for i,v in pairs(components) do
             components[i] = floor(v * 10000 + .5) / 10000
         end
-        return 'CFrameNew('..concat(components, ', ')..')'
+        return 'CFrame.new('..concat(components, ', ')..')'
     end
 end
 

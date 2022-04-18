@@ -466,13 +466,13 @@ local CFrameTool = function(tool, pos)
     tool.Grip = Frame
 end
 
-_L.Sanitize = function(value)
+local Sanitize = function(value)
     if typeof(value) == 'CFrame' then
         local components = {components(value)}
         for i,v in pairs(components) do
             components[i] = floor(v * 10000 + .5) / 10000
         end
-        return 'CFrameNew('..concat(components, ', ')..')'
+        return 'CFrame.new('..concat(components, ', ')..')'
     end
 end
 
