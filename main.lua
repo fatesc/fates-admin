@@ -1,5 +1,5 @@
 --[[
-	fates admin - 18/4/2022
+	fates admin - 7/5/2022
 ]]
 
 local game = game
@@ -579,7 +579,7 @@ do
             end)
         end
 
-        if (Method == "GetFocusedTextBox") then
+        if (self == Services.UserInputService and Method == "GetFocusedTextBox") then
             local Protected = false
             for i = 1, #ProtectedInstances do
                 local ProtectedInstance = ProtectedInstances[i]
@@ -846,7 +846,7 @@ end));
 
 local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
-    if (not checkcaller() and UndetectedCmdBar) then
+    if (not checkcaller() and ... == Services.UserInputService and UndetectedCmdBar) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
         local Protected = false
         for i = 1, #ProtectedInstances do
