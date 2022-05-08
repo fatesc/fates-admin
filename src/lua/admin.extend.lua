@@ -1,4 +1,5 @@
-local SocialService = game:GetService("SocialService")
+local Stats = Services.Stats
+
 local firetouchinterest, hookfunction, getconnections;
 do
     local GEnv = getgenv();
@@ -82,6 +83,7 @@ setreadonly(mt, true);
 local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
+local pInstanceCount = 0;
 local UnSpoofInstance;
 local ProtectedInstances = setmetatable({}, {
     __mode = "v"
@@ -96,6 +98,13 @@ do
     ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
+            pInstanceCount += 1 + #Instance_:GetDescendants()
+            Instance_.DescendantAdded:Connect(function()
+                pInstanceCount += 1
+            end);
+            Instance_.DescendantRemoving:Connect(function()
+                pInstanceCount = math.max(pInstanceCount - 1, 0);
+            end);
         end
     end
     
@@ -319,7 +328,24 @@ do
                 return false
             end
         end
-        
+
+        if (Instance_ == Stats and SanitisedIndex == "InstanceCount") then
+            return __Index(...) - pInstanceCount;
+        end
+
+        if (Instance_ == Stats and SanitisedIndex == "PrimitivesCount") then
+            local count = 0;
+            local identity = getthreadidentity();
+            setthreadidentity(2);
+            for i, v in pairs(game:GetDescendants()) do
+                if (IsA(v, "BasePart")) then
+                    count += 1
+                end
+            end
+            setthreadidentity(identity);
+            return count;
+        end
+
         return __Index(...);
     end
 

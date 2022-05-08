@@ -298,5 +298,5 @@ local function clone(toClone, shallow)
     return new
 end
 
-local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext
-local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext
+local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext or (syn and syn.set_thread_identity)
+local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext or (syn and syn.get_thread_identity)
