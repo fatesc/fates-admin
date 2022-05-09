@@ -197,7 +197,7 @@ do
                 if (instance and typeof(instance) == "Instance") then
                     local indentity = getthreadidentity();
                     setthreadidentity(3); -- doesn't matter as preload async gets all descendants includingg roblox locked instances
-                    local instanceDescendants = instance:GetDescendants();
+                    local instanceDescendants = instance == Services.CoreGui and instance:GetChildren() or instance:GetDescendants();
                     local filteredDescendants = filter(instanceDescendants, function(i2, instance2)
                         return not isProtected(instance2);
                     end);
