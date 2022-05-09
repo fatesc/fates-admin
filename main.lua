@@ -1,5 +1,5 @@
 --[[
-	fates admin - 8/5/2022
+	fates admin - 9/5/2022
 ]]
 
 local game = game
@@ -440,11 +440,11 @@ do
     ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
-            pInstanceCount += 1 + #Instance_:GetDescendants()
-            Instance_.DescendantAdded:Connect(function()
+            pInstanceCount += 1 + #Instance_:GetDescendants();
+            local dAdded = Instance_.DescendantAdded:Connect(function()
                 pInstanceCount += 1
             end);
-            Instance_.DescendantRemoving:Connect(function()
+            local dRemoving = Instance_.DescendantRemoving:Connect(function()
                 pInstanceCount = math.max(pInstanceCount - 1, 0);
             end);
         end
@@ -676,16 +676,9 @@ do
         end
 
         if (Instance_ == Stats and SanitisedIndex == "PrimitivesCount") then
-            local count = 0;
-            local identity = getthreadidentity();
-            setthreadidentity(2);
-            for i, v in pairs(game:GetDescendants()) do
-                if (IsA(v, "BasePart")) then
-                    count += 1
-                end
-            end
-            setthreadidentity(identity);
-            return count;
+            return #filter(game:GetDescendants(), function(i, v)
+                return IsA(v, "BasePart");
+            end);
         end
 
         return __Index(...);
@@ -799,6 +792,35 @@ do
     OldMetaMethods.__index = hookmetamethod(game, "__index", MetaMethodHooks.Index);
     OldMetaMethods.__newindex = hookmetamethod(game, "__newindex", MetaMethodHooks.NewIndex);
     OldMetaMethods.__namecall = hookmetamethod(game, "__namecall", MetaMethodHooks.Namecall);
+
+    Hooks.Destroy = hookfunction(game.Destroy, function(...)
+        local instance = ...
+        if (checkcaller() and table.find(ProtectedInstances, instance)) then
+            pInstanceCount -= 1 + #instance:GetDescendants();
+            local Parents = GetAllParents(instance);
+            for i, v in next, getconnections(Parents[1].ChildRemoved, true) do
+                v.Disable(v);
+            end
+            for i = 1, #Parents do
+                local Parent = Parents[i]
+                for i2, v in next, getconnections(Parent.DescendantRemoving, true) do
+                    v.Disable(v);
+                end
+            end
+            local destroy = Hooks.Destroy(...);
+            for i = 1, #Parents do
+                local Parent = Parents[i]
+                for i2, v in next, getconnections(Parent.DescendantRemoving, true) do
+                    v.Enable(v);
+                end
+            end
+            for i, v in next, getconnections(Parents[1].ChildRemoved, true) do
+                v.Enable(v);
+            end
+            return destroy;
+        end
+        return Hooks.Destroy(...);
+    end);
 end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
