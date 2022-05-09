@@ -51,7 +51,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
             CThread(function()
                 wait()
                 CommandBar.Input.Text = ""
-                local FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
+                FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
                 local TextBox = CommandBar.Input
                 while (FocusedTextBox ~= TextBox) do
                     FocusedTextBox.ReleaseFocus(FocusedTextBox);

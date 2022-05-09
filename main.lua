@@ -341,6 +341,7 @@ local Utils = {}
 
 --IMPORT [extend]
 local Stats = Services.Stats
+local ContentProvider = Services.ContentProvider
 
 local firetouchinterest, hookfunction, getconnections;
 do
@@ -426,10 +427,10 @@ local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
 local pInstanceCount = 0;
-local UnSpoofInstance;
 local ProtectedInstances = setmetatable({}, {
     __mode = "v"
 });
+local FocusedTextBox = nil
 do
     local SpoofedInstances = setmetatable({}, {
         __mode = "v"
@@ -515,6 +516,47 @@ do
         "IsA"
     }
 
+    local isProtected = function(instance)
+        for i2 = 1, #ProtectedInstances do
+            local pInstance = ProtectedInstances[i2]
+            local good = pcall(tostring, pInstance);
+            local protected = pInstance == instance or (good and instance.IsDescendantOf(instance, pInstance));
+            if (protected) then
+                return true;
+            end
+        end
+        return false;
+    end
+
+    local preloadHook = function(...)
+        local oldPreload = Hooks.PreloadAsync
+        local args = {...};
+        local self = args[1]
+        local instanceT = args[2]
+        if (type(instanceT) == "table" and type(args[3]) == "function") then
+            local filteredInstances = {}
+            for i, instance in pairs(instanceT) do
+                if (instance and typeof(instance) == "Instance") then
+                    local indentity = getthreadidentity();
+                    setthreadidentity(3); -- doesn't matter as preload async gets all descendants includingg roblox locked instances
+                    local instanceDescendants = instance:GetDescendants();
+                    local filteredDescendants = filter(instanceDescendants, function(i2, instance2)
+                        return not isProtected(instance2);
+                    end);
+                    for i2 = 1, #filteredDescendants do
+                        local descendant = filteredDescendants[i2]
+                        filteredInstances[#filteredInstances + 1] = descendant
+                    end
+                    setthreadidentity(indentity);
+                else
+                    filteredInstances[#filteredInstances + 1] = instance
+                end
+            end
+            return oldPreload(self, filteredInstances, args[3]);
+        end
+        return oldPreload(self, ...);
+    end
+
     MetaMethodHooks.Namecall = function(...)
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
@@ -589,13 +631,12 @@ do
         end
 
         if (self == Services.UserInputService and Method == "GetFocusedTextBox") then
-            local Protected = false
             for i = 1, #ProtectedInstances do
                 local ProtectedInstance = ProtectedInstances[i]
-                Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
-            end
-            if (Protected) then
-                return nil
+                local pInstance = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+                if (pInstance) then
+                    return nil;
+                end
             end
         end
 
@@ -607,6 +648,10 @@ do
             if (Method == "GetStateEnabled" and (self == Enum.HumanoidStateType.Jumping or self == "Jumping")) then
                 return false
             end
+        end
+
+        if (self == ContentProvider and Method == "PreloadAsync" or Method == "preloadAsync") then
+            return preloadHook(...);
         end
 
         return __Namecall(...);
@@ -821,6 +866,8 @@ do
         end
         return Hooks.Destroy(...);
     end);
+
+    Hooks.PreloadAsync = hookfunction(ContentProvider.PreloadAsync, preloadHook);
 end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
@@ -6679,7 +6726,7 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
             CThread(function()
                 wait()
                 CommandBar.Input.Text = ""
-                local FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
+                FocusedTextBox = UserInputService.GetFocusedTextBox(UserInputService);
                 local TextBox = CommandBar.Input
                 while (FocusedTextBox ~= TextBox) do
                     FocusedTextBox.ReleaseFocus(FocusedTextBox);
