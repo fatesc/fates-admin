@@ -374,11 +374,11 @@ do
             end
         end
 
-        if (Instance_ == Stats and SanitisedIndex == "InstanceCount") then
+        if (Instance_ == Stats and SanitisedIndex == "InstanceCount" or SanitisedIndex == "instanceCount") then
             return __Index(...) - pInstanceCount;
         end
 
-        if (Instance_ == Stats and SanitisedIndex == "PrimitivesCount") then
+        if (Instance_ == Stats and SanitisedIndex == "PrimitivesCount" or SanitisedIndex == "primitivesCount") then
             return #filter(game:GetDescendants(), function(i, v)
                 return IsA(v, "BasePart");
             end);
