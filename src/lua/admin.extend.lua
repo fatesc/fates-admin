@@ -175,7 +175,15 @@ do
     }
 
     local isProtected = function(instance)
-        return Tfind(ProtectedInstances, instance);
+        for i2 = 1, #ProtectedInstances do
+            local pInstance = ProtectedInstances[i2]
+            local good = pcall(tostring, pInstance);
+            local protected = pInstance == instance or (good and instance.IsDescendantOf(instance, pInstance));
+            if (protected) then
+                return true;
+            end
+        end
+        return false;
     end
 
     local preloadHook = function(...)
@@ -188,7 +196,7 @@ do
             for i, instance in pairs(instanceT) do
                 if (instance and typeof(instance) == "Instance") then
                     local indentity = getthreadidentity();
-                    setthreadidentity(2); -- doesn't matter as preload async gets all descendants includingg roblox locked instances
+                    setthreadidentity(3); -- doesn't matter as preload async gets all descendants includingg roblox locked instances
                     local instanceDescendants = instance == Services.CoreGui and instance:GetChildren() or instance:GetDescendants();
                     local filteredDescendants = filter(instanceDescendants, function(i2, instance2)
                         return not isProtected(instance2);
@@ -267,18 +275,9 @@ do
 
         -- ik this is horrible but fates admin v3 has a better way of doing hooks
         if (Method == "children" or Method == "GetChildren" or Method ==  "getChildren" or Method == "GetDescendants" or Method == "getDescendants") then
-            local indentity;
-            if (setthreadidentity) then
-                indentity = getthreadidentity();
-                setthreadidentity(2);
-            end
-            local results = filter(__Namecall(...), function(i, v)
-                return not Tfind(ProtectedInstances, v);
+            return filter(__Namecall(...), function(i, instance)
+                return not isProtected(instance);
             end);
-            if (indentity) then
-                setthreadidentity(indentity);
-            end
-            return results;
         end
 
         if (self == Services.UserInputService and Method == "GetFocusedTextBox" or Method == "getFocusedTextBox") then
