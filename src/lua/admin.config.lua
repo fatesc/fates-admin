@@ -21,8 +21,6 @@ do
         local Settings = Script.NewSection("Settings");
     
         local CurrentConf = GetConfig();
-        UndetectedCmdBar = CurrentConf.UndetectedCmdBar
-
 
         Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
             if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
@@ -57,10 +55,6 @@ do
             end
             SetConfig({ChatPrediction=Callback});
             Utils.Notify(nil, nil, format("ChatPrediction %s", Callback and "enabled" or "disabled"));
-        end)
-
-        Misc.Toggle("Undetected CommandBar", UndetectedCmdBar, function(Callback)
-            SetConfig({UndetectedCmdBar=Callback});
         end)
 
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)

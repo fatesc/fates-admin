@@ -273,7 +273,8 @@ do
             end
         end
         
-        if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
+        -- ik this is horrible but fates admin v3 has a better way of doing hooks
+        if (Method == "children" or Method == "GetChildren" or Method ==  "getChildren" or Method == "GetDescendants" or Method == "getDescendants") then
             return filter(__Namecall(...), function(i, v)
                 local Protected = false
                 for i2 = 1, #ProtectedInstances do
@@ -288,10 +289,11 @@ do
             end)
         end
 
-        if (self == Services.UserInputService and Method == "GetFocusedTextBox") then
+        if (self == Services.UserInputService and Method == "GetFocusedTextBox" or Method == "getFocusedTextBox") then
+            local focused = __Namecall(...);
             for i = 1, #ProtectedInstances do
                 local ProtectedInstance = ProtectedInstances[i]
-                local pInstance = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+                local pInstance = not Tfind(ProtectedInstances, focused) or focused.IsDescendantOf(focused, ProtectedInstance);
                 if (pInstance) then
                     return nil;
                 end
@@ -597,9 +599,8 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     return Hooks.IsA(...);
 end));
 
-local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
-    if (not checkcaller() and ... == Services.UserInputService and UndetectedCmdBar) then
+    if (not checkcaller() and ... == Services.UserInputService) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
         local Protected = false
         for i = 1, #ProtectedInstances do

@@ -4607,14 +4607,12 @@ Draggable = false
 ]]
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
-    if (UndetectedCmdBar) then
-        CThread(function()
-            wait(.3);
-            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-                v.Enable(v);
-            end
-        end)()
-    end
+    CThread(function()
+        wait(.3);
+        for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased, true) do
+            v.Enable(v);
+        end
+    end)();
 
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");

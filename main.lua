@@ -1,5 +1,5 @@
 --[[
-	fates admin - 12/5/2022
+	fates admin - 21/5/2022
 ]]
 
 local game = game
@@ -615,7 +615,8 @@ do
             end
         end
         
-        if (lower(Method) == "getchildren" or lower(Method) == "getdescendants") then
+        -- ik this is horrible but fates admin v3 has a better way of doing hooks
+        if (Method == "children" or Method == "GetChildren" or Method ==  "getChildren" or Method == "GetDescendants" or Method == "getDescendants") then
             return filter(__Namecall(...), function(i, v)
                 local Protected = false
                 for i2 = 1, #ProtectedInstances do
@@ -630,10 +631,11 @@ do
             end)
         end
 
-        if (self == Services.UserInputService and Method == "GetFocusedTextBox") then
+        if (self == Services.UserInputService and Method == "GetFocusedTextBox" or Method == "getFocusedTextBox") then
+            local focused = __Namecall(...);
             for i = 1, #ProtectedInstances do
                 local ProtectedInstance = ProtectedInstances[i]
-                local pInstance = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+                local pInstance = not Tfind(ProtectedInstances, focused) or focused.IsDescendantOf(focused, ProtectedInstance);
                 if (pInstance) then
                     return nil;
                 end
@@ -939,9 +941,8 @@ Hooks.IsA = hookfunction(game.IsA, newcclosure(function(...)
     return Hooks.IsA(...);
 end));
 
-local UndetectedCmdBar;
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
-    if (not checkcaller() and ... == Services.UserInputService and UndetectedCmdBar) then
+    if (not checkcaller() and ... == Services.UserInputService) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
         local Protected = false
         for i = 1, #ProtectedInstances do
@@ -6700,15 +6701,12 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 })
             end
 
-            local TextConnections;
-            if (UndetectedCmdBar) then
-                TextConnections = getconnections(UserInputService.TextBoxFocused);
-                for i, v in next, TextConnections do
-                    v.Disable(v);
-                end
-                for i, v in next, getconnections(UserInputService.TextBoxFocusReleased, true) do
-                    v.Disable(v);
-                end
+            local TextConnections = getconnections(UserInputService.TextBoxFocused, true);
+            for i, v in next, TextConnections do
+                v.Disable(v);
+            end
+            for i, v in next, getconnections(UserInputService.TextBoxFocusReleased, true) do
+                v.Disable(v);
             end
 
             CommandBar.Input.CaptureFocus(CommandBar.Input);
@@ -6724,11 +6722,9 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                     CWait(Heartbeat);
                 end
             end)()
-            
-            if (UndetectedCmdBar) then
-                for i, v in next, TextConnections do
-                    v.Enable(v);
-                end
+
+            for i, v in next, TextConnections do
+                v.Enable(v);
             end
         else
             if (not Draggable) then
@@ -8093,8 +8089,6 @@ do
         local Settings = Script.NewSection("Settings");
     
         local CurrentConf = GetConfig();
-        UndetectedCmdBar = CurrentConf.UndetectedCmdBar
-
 
         Settings.TextboxKeybind("Chat Prefix", Prefix, function(Key)
             if (not match(Key, "%A") or match(Key, "%d") or #Key > 1) then
@@ -8129,10 +8123,6 @@ do
             end
             SetConfig({ChatPrediction=Callback});
             Utils.Notify(nil, nil, format("ChatPrediction %s", Callback and "enabled" or "disabled"));
-        end)
-
-        Misc.Toggle("Undetected CommandBar", UndetectedCmdBar, function(Callback)
-            SetConfig({UndetectedCmdBar=Callback});
         end)
 
         Misc.Toggle("Anti Kick", Hooks.AntiKick, function(Callback)
@@ -8402,14 +8392,12 @@ end
 
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
-    if (UndetectedCmdBar) then
-        CThread(function()
-            wait(.3);
-            for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased) do
-                v.Enable(v);
-            end
-        end)()
-    end
+    CThread(function()
+        wait(.3);
+        for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased, true) do
+            v.Enable(v);
+        end
+    end)();
 
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");
