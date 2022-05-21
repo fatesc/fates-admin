@@ -225,8 +225,8 @@ do
         local Method = getnamecallmethod() or "";
 
         if (Method ~= "") then
-            local Success = pcall(OldMetaMethods.__index, self, Method);
-            if (not Success) then
+            local Success, result = pcall(OldMetaMethods.__index, self, Method);
+            if (not Success or Success and type(result) ~= "function") then
                 return __Namecall(...);
             end
         end
