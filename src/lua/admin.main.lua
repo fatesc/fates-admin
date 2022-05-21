@@ -2988,21 +2988,8 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
     local Animate = FindFirstChild(Character, "Animate");
 
     if (Animate) then
-        pcall(function()
-            CEnv.AnimsChanged = {}
-            local Run = Animate.run.RunAnim
-            CEnv.AnimsChanged[Run] = Run.AnimationId
-            Run.AnimationId = IdleAnim1
-            local Walk = Animate.walk.WalkAnim
-            CEnv.AnimsChanged[Walk] = Walk.AnimationId
-            Walk.AnimationId = IdleAnim1
-            local Fall = Animate.fall.FallAnim
-            CEnv.AnimsChanged[Fall] = Fall.AnimationId
-            Fall.AnimationId = IdleAnim1
-            local Jump = Animate.jump.JumpAnim
-            CEnv.AnimsChanged[Jump] = Jump.AnimationId
-            Jump.AnimationId = IdleAnim1
-        end)
+        CEnv.Animate = Animate
+        Animate.Disabled = true
     end
 
     SpoofInstance(Root, isR6() and Character.Torso or Character.UpperTorso);
@@ -3016,6 +3003,9 @@ AddCommand("fly", {}, "fly your character", {3}, function(Caller, Args, CEnv)
     BodyVelocity.MaxForce = Vector3New(1, 1, 1) * 9e9
     BodyVelocity.Velocity = Vector3New(0, 0.1, 0);
     local Humanoid = GetHumanoid();
+    for i, v in pairs(Humanoid:GetPlayingAnimationTracks()) do
+        v:Stop();
+    end
     ChangeState(Humanoid, 8);
     AddConnection(CConnect(Humanoid.StateChanged, function()
         ChangeState(Humanoid, 8);
@@ -3105,13 +3095,12 @@ AddCommand("flyspeed", {"fs"}, "changes the fly speed", {3, "1"}, function(Calle
 end)
 
 AddCommand("unfly", {}, "unflies your character", {3}, function()
-    DisableAllCmdConnections("fly");
     local FlyCEnv = LoadCommand("fly").CmdEnv
-    if (FlyCEnv.AnimsChanged) then
-        for Anim, AnimId in next, FlyCEnv.AnimsChanged do
-            Anim.AnimationId = AnimId
-        end
+    if (FlyCEnv.Animate) then
+        FlyCEnv.Animate.Disabled = false
+        FlyCEnv.Animate = nil
     end
+    DisableAllCmdConnections("fly");
     table.clear(FlyCEnv);
     LoadCommand("fly2").CmdEnv = {}
     local Root = GetRoot();
