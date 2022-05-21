@@ -3343,6 +3343,7 @@ AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, functio
     if (Caller == LocalPlayer) then
         local TeleportService = Services.TeleportService
         if (#GetPlayers(Players) == 1) then
+            LocalPlayer:Kick();
             TeleportService.Teleport(TeleportService, game.PlaceId);
         else
             TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, game.JobId)
@@ -4607,13 +4608,6 @@ Draggable = false
 ]]
 
 AddConnection(CConnect(CommandBar.Input.FocusLost, function()
-    CThread(function()
-        wait(.3);
-        for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased, true) do
-            v.Enable(v);
-        end
-    end)();
-
     local Text = trim(CommandBar.Input.Text);
     local CommandArgs = split(Text, " ");
 
@@ -4631,6 +4625,11 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
 
     if (Command ~= "") then
         ExecuteCommand(Command, Args, LocalPlayer);
+    end
+
+    wait(.3);
+    for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased, true) do
+        v.Enable(v);
     end
 end), Connections.UI, true);
 
