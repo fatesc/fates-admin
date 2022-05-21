@@ -452,7 +452,7 @@ do
             Instance_.Name = sub(gsub(GenerateGUID(Services.HttpService, false), '-', ''), 1, random(25, 30));
         end
     end
-    
+
     SpoofInstance = function(Instance_, Instance2)
         if (not SpoofedInstances[Instance_]) then
             SpoofedInstances[Instance_] = Instance2 and Instance2 or Clone(Instance_);
@@ -520,17 +520,14 @@ do
 
     local isProtected = function(instance)
         local identity = getthreadidentity();
-        setthreadidentity(7);
         for i2 = 1, #ProtectedInstances do
             local pInstance = ProtectedInstances[i2]
             local good = pcall(tostring, pInstance);
             local protected = pInstance == instance or (good and instance.IsDescendantOf(instance, pInstance));
             if (protected) then
-                setthreadidentity(identity);
                 return true;
             end
         end
-        setthreadidentity(identity);
         return false;
     end
 

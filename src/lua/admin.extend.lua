@@ -178,17 +178,14 @@ do
 
     local isProtected = function(instance)
         local identity = getthreadidentity();
-        setthreadidentity(7);
         for i2 = 1, #ProtectedInstances do
             local pInstance = ProtectedInstances[i2]
             local good = pcall(tostring, pInstance);
             local protected = pInstance == instance or (good and instance.IsDescendantOf(instance, pInstance));
             if (protected) then
-                setthreadidentity(identity);
                 return true;
             end
         end
-        setthreadidentity(identity);
         return false;
     end
 
