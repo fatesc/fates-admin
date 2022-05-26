@@ -1,5 +1,5 @@
 --[[
-	fates admin - 21/5/2022
+	fates admin - 26/5/2022
 ]]
 
 local game = game
@@ -510,7 +510,7 @@ do
         end
         return {}
     end
-    
+
     local Methods = {
         "FindFirstChild",
         "FindFirstChildWhichIsA",
@@ -519,6 +519,11 @@ do
     }
 
     local isProtected = function(instance)
+        local good2 = pcall(tostring, instance);
+        if (not good2) then
+            return true;
+        end
+
         local identity = getthreadidentity();
         for i2 = 1, #ProtectedInstances do
             local pInstance = ProtectedInstances[i2]

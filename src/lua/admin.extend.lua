@@ -168,7 +168,7 @@ do
         end
         return {}
     end
-    
+
     local Methods = {
         "FindFirstChild",
         "FindFirstChildWhichIsA",
@@ -177,6 +177,11 @@ do
     }
 
     local isProtected = function(instance)
+        local good2 = pcall(tostring, instance);
+        if (not good2) then
+            return true;
+        end
+
         local identity = getthreadidentity();
         for i2 = 1, #ProtectedInstances do
             local pInstance = ProtectedInstances[i2]
