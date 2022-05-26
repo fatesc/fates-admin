@@ -176,18 +176,22 @@ do
         "IsA"
     }
 
+    local lockedInstances = {};
+    setmetatable(lockedInstances, { __mode = "k" });
     local isProtected = function(instance)
-        local good2 = pcall(tostring, instance);
-        if (not good2) then
+        if (lockedInstances[instance]) then
             return true;
         end
 
-        local identity = getthreadidentity();
+        local good2 = pcall(tostring, instance);
+        if (not good2) then
+            lockedInstances[instance] = true
+            return true;
+        end
+
         for i2 = 1, #ProtectedInstances do
             local pInstance = ProtectedInstances[i2]
-            local good = pcall(tostring, pInstance);
-            local protected = pInstance == instance or (good and instance.IsDescendantOf(instance, pInstance));
-            if (protected) then
+            if (pInstance == instance) then
                 return true;
             end
         end
