@@ -699,7 +699,7 @@ do
                     local ClientChangedData = ChangedSpoofedProperties[Instance_][SanitisedIndex]
                     local IndexedSpoofed = __Index(SpoofedProperty.SpoofedProperty, Index);
                     local Indexed = __Index(Instance_, Index);
-                    if (ClientChangedData.Caller and ClientChangedData.Value ~= Indexed) then
+                    if (ClientChangedData and ClientChangedData.Caller and ClientChangedData.Value ~= Indexed) then
                         OldMetaMethods.__newindex(SpoofedProperty.SpoofedProperty, Index, Indexed);
                         OldMetaMethods.__newindex(Instance_, Index, ClientChangedData.Value);
                         return Indexed
