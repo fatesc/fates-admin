@@ -96,12 +96,24 @@ do
     local SpoofedProperties = {}
     Hooks.SpoofedProperties = SpoofedProperties
 
+    local imageCheck = function(instance)
+        if (IsA(instance, "ImageLabel") or IsA(instance, "ImageButton")) then
+            ProtectedInstances[#ProtectedInstances + 1] = instance
+        end
+    end
+
     ProtectInstance = function(Instance_)
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
-            pInstanceCount += 1 + #Instance_:GetDescendants();
-            local dAdded = Instance_.DescendantAdded:Connect(function()
+            local descendants = Instance_:GetDescendants();
+            pInstanceCount += 1 + #descendants;
+            for i = 1, #descendants do
+                local descendant = descendants[i]
+                imageCheck(descendant);
+            end
+            local dAdded = Instance_.DescendantAdded:Connect(function(descendant)
                 pInstanceCount += 1
+                imageCheck(descendant);
             end);
             local dRemoving = Instance_.DescendantRemoving:Connect(function()
                 pInstanceCount = math.max(pInstanceCount - 1, 0);
@@ -218,13 +230,12 @@ do
                         filteredInstances[#filteredInstances + 1] = descendant
                     end
                     setthreadidentity(indentity);
-                else
-                    filteredInstances[#filteredInstances + 1] = instance
                 end
+                filteredInstances[#filteredInstances + 1] = instance                
             end
             return oldPreload(self, filteredInstances, args[3]);
         end
-        return oldPreload(self, ...);
+        return oldPreload(...);
     end
 
     MetaMethodHooks.Namecall = function(...)
@@ -523,7 +534,12 @@ do
         return Hooks.Destroy(...);
     end);
 
-    Hooks.PreloadAsync = hookfunction(ContentProvider.PreloadAsync, preloadHook);
+    Hooks.PreloadAsync = hookfunction(ContentProvider.PreloadAsync, function(...)
+        if (... == ContentProvider) then
+            return preloadHook(...);
+        end
+        return Hooks.PreloadAsync(...);
+    end);
 end
 
 Hooks.OldGetChildren = hookfunction(game.GetChildren, newcclosure(function(...)
