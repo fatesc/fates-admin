@@ -1,5 +1,5 @@
 --[[
-	fates admin - 26/5/2022
+	fates admin - 31/5/2022
 ]]
 
 local game = game
@@ -520,7 +520,6 @@ do
 
     local lockedInstances = {};
     setmetatable(lockedInstances, { __mode = "k" });
-    local IsDescendantOf = game.IsDescendantOf
     local isProtected = function(instance)
         if (lockedInstances[instance]) then
             return true;
@@ -635,7 +634,7 @@ do
             end);
         end
 
-        if (self == Services.UserInputService and Method == "GetFocusedTextBox" or Method == "getFocusedTextBox") then
+        if (self == Services.UserInputService and (Method == "GetFocusedTextBox" or Method == "getFocusedTextBox")) then
             local focused = __Namecall(...);
             for i = 1, #ProtectedInstances do
                 local ProtectedInstance = ProtectedInstances[i]
@@ -646,7 +645,7 @@ do
             end
         end
 
-        if (Hooks.NoJumpCooldown and Method == "GetState" or Method == "GetStateEnabled") then
+        if (Hooks.NoJumpCooldown and (Method == "GetState" or Method == "GetStateEnabled")) then
             local State = __Namecall(...);
             if (Method == "GetState" and (State == Enum.HumanoidStateType.Jumping or State == "Jumping")) then
                 return Enum.HumanoidStateType.RunningNoPhysics
@@ -656,7 +655,7 @@ do
             end
         end
 
-        if (self == ContentProvider and Method == "PreloadAsync" or Method == "preloadAsync") then
+        if (self == ContentProvider and (Method == "PreloadAsync" or Method == "preloadAsync")) then
             return preloadHook(...);
         end
 
@@ -715,11 +714,11 @@ do
             end
         end
 
-        if (Instance_ == Stats and SanitisedIndex == "InstanceCount" or SanitisedIndex == "instanceCount") then
+        if (Instance_ == Stats and (SanitisedIndex == "InstanceCount" or SanitisedIndex == "instanceCount")) then
             return __Index(...) - pInstanceCount;
         end
 
-        if (Instance_ == Stats and SanitisedIndex == "PrimitivesCount" or SanitisedIndex == "primitivesCount") then
+        if (Instance_ == Stats and (SanitisedIndex == "PrimitivesCount" or SanitisedIndex == "primitivesCount")) then
             return #filter(game:GetDescendants(), function(i, v)
                 return IsA(v, "BasePart");
             end);
