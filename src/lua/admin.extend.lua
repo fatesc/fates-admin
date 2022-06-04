@@ -84,7 +84,7 @@ setreadonly(mt, true);
 local MetaMethodHooks = {}
 
 local ProtectInstance, SpoofInstance, SpoofProperty;
-local pInstanceCount = 0;
+local pInstanceCount = {0, 0}; -- instancecount, primitivescount
 local ProtectedInstances = setmetatable({}, {
     __mode = "v"
 });
@@ -96,9 +96,14 @@ do
     local SpoofedProperties = {}
     Hooks.SpoofedProperties = SpoofedProperties
 
-    local imageCheck = function(instance)
+    local otherCheck = function(instance, n)
         if (IsA(instance, "ImageLabel") or IsA(instance, "ImageButton")) then
             ProtectedInstances[#ProtectedInstances + 1] = instance
+            return;
+        end
+
+        if (IsA(instance, "BasePart")) then
+            pInstanceCount[2] = math.max(pInstanceCount[2] + (n or 1), 0);
         end
     end
 
@@ -106,20 +111,22 @@ do
         if (not Tfind(ProtectedInstances, Instance_)) then
             ProtectedInstances[#ProtectedInstances + 1] = Instance_
             local descendants = Instance_:GetDescendants();
-            pInstanceCount += 1 + #descendants;
+            pInstanceCount[1] += 1 + #descendants;
             for i = 1, #descendants do
-                local descendant = descendants[i]
-                imageCheck(descendant);
+                otherCheck(descendants[i]);
             end
             local dAdded = Instance_.DescendantAdded:Connect(function(descendant)
-                pInstanceCount += 1
-                imageCheck(descendant);
+                pInstanceCount[1] += 1
+                otherCheck(descendant);
             end);
-            local dRemoving = Instance_.DescendantRemoving:Connect(function()
-                pInstanceCount = math.max(pInstanceCount - 1, 0);
+            local dRemoving = Instance_.DescendantRemoving:Connect(function(descendant)
+                pInstanceCount[1] = math.max(pInstanceCount[1] - 1, 0);
+                otherCheck(descendant, -1);
             end);
+            otherCheck(Instance_);
 
             Instance_.Name = sub(gsub(GenerateGUID(Services.HttpService, false), '-', ''), 1, random(25, 30));
+            Instance_.Archivable = false
         end
     end
 
@@ -210,29 +217,86 @@ do
         return false;
     end
 
+    local CoreGui = Services.CoreGui
+    local coreGuiClone = Instance.new("Folder");
+    local coreDescendants = CoreGui:GetDescendants();
+
+    local assets = {ScreenGui = 1, Decal = 1, ImageLabel = 1, ImageButton = 1, TextLabel = 1, Sound = 1, ScrollingFrame = 1, Frame = 1};
+
+    for i = 1, #coreDescendants do
+        local coreDescendant = coreDescendants[i]
+        if (assets[coreDescendant.ClassName]) then
+            local archivable = coreDescendant.Archivable
+            if (not archivable) then
+                coreDescendant.Archivable = true
+            end
+            coreDescendant:Clone().Parent = coreGuiClone
+            if (not archivable) then
+                coreDescendant.Archivable = archivable
+            end
+        end
+    end
+
+    local checkCoreDescendant = function(descendant, added)
+        if (assets[descendant.ClassName]) then
+            if (added) then
+                local archivable = descendant.Archivable
+                if (not archivable) then
+                    descendant.Archivable = true
+                end
+                descendant:Clone().Parent = coreGuiClone
+                if (not archivable) then
+                    descendant.Archivable = archivable
+                end
+            else
+                local _coreDescendants = coreGuiClone:GetChildren();
+                local descendantID = descendant:GetDebugId();
+                for i = 1, #_coreDescendants do
+                    local coreDescendant = coreDescendants[i]
+                    if (coreDescendant:GetDebugId() == descendantID) then
+                        coreDescendant:Destroy();
+                    end
+                end
+            end
+        end
+    end
+
+    CoreGui.DescendantAdded:Connect(function(descendant)
+        checkCoreDescendant(descendant, true);
+    end);
+    CoreGui.DescendantRemoving:Connect(function(descendant)
+        if (not descendant:IsDescendantOf(CoreGui)) then
+            checkCoreDescendant(descendant, false);
+        end
+    end);
+
     local preloadHook = function(...)
         local oldPreload = Hooks.PreloadAsync
         local args = {...};
         local self = args[1]
         local instanceT = args[2]
         if (type(instanceT) == "table" and type(args[3]) == "function") then
-            local filteredInstances = {}
+            task.defer(oldPreload, self, instanceT);
+
+            local filteredInstances = {};
             for i, instance in pairs(instanceT) do
-                if (instance and typeof(instance) == "Instance") then
-                    local indentity = getthreadidentity();
-                    setthreadidentity(3); -- doesn't matter as preload async gets all descendants includingg roblox locked instances
-                    local instanceDescendants = instance == Services.CoreGui and instance:GetChildren() or instance:GetDescendants();
-                    local filteredDescendants = filter(instanceDescendants, function(i2, instance2)
-                        return not isProtected(instance2);
-                    end);
-                    for i2 = 1, #filteredDescendants do
-                        local descendant = filteredDescendants[i2]
-                        filteredInstances[#filteredInstances + 1] = descendant
+                if (instance == CoreGui) then
+                    filteredInstances[#filteredInstances + 1] = coreGuiClone
+                elseif (instance == game) then
+                    local children = game:GetChildren();
+                    for i2 = 1, #children do
+                        local child = children[i2]
+                        if (child == CoreGui) then
+                            filteredInstances[#filteredInstances + 1] = coreGuiClone
+                        else
+                            filteredInstances[#filteredInstances + 1] = child
+                        end
                     end
-                    setthreadidentity(indentity);
+                else
+                    filteredInstances[#filteredInstances + 1] = instance
                 end
-                filteredInstances[#filteredInstances + 1] = instance                
             end
+
             return oldPreload(self, filteredInstances, args[3]);
         end
         return oldPreload(...);
@@ -384,13 +448,11 @@ do
         end
 
         if (Instance_ == Stats and (SanitisedIndex == "InstanceCount" or SanitisedIndex == "instanceCount")) then
-            return __Index(...) - pInstanceCount;
+            return __Index(...) - pInstanceCount[1];
         end
 
         if (Instance_ == Stats and (SanitisedIndex == "PrimitivesCount" or SanitisedIndex == "primitivesCount")) then
-            return #filter(game:GetDescendants(), function(i, v)
-                return IsA(v, "BasePart");
-            end);
+            return __Index(...) - pInstanceCount[2];
         end
 
         return __Index(...);
@@ -507,8 +569,9 @@ do
 
     Hooks.Destroy = hookfunction(game.Destroy, function(...)
         local instance = ...
-        if (checkcaller() and table.find(ProtectedInstances, instance)) then
-            pInstanceCount -= 1 + #instance:GetDescendants();
+        local protected = table.find(ProtectedInstances, instance);
+        if (checkcaller() and protected) then
+            otherCheck(instance, -1);
             local Parents = GetAllParents(instance);
             for i, v in next, getconnections(Parents[1].ChildRemoved, true) do
                 v.Disable(v);
@@ -529,6 +592,7 @@ do
             for i, v in next, getconnections(Parents[1].ChildRemoved, true) do
                 v.Enable(v);
             end
+            table.remove(ProtectedInstances, protected);
             return destroy;
         end
         return Hooks.Destroy(...);
