@@ -1,5 +1,5 @@
 --[[
-	fates admin - 8/6/2022
+	fates admin - 10/6/2022
 ]]
 
 local game = game
@@ -612,6 +612,8 @@ do
         end
     end);
 
+    CoreGui = nil
+
     local preloadHook = function(...)
         local oldPreload = Hooks.PreloadAsync
         local args = {...};
@@ -622,13 +624,13 @@ do
 
             local filteredInstances = {};
             for i, instance in pairs(instanceT) do
-                if (instance == CoreGui) then
+                if (instance == Services.CoreGui) then
                     filteredInstances[#filteredInstances + 1] = coreGuiClone
                 elseif (instance == game) then
                     local children = game:GetChildren();
                     for i2 = 1, #children do
                         local child = children[i2]
-                        if (child == CoreGui) then
+                        if (child == Services.CoreGui) then
                             filteredInstances[#filteredInstances + 1] = coreGuiClone
                         else
                             filteredInstances[#filteredInstances + 1] = child
