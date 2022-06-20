@@ -1,6 +1,6 @@
 
 name: Bug report
-about: "Please file a separate report for each issue"
+description: "Please file a separate report for each issue"
 title: "[BUG] : <concise info about the bug>"
 labels: ["Bug"]
 assignees: 
