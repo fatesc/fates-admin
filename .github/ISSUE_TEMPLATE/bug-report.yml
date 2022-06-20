@@ -6,7 +6,7 @@ labels: ["Bug"]
 assignees: 
   - ''
 body:
-  - type: textarea
+  - type: input
     id: description
     attributes:
       label: "Describe the bug"
@@ -24,7 +24,7 @@ body:
         3. See error
     validations:
       required: true
-  - type: input
+  - type: textarea
     id: expected
     attributes:
       label: "Expected behavior"
