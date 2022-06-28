@@ -748,6 +748,7 @@ do
     }
     MetaMethodHooks.Index = function(...)
         local __Index = OldMetaMethods.__index;
+        local called = __Index(...);
 
         if (checkcaller()) then
             return __Index(...);
@@ -756,10 +757,6 @@ do
 
         local SanitisedIndex = Index
         if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-            local len = select(2, gsub(Index, "%z", ""));
-            if (len > 255) then
-                return __Index(...);
-            end
             SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
         end
         local SpoofedInstance = SpoofedInstances[Instance_]
@@ -796,14 +793,14 @@ do
         end
 
         if (Instance_ == Stats and (SanitisedIndex == "InstanceCount" or SanitisedIndex == "instanceCount")) then
-            return __Index(...) - pInstanceCount[1];
+            return called - pInstanceCount[1];
         end
 
         if (Instance_ == Stats and (SanitisedIndex == "PrimitivesCount" or SanitisedIndex == "primitivesCount")) then
-            return __Index(...) - pInstanceCount[2];
+            return called - pInstanceCount[2];
         end
 
-        return __Index(...);
+        return called;
     end
 
     MetaMethodHooks.NewIndex = function(...)
