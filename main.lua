@@ -1,5 +1,5 @@
 --[[
-	fates admin - 10/6/2022
+	fates admin - 28/6/2022
 ]]
 
 local game = game
@@ -756,7 +756,8 @@ do
 
         local SanitisedIndex = Index
         if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-            if (#Index > 255) then
+            local len = select(2, gsub(Index, "%z", ""));
+            if (len > 255) then
                 return __Index(...);
             end
             SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
@@ -877,9 +878,11 @@ do
 
         local SanitisedIndex = Index
         if (typeof(Instance_) == 'Instance' and type(Index) == 'string') then
-            if (#Index > 255) then
+            local len = select(2, gsub(Index, "%z", ""));
+            if (len > 255) then
                 return __Index(...);
             end
+
             SanitisedIndex = gsub(sub(Index, 0, 100), "%z.*", "");
         end
 
