@@ -278,7 +278,7 @@ do
         local self = args[1]
         local instanceT = args[2]
         if (type(instanceT) == "table" and type(args[3]) == "function") then
-            task.defer(oldPreload, self, instanceT);
+            oldPreload(self, instanceT);
 
             local filteredInstances = {};
             for i, instance in pairs(instanceT) do
