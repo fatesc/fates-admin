@@ -3352,45 +3352,56 @@ AddCommand("rejoin", {"rj"}, "rejoins the game you're currently in", {}, functio
     end
 end)
 
-AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max or mid)", {{"min", "max", "mid"}}, function(Caller, Args)
+AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max (default: max))", {{"min", "max"}}, function(Caller, Args)
     if (Caller == LocalPlayer) then
         Utils.Notify(Caller or LocalPlayer, "Command", "Looking for servers...");
-
-        local TeleportService = Services.TeleportService;
-        local Info = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100", game.PlaceId)));
-        local Servers = Info.data;
-
-        if #Servers == 0 then return "no servers found" end;
-
-        Servers = filter(Servers, function(i,v) 
-            return v.playing ~= v.maxPlayers and v.id ~= game.JobId;
-        end);
-
-        -- Theres a very small chance a game can be that popular however we better be safe. (cough adopt me)
-        while #Servers == 0 do 
-            Info = JSONDecode(Services.HttpService, game.HttpGetAsync(game, format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100&cursor=%s", game.PlaceId, Info.nextPageCursor)));
-            Servers = filter(Info.data, function() 
-                return v.playing < v.maxPlayers and v.id ~= game.JobId;
-            end);
-        end;
-
-        local Option, Server = lower(Args[1] or "");
+        local order = ""
+        local Option, Server = lower(Args[1] or "max");
         if Option == "min" then
-            Server = Servers[#Servers];
+            order = "Asc"
         elseif Option == "max" then
-            Server = Servers[1];
-        elseif Option == "mid" then
-            Server = Servers[floor(#Servers / 2 + .5)];
-        else
-            Server = Servers[random(1, #Servers)];
+            order = "Desc"
         end;
+
+        local Servers = {};
+        local url = format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=%s&limit=100", game.PlaceId, order);
+        local starting = tick();
+        repeat
+            local good, result = pcall(function()
+                return game:HttpGet(url);
+            end);
+            if (not good) then
+                wait(2);
+                continue;
+            end
+            local decoded = Services.HttpService:JSONDecode(result);
+            if (#decoded.data ~= 0) then
+                Servers = decoded.data
+                for i, v in pairs(Servers) do
+                    if (v.maxPlayers > v.playing) then
+                        Server = v
+                        break;
+                    end
+                end
+                break;
+            end
+            url = format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100&cursor=%s", game.PlaceId, decoded.nextPageCursor);
+        until tick() - starting >= 600;
+        if (#Servers == 0) then
+            return "no servers found";
+        end
 
         local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
         if (queue_on_teleport) then
             queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
         end;
 
-        TeleportService.TeleportToPlaceInstance(TeleportService, game.PlaceId, Server.id);
+        task.spawn(function()
+            while true do
+                Services.TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id);
+                wait(1);
+            end
+        end);
         return format("joining server (%d/%d players)", Server.playing, Server.maxPlayers);
     end;
 end);
