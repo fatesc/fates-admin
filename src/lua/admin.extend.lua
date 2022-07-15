@@ -1,7 +1,7 @@
 local Stats = Services.Stats
 local ContentProvider = Services.ContentProvider
 
-local firetouchinterest, hookfunction, getconnections;
+local firetouchinterest, hookfunction;
 do
     local GEnv = getgenv();
     local touched = {}
@@ -27,32 +27,6 @@ do
         end
         func = applycclosure and newcclosure or newfunc
         return func
-    end
-
-    local CachedConnections = setmetatable({}, {
-        __mode = "v"
-    });
-
-    getconnections = function(Connection, FromCache, AddOnConnect)
-        local getconnections = GEnv.getconnections
-        if (not getconnections) then
-            return {}
-        end
-        
-        local CachedConnection;
-        for i, v in next, CachedConnections do
-            if (i == Connection) then
-                CachedConnection = v
-                break;
-            end
-        end
-        if (CachedConnection and FromCache) then
-            return CachedConnection
-        end
-
-        local Connections = GEnv.getconnections(Connection);
-        CachedConnections[Connection] = Connections
-        return Connections
     end
 end
 
