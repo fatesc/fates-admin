@@ -796,26 +796,29 @@ do
                 end
                 if (ProtectedInstance) then
                     local Parents = GetAllParents(Instance_, Value);
-                    for i, v in next, getconnections(Parents[1].ChildAdded, true) do
+                    local child1 = getconnections(Parents[1].ChildAdded);
+                    local descendantconnections = {}
+                    for i, v in next, child1 do
                         v.Disable(v);
                     end
                     for i = 1, #Parents do
                         local Parent = Parents[i]
-                        for i2, v in next, getconnections(Parent.DescendantAdded, true) do
+                        for i2, v in next, getconnections(Parent.DescendantAdded) do
                             v.Disable(v);
+                            descendantconnections[#descendantconnections + 1] = v
                         end
                     end
-                    local Ret = __NewIndex(...);
-                    for i = 1, #Parents do
-                        local Parent = Parents[i]
-                        for i2, v in next, getconnections(Parent.DescendantAdded, true) do
-                            v.Enable(v);
-                        end
+                    local good, Ret = pcall(__NewIndex, ...);
+                    for i, v in pairs(descendantconnections) do
+                        v:Enable();
                     end
-                    for i, v in next, getconnections(Parents[1].ChildAdded, true) do
+                    for i, v in next, child1 do
                         v.Enable(v);
                     end
-                    return Ret
+                    if (not good) then
+                        return __NewIndex(...);
+                    end
+                    return Ret;
                 end
             end
             if (SpoofedInstance or SpoofedPropertiesForInstance) then
