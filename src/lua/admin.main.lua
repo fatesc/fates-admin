@@ -4136,7 +4136,6 @@ AddCommand("clicktp", {}, "tps you to where your mouse is when you click", {}, f
     local Tool = InstanceNew("Tool");
     Tool.RequiresHandle = false
     Tool.Name = "Click TP"
-    ProtectInstance(Tool);
     Tool.Parent = GetCharacter();
     AddConnection(CConnect(Tool.Activated, function()
         local Hit = Mouse.Hit
@@ -4146,7 +4145,6 @@ AddCommand("clicktp", {}, "tps you to where your mouse is when you click", {}, f
     local Tool2 = InstanceNew("Tool");
     Tool2.RequiresHandle = false
     Tool2.Name = "Click TweenTP"
-    ProtectInstance(Tool2);
     Tool2.Parent = LocalPlayer.Backpack
     AddConnection(CConnect(Tool2.Activated, function()
         local Hit = Mouse.Hit
