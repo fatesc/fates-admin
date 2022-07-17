@@ -372,7 +372,7 @@ do
     end
 end
 
-if (not syn and syn.protect_gui or (scriptwareidk)) then
+if (not syn or not syn.protect_gui) then
     local CachedConnections = setmetatable({}, {
         __mode = "v"
     });
