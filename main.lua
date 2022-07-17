@@ -533,93 +533,6 @@ do
         return false;
     end
 
-    local CoreGui = Services.CoreGui
-    local coreGuiClone = Instance.new("Folder");
-    local coreDescendants = CoreGui:GetDescendants();
-
-    local assets = {ScreenGui = 1, Decal = 1, ImageLabel = 1, ImageButton = 1, TextLabel = 1, Sound = 1, ScrollingFrame = 1, Frame = 1};
-
-    for i = 1, #coreDescendants do
-        local coreDescendant = coreDescendants[i]
-        if (assets[coreDescendant.ClassName]) then
-            local archivable = coreDescendant.Archivable
-            if (not archivable) then
-                coreDescendant.Archivable = true
-            end
-            coreDescendant:Clone().Parent = coreGuiClone
-            if (not archivable) then
-                coreDescendant.Archivable = archivable
-            end
-        end
-    end
-
-    local checkCoreDescendant = function(descendant, added)
-        if (assets[descendant.ClassName]) then
-            if (added) then
-                local archivable = descendant.Archivable
-                if (not archivable) then
-                    descendant.Archivable = true
-                end
-                descendant:Clone().Parent = coreGuiClone
-                if (not archivable) then
-                    descendant.Archivable = archivable
-                end
-            else
-                local _coreDescendants = coreGuiClone:GetChildren();
-                local descendantID = descendant:GetDebugId();
-                for i = 1, #_coreDescendants do
-                    local coreDescendant = coreDescendants[i]
-                    if (coreDescendant:GetDebugId() == descendantID) then
-                        coreDescendant:Destroy();
-                    end
-                end
-            end
-        end
-    end
-
-    CoreGui.DescendantAdded:Connect(function(descendant)
-        checkCoreDescendant(descendant, true);
-    end);
-    CoreGui.DescendantRemoving:Connect(function(descendant)
-        if (not descendant:IsDescendantOf(CoreGui)) then
-            checkCoreDescendant(descendant, false);
-        end
-    end);
-
-    CoreGui = nil
-
-    local preloadHook = function(...)
-        local oldPreload = Hooks.PreloadAsync
-        local args = {...};
-        local self = args[1]
-        local instanceT = args[2]
-        if (type(instanceT) == "table" and type(args[3]) == "function") then
-            oldPreload(self, instanceT);
-
-            local filteredInstances = {};
-            for i, instance in pairs(instanceT) do
-                if (instance == Services.CoreGui) then
-                    filteredInstances[#filteredInstances + 1] = coreGuiClone
-                elseif (instance == game) then
-                    local children = game:GetChildren();
-                    for i2 = 1, #children do
-                        local child = children[i2]
-                        if (child == Services.CoreGui) then
-                            filteredInstances[#filteredInstances + 1] = coreGuiClone
-                        else
-                            filteredInstances[#filteredInstances + 1] = child
-                        end
-                    end
-                else
-                    filteredInstances[#filteredInstances + 1] = instance
-                end
-            end
-
-            return oldPreload(self, filteredInstances, args[3]);
-        end
-        return oldPreload(...);
-    end
-
     MetaMethodHooks.Namecall = function(...)
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
@@ -707,10 +620,6 @@ do
             if (Method == "GetStateEnabled" and (self == Enum.HumanoidStateType.Jumping or self == "Jumping")) then
                 return false
             end
-        end
-
-        if (self == ContentProvider and (Method == "PreloadAsync" or Method == "preloadAsync")) then
-            return preloadHook(...);
         end
 
         return __Namecall(...);
@@ -926,13 +835,6 @@ do
             return destroy;
         end
         return Hooks.Destroy(...);
-    end);
-
-    Hooks.PreloadAsync = hookfunction(ContentProvider.PreloadAsync, function(...)
-        if (... == ContentProvider) then
-            return preloadHook(...);
-        end
-        return Hooks.PreloadAsync(...);
     end);
 end
 
@@ -1308,6 +1210,7 @@ Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = sub(gsub(GenerateGUID(Services.HttpService, false), '-', ''), 1, random(25, 30))
     ProtectInstance(Gui);
+    syn.protect_gui(Gui); -- for preload
     Gui.Parent = Parent or Services.CoreGui
     Guis[#Guis + 1] = Gui
     return Gui
@@ -6674,28 +6577,7 @@ AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates a
 end)
 
 task.spawn(function()
-    local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
-    if (not DefaultChatSystemChatEvents) then return; end
-    local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
-    if (not OnMessageDoneFiltering) then return; end
-    if (typeof(OnMessageDoneFiltering) ~= "Instance" or OnMessageDoneFiltering.ClassName ~= "RemoteEvent") then return; end
-
-
-    CConnect(OnMessageDoneFiltering.OnClientEvent, function(messageData)
-        if (type(messageData) ~= "table") then return; end
-        local plr = Services.Players:FindFirstChild(messageData.FromSpeaker);
-        local raw = messageData.Message
-        if (not plr or not raw) then return; end
-
-        if (messageData.OriginalChannel == "Team") then
-            raw = "/team " .. raw
-        else
-            local whisper = string.match(messageData.OriginalChannel, "To (.+)");
-            if (whisper) then
-                raw = string.format("/w %s %s", whisper, raw);
-            end
-        end
-
+    local chatted = function(plr, raw)
         local message = raw
 
         if (_L.ChatLogsEnabled) then
@@ -6735,7 +6617,37 @@ task.spawn(function()
 
             ExecuteCommand(Command, Args, plr);
         end
-    end)
+    end
+
+    CConnect(LocalPlayer.Chatted, function(raw)
+        chatted(LocalPlayer, raw);
+    end);
+    
+    local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
+    if (not DefaultChatSystemChatEvents) then return; end
+    local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
+    if (not OnMessageDoneFiltering) then return; end
+    if (typeof(OnMessageDoneFiltering) ~= "Instance" or OnMessageDoneFiltering.ClassName ~= "RemoteEvent") then return; end
+
+
+    CConnect(OnMessageDoneFiltering.OnClientEvent, function(messageData)
+        if (type(messageData) ~= "table") then return; end
+        local plr = Services.Players:FindFirstChild(messageData.FromSpeaker);
+        local raw = messageData.Message
+        if (not plr or not raw or plr == LocalPlayer) then return; end
+
+        if (messageData.OriginalChannel == "Team") then
+            raw = "/team " .. raw
+        else
+            local whisper = string.match(messageData.OriginalChannel, "To (.+)");
+            if (whisper) then
+                raw = string.format("/w %s %s", whisper, raw);
+            end
+        end
+
+        chatted(plr, raw);
+    end);
+
 end);
 
 --IMPORT [uimore]

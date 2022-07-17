@@ -4539,28 +4539,7 @@ AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates a
 end)
 
 task.spawn(function()
-    local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
-    if (not DefaultChatSystemChatEvents) then return; end
-    local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
-    if (not OnMessageDoneFiltering) then return; end
-    if (typeof(OnMessageDoneFiltering) ~= "Instance" or OnMessageDoneFiltering.ClassName ~= "RemoteEvent") then return; end
-
-
-    CConnect(OnMessageDoneFiltering.OnClientEvent, function(messageData)
-        if (type(messageData) ~= "table") then return; end
-        local plr = Services.Players:FindFirstChild(messageData.FromSpeaker);
-        local raw = messageData.Message
-        if (not plr or not raw) then return; end
-
-        if (messageData.OriginalChannel == "Team") then
-            raw = "/team " .. raw
-        else
-            local whisper = string.match(messageData.OriginalChannel, "To (.+)");
-            if (whisper) then
-                raw = string.format("/w %s %s", whisper, raw);
-            end
-        end
-
+    local chatted = function(plr, raw)
         local message = raw
 
         if (_L.ChatLogsEnabled) then
@@ -4600,7 +4579,37 @@ task.spawn(function()
 
             ExecuteCommand(Command, Args, plr);
         end
-    end)
+    end
+
+    CConnect(LocalPlayer.Chatted, function(raw)
+        chatted(LocalPlayer, raw);
+    end);
+    
+    local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
+    if (not DefaultChatSystemChatEvents) then return; end
+    local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
+    if (not OnMessageDoneFiltering) then return; end
+    if (typeof(OnMessageDoneFiltering) ~= "Instance" or OnMessageDoneFiltering.ClassName ~= "RemoteEvent") then return; end
+
+
+    CConnect(OnMessageDoneFiltering.OnClientEvent, function(messageData)
+        if (type(messageData) ~= "table") then return; end
+        local plr = Services.Players:FindFirstChild(messageData.FromSpeaker);
+        local raw = messageData.Message
+        if (not plr or not raw or plr == LocalPlayer) then return; end
+
+        if (messageData.OriginalChannel == "Team") then
+            raw = "/team " .. raw
+        else
+            local whisper = string.match(messageData.OriginalChannel, "To (.+)");
+            if (whisper) then
+                raw = string.format("/w %s %s", whisper, raw);
+            end
+        end
+
+        chatted(plr, raw);
+    end);
+
 end);
 
 --[[

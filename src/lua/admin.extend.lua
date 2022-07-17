@@ -191,93 +191,6 @@ do
         return false;
     end
 
-    local CoreGui = Services.CoreGui
-    local coreGuiClone = Instance.new("Folder");
-    local coreDescendants = CoreGui:GetDescendants();
-
-    local assets = {ScreenGui = 1, Decal = 1, ImageLabel = 1, ImageButton = 1, TextLabel = 1, Sound = 1, ScrollingFrame = 1, Frame = 1};
-
-    for i = 1, #coreDescendants do
-        local coreDescendant = coreDescendants[i]
-        if (assets[coreDescendant.ClassName]) then
-            local archivable = coreDescendant.Archivable
-            if (not archivable) then
-                coreDescendant.Archivable = true
-            end
-            coreDescendant:Clone().Parent = coreGuiClone
-            if (not archivable) then
-                coreDescendant.Archivable = archivable
-            end
-        end
-    end
-
-    local checkCoreDescendant = function(descendant, added)
-        if (assets[descendant.ClassName]) then
-            if (added) then
-                local archivable = descendant.Archivable
-                if (not archivable) then
-                    descendant.Archivable = true
-                end
-                descendant:Clone().Parent = coreGuiClone
-                if (not archivable) then
-                    descendant.Archivable = archivable
-                end
-            else
-                local _coreDescendants = coreGuiClone:GetChildren();
-                local descendantID = descendant:GetDebugId();
-                for i = 1, #_coreDescendants do
-                    local coreDescendant = coreDescendants[i]
-                    if (coreDescendant:GetDebugId() == descendantID) then
-                        coreDescendant:Destroy();
-                    end
-                end
-            end
-        end
-    end
-
-    CoreGui.DescendantAdded:Connect(function(descendant)
-        checkCoreDescendant(descendant, true);
-    end);
-    CoreGui.DescendantRemoving:Connect(function(descendant)
-        if (not descendant:IsDescendantOf(CoreGui)) then
-            checkCoreDescendant(descendant, false);
-        end
-    end);
-
-    CoreGui = nil
-
-    local preloadHook = function(...)
-        local oldPreload = Hooks.PreloadAsync
-        local args = {...};
-        local self = args[1]
-        local instanceT = args[2]
-        if (type(instanceT) == "table" and type(args[3]) == "function") then
-            oldPreload(self, instanceT);
-
-            local filteredInstances = {};
-            for i, instance in pairs(instanceT) do
-                if (instance == Services.CoreGui) then
-                    filteredInstances[#filteredInstances + 1] = coreGuiClone
-                elseif (instance == game) then
-                    local children = game:GetChildren();
-                    for i2 = 1, #children do
-                        local child = children[i2]
-                        if (child == Services.CoreGui) then
-                            filteredInstances[#filteredInstances + 1] = coreGuiClone
-                        else
-                            filteredInstances[#filteredInstances + 1] = child
-                        end
-                    end
-                else
-                    filteredInstances[#filteredInstances + 1] = instance
-                end
-            end
-
-            return oldPreload(self, filteredInstances, args[3]);
-        end
-        return oldPreload(...);
-    end
-
     MetaMethodHooks.Namecall = function(...)
         local __Namecall = OldMetaMethods.__namecall;
         local Args = {...}
@@ -365,10 +278,6 @@ do
             if (Method == "GetStateEnabled" and (self == Enum.HumanoidStateType.Jumping or self == "Jumping")) then
                 return false
             end
-        end
-
-        if (self == ContentProvider and (Method == "PreloadAsync" or Method == "preloadAsync")) then
-            return preloadHook(...);
         end
 
         return __Namecall(...);
@@ -584,13 +493,6 @@ do
             return destroy;
         end
         return Hooks.Destroy(...);
-    end);
-
-    Hooks.PreloadAsync = hookfunction(ContentProvider.PreloadAsync, function(...)
-        if (... == ContentProvider) then
-            return preloadHook(...);
-        end
-        return Hooks.PreloadAsync(...);
     end);
 end
 
