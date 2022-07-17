@@ -36,14 +36,6 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 })
             end
 
-            local TextConnections = getconnections(UserInputService.TextBoxFocused, true);
-            for i, v in next, TextConnections do
-                v.Disable(v);
-            end
-            for i, v in next, getconnections(UserInputService.TextBoxFocusReleased, true) do
-                v.Disable(v);
-            end
-
             CommandBar.Input.CaptureFocus(CommandBar.Input);
             CThread(function()
                 wait()
@@ -57,10 +49,6 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                     CWait(Heartbeat);
                 end
             end)()
-
-            for i, v in next, TextConnections do
-                v.Enable(v);
-            end
         else
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {

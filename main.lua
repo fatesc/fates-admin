@@ -372,6 +372,35 @@ do
     end
 end
 
+if (not syn and syn.protect_gui or (scriptwareidk)) then
+    local CachedConnections = setmetatable({}, {
+        __mode = "v"
+    });
+
+    GEnv = getgenv();
+    getconnections = function(Connection, FromCache, AddOnConnect)
+        local getconnections = GEnv.getconnections
+        if (not getconnections) then
+            return {}
+        end
+
+        local CachedConnection;
+        for i, v in next, CachedConnections do
+            if (i == Connection) then
+                CachedConnection = v
+                break;
+            end
+        end
+        if (CachedConnection and FromCache) then
+            return CachedConnection
+        end
+
+        local Connections = GEnv.getconnections(Connection);
+        CachedConnections[Connection] = Connections
+        return Connections
+    end
+end
+
 local getrawmetatable = getrawmetatable or function()
     return setmetatable({}, {});
 end
@@ -708,14 +737,14 @@ do
                 end
                 if (ProtectedInstance) then
                     local Parents = GetAllParents(Instance_, Value);
-                    local child1 = getconnections(Parents[1].ChildAdded);
+                    local child1 = getconnections(Parents[1].ChildAdded, true);
                     local descendantconnections = {}
                     for i, v in next, child1 do
                         v.Disable(v);
                     end
                     for i = 1, #Parents do
                         local Parent = Parents[i]
-                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        for i2, v in next, getconnections(Parent.DescendantAdded, true) do
                             v.Disable(v);
                             descendantconnections[#descendantconnections + 1] = v
                         end
@@ -742,9 +771,9 @@ do
                     }
                 end
                 local Connections = tbl_concat(
-                    getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index)),
-                    getconnections(Instance_.Changed),
-                    getconnections(game.ItemChanged)
+                    getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index), true),
+                    getconnections(Instance_.Changed, true),
+                    getconnections(game.ItemChanged, true)
                 )
                 
                 if (not next(Connections)) then
@@ -1210,7 +1239,7 @@ Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = sub(gsub(GenerateGUID(Services.HttpService, false), '-', ''), 1, random(25, 30))
     ProtectInstance(Gui);
-    syn.protect_gui(Gui); -- for preload
+    if (syn and syn.protect_gui) then syn.protect_gui(Gui); end -- for preload
     Gui.Parent = Parent or Services.CoreGui
     Guis[#Guis + 1] = Gui
     return Gui
@@ -6153,7 +6182,7 @@ end)
 
 AddCommand("antiafk", {"antiidle"}, "prevents kicks from when you're afk", {}, function(Caller, Args, CEnv)
     local IsEnabled = CEnv[1]
-    for i, v in next, getconnections(LocalPlayer.Idled) do
+    for i, v in next, getconnections(LocalPlayer.Idled, true) do
         if (IsEnabled) then
             v.Enable(v);
             CEnv[1] = nil
@@ -6622,7 +6651,14 @@ task.spawn(function()
     CConnect(LocalPlayer.Chatted, function(raw)
         chatted(LocalPlayer, raw);
     end);
-    
+
+    if (Services.TextChatService.ChatVersion == Enum.ChatVersion.TextChatService) then
+        Services.TextChatService.OnIncomingMessage = function(message)
+            chatted(Services.Players:FindFirstChild(message.TextSource.Name), message.Text);
+        end
+        return;
+    end
+
     local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
     if (not DefaultChatSystemChatEvents) then return; end
     local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
@@ -6689,14 +6725,6 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                 })
             end
 
-            local TextConnections = getconnections(UserInputService.TextBoxFocused, true);
-            for i, v in next, TextConnections do
-                v.Disable(v);
-            end
-            for i, v in next, getconnections(UserInputService.TextBoxFocusReleased, true) do
-                v.Disable(v);
-            end
-
             CommandBar.Input.CaptureFocus(CommandBar.Input);
             CThread(function()
                 wait()
@@ -6710,10 +6738,6 @@ AddConnection(CConnect(Services.UserInputService.InputBegan, function(Input, Gam
                     CWait(Heartbeat);
                 end
             end)()
-
-            for i, v in next, TextConnections do
-                v.Enable(v);
-            end
         else
             if (not Draggable) then
                 Utils.Tween(CommandBar, "Quint", "Out", .5, {
@@ -8397,11 +8421,6 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
 
     if (Command ~= "") then
         ExecuteCommand(Command, Args, LocalPlayer);
-    end
-
-    wait(.3);
-    for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased, true) do
-        v.Enable(v);
     end
 end), Connections.UI, true);
 

@@ -2,7 +2,7 @@ Guis = {}
 ParentGui = function(Gui, Parent)
     Gui.Name = sub(gsub(GenerateGUID(Services.HttpService, false), '-', ''), 1, random(25, 30))
     ProtectInstance(Gui);
-    if (syn) then syn.protect_gui(Gui); end -- for preload
+    if (syn and syn.protect_gui) then syn.protect_gui(Gui); end -- for preload
     Gui.Parent = Parent or Services.CoreGui
     Guis[#Guis + 1] = Gui
     return Gui

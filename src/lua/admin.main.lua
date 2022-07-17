@@ -4115,7 +4115,7 @@ end)
 
 AddCommand("antiafk", {"antiidle"}, "prevents kicks from when you're afk", {}, function(Caller, Args, CEnv)
     local IsEnabled = CEnv[1]
-    for i, v in next, getconnections(LocalPlayer.Idled) do
+    for i, v in next, getconnections(LocalPlayer.Idled, true) do
         if (IsEnabled) then
             v.Enable(v);
             CEnv[1] = nil
@@ -4584,7 +4584,14 @@ task.spawn(function()
     CConnect(LocalPlayer.Chatted, function(raw)
         chatted(LocalPlayer, raw);
     end);
-    
+
+    if (Services.TextChatService.ChatVersion == Enum.ChatVersion.TextChatService) then
+        Services.TextChatService.OnIncomingMessage = function(message)
+            chatted(Services.Players:FindFirstChild(message.TextSource.Name), message.Text);
+        end
+        return;
+    end
+
     local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
     if (not DefaultChatSystemChatEvents) then return; end
     local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
@@ -4645,11 +4652,6 @@ AddConnection(CConnect(CommandBar.Input.FocusLost, function()
 
     if (Command ~= "") then
         ExecuteCommand(Command, Args, LocalPlayer);
-    end
-
-    wait(.3);
-    for i, v in next, getconnections(Services.UserInputService.TextBoxFocusReleased, true) do
-        v.Enable(v);
     end
 end), Connections.UI, true);
 

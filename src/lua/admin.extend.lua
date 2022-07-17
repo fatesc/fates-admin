@@ -30,6 +30,35 @@ do
     end
 end
 
+if (not syn and syn.protect_gui or (scriptwareidk)) then
+    local CachedConnections = setmetatable({}, {
+        __mode = "v"
+    });
+
+    GEnv = getgenv();
+    getconnections = function(Connection, FromCache, AddOnConnect)
+        local getconnections = GEnv.getconnections
+        if (not getconnections) then
+            return {}
+        end
+
+        local CachedConnection;
+        for i, v in next, CachedConnections do
+            if (i == Connection) then
+                CachedConnection = v
+                break;
+            end
+        end
+        if (CachedConnection and FromCache) then
+            return CachedConnection
+        end
+
+        local Connections = GEnv.getconnections(Connection);
+        CachedConnections[Connection] = Connections
+        return Connections
+    end
+end
+
 local getrawmetatable = getrawmetatable or function()
     return setmetatable({}, {});
 end
@@ -366,14 +395,14 @@ do
                 end
                 if (ProtectedInstance) then
                     local Parents = GetAllParents(Instance_, Value);
-                    local child1 = getconnections(Parents[1].ChildAdded);
+                    local child1 = getconnections(Parents[1].ChildAdded, true);
                     local descendantconnections = {}
                     for i, v in next, child1 do
                         v.Disable(v);
                     end
                     for i = 1, #Parents do
                         local Parent = Parents[i]
-                        for i2, v in next, getconnections(Parent.DescendantAdded) do
+                        for i2, v in next, getconnections(Parent.DescendantAdded, true) do
                             v.Disable(v);
                             descendantconnections[#descendantconnections + 1] = v
                         end
@@ -400,9 +429,9 @@ do
                     }
                 end
                 local Connections = tbl_concat(
-                    getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index)),
-                    getconnections(Instance_.Changed),
-                    getconnections(game.ItemChanged)
+                    getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index), true),
+                    getconnections(Instance_.Changed, true),
+                    getconnections(game.ItemChanged, true)
                 )
                 
                 if (not next(Connections)) then
