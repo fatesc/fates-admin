@@ -1,5 +1,5 @@
 --[[
-	fates admin - 15/7/2022
+	fates admin - 17/7/2022
 ]]
 
 local game = game
@@ -6670,27 +6670,29 @@ AddCommand("console", {"errors", "warns", "outputs"}, "shows the outputs fates a
     })
 end)
 
-local PlrChat = function(i, plr)
-    if (not Connections.Players[plr.Name]) then
-        Connections.Players[plr.Name] = {}
-        Connections.Players[plr.Name].Connections = {}
-    end
-    Connections.Players[plr.Name].ChatCon = CConnect(plr.Chatted, function(raw)
-        if (plr == LocalPlayer) then
-            local Processed = Keys.GameProcessed
-            local Last = Keys.LastEntered
-            if (not Processed or Last ~= Enum.KeyCode.Return) then
-                local K;
-                local T = CThread(function()
-                    K = CWait(Services.UserInputService.InputBegan);
-                end)();
-                wait();
-                if (K.KeyCode ~= Enum.KeyCode.Return) then
-                    return    
-                end
-                T = nil
+task.spawn(function()
+    local DefaultChatSystemChatEvents = Services.ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents");
+    if (not DefaultChatSystemChatEvents) then return; end
+    local OnMessageDoneFiltering = DefaultChatSystemChatEvents:WaitForChild("OnMessageDoneFiltering", 5);
+    if (not OnMessageDoneFiltering) then return; end
+    if (typeof(OnMessageDoneFiltering) ~= "Instance" or OnMessageDoneFiltering.ClassName ~= "RemoteEvent") then return; end
+
+
+    CConnect(OnMessageDoneFiltering.OnClientEvent, function(messageData)
+        if (type(messageData) ~= "table") then return; end
+        local plr = Services.Players:FindFirstChild(messageData.FromSpeaker);
+        local raw = messageData.Message
+        if (not plr or not raw) then return; end
+
+        if (messageData.OriginalChannel == "Team") then
+            raw = "/team " .. raw
+        else
+            local whisper = string.match(messageData.OriginalChannel, "To (.+)");
+            if (whisper) then
+                raw = string.format("/w %s %s", whisper, raw);
             end
         end
+
         local message = raw
 
         if (_L.ChatLogsEnabled) then
@@ -6731,7 +6733,7 @@ local PlrChat = function(i, plr)
             ExecuteCommand(Command, Args, plr);
         end
     end)
-end
+end);
 
 --IMPORT [uimore]
 Notification.Visible = false
@@ -8496,12 +8498,10 @@ local PlayerAdded = function(plr)
 end
 
 forEach(GetPlayers(Players), function(i,v)
-    PlrChat(i,v);
     PlayerAdded(v);
 end);
 
 AddConnection(CConnect(Players.PlayerAdded, function(plr)
-    PlrChat(#Connections.Players + 1, plr);
     PlayerAdded(plr);
 end))
 
