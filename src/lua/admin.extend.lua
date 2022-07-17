@@ -347,7 +347,10 @@ do
             local focused = __Namecall(...);
             for i = 1, #ProtectedInstances do
                 local ProtectedInstance = ProtectedInstances[i]
-                local pInstance = not Tfind(ProtectedInstances, focused) or focused.IsDescendantOf(focused, ProtectedInstance);
+                local iden = getthreadidentity();
+                setthreadidentity(7);
+                local pInstance = Tfind(ProtectedInstances, focused) or focused.IsDescendantOf(focused, ProtectedInstance);
+                setthreadidentity(iden);
                 if (pInstance) then
                     return nil;
                 end
@@ -666,7 +669,7 @@ Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTe
         local Protected = false
         for i = 1, #ProtectedInstances do
             local ProtectedInstance = ProtectedInstances[i]
-            Protected = not Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+            Protected = Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
         end
         if (Protected) then
             return nil
