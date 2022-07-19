@@ -1,5 +1,5 @@
 --[[
-	fates admin - 17/7/2022
+	fates admin - 19/7/2022
 ]]
 
 local game = game
@@ -372,7 +372,7 @@ do
     end
 end
 
-if (not syn or not syn.protect_gui) then
+if (not syn_context_set) then
     local CachedConnections = setmetatable({}, {
         __mode = "v"
     });
@@ -629,16 +629,19 @@ do
 
         if (self == Services.UserInputService and (Method == "GetFocusedTextBox" or Method == "getFocusedTextBox")) then
             local focused = __Namecall(...);
-            for i = 1, #ProtectedInstances do
-                local ProtectedInstance = ProtectedInstances[i]
-                local iden = getthreadidentity();
-                setthreadidentity(7);
-                local pInstance = Tfind(ProtectedInstances, focused) or focused.IsDescendantOf(focused, ProtectedInstance);
-                setthreadidentity(iden);
-                if (pInstance) then
-                    return nil;
+            if (focused) then
+                for i = 1, #ProtectedInstances do
+                    local ProtectedInstance = ProtectedInstances[i]
+                    local iden = getthreadidentity();
+                    setthreadidentity(7);
+                    local pInstance = Tfind(ProtectedInstances, focused) or focused.IsDescendantOf(focused, ProtectedInstance);
+                    setthreadidentity(iden);
+                    if (pInstance) then
+                        return nil;
+                    end
                 end
             end
+            return focused;
         end
 
         if (Hooks.NoJumpCooldown and (Method == "GetState" or Method == "GetStateEnabled")) then
@@ -939,14 +942,17 @@ end));
 Hooks.OldGetFocusedTextBox = hookfunction(Services.UserInputService.GetFocusedTextBox, newcclosure(function(...)
     if (not checkcaller() and ... == Services.UserInputService) then
         local FocusedTextBox = Hooks.OldGetFocusedTextBox(...);
-        local Protected = false
-        for i = 1, #ProtectedInstances do
-            local ProtectedInstance = ProtectedInstances[i]
-            Protected = Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+        if(FocusedTextBox) then
+            local Protected = false
+            for i = 1, #ProtectedInstances do
+                local ProtectedInstance = ProtectedInstances[i]
+                Protected = Tfind(ProtectedInstances, FocusedTextBox) or FocusedTextBox.IsDescendantOf(FocusedTextBox, ProtectedInstance);
+            end
+            if (Protected) then
+                return nil
+            end
         end
-        if (Protected) then
-            return nil
-        end
+        return FocusedTextBox;
     end
     return Hooks.OldGetFocusedTextBox(...);
 end));
