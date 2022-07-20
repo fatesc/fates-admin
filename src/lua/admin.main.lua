@@ -3378,32 +3378,29 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max (default: 
             if (#decoded.data ~= 0) then
                 Servers = decoded.data
                 for i, v in pairs(Servers) do
-                    if (v.maxPlayers > v.playing) then
+                    if (v.maxPlayers and v.playing and v.maxPlayers > v.playing) then
                         Server = v
                         break;
                     end
                 end
-                break;
+                if (Server) then
+                    break;
+                end
             end
-            url = format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100&cursor=%s", game.PlaceId, decoded.nextPageCursor);
+            url = format("https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=%s&limit=100&cursor=%s", game.PlaceId, order, decoded.nextPageCursor);
         until tick() - starting >= 600;
-        if (#Servers == 0) then
+        if (not Server or #Servers == 0) then
             return "no servers found";
         end
 
         local queue_on_teleport = syn and syn.queue_on_teleport or queue_on_teleport
-        if (queue_on_teleport) then
+        if (queue_on_teleport and not Args[2]) then
             queue_on_teleport("loadstring(game.HttpGet(game, \"https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua\"))()");
         end;
 
-        task.spawn(function()
-            while true do
-                Services.TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id);
-                wait(1);
-            end
-        end);
+        Services.TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id);    
         return format("joining server (%d/%d players)", Server.playing, Server.maxPlayers);
-    end;
+    end
 end);
 
 AddCommand("changelogs", {"cl"}, "shows you the updates on fates admin", {}, function()
