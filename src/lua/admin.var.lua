@@ -136,7 +136,7 @@ local GetState = __H.GetState
 local GetAccessories = __H.GetAccessories
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer.PlayerGui
+local PlayerGui =  FindFirstChildWhichIsA(LocalPlayer, "PlayerGui");
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
 
 local CThread;
