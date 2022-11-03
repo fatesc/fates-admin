@@ -5451,7 +5451,7 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max (default: 
             if (#decoded.data ~= 0) then
                 Servers = decoded.data
                 for i, v in pairs(Servers) do
-                    if (v.maxPlayers and v.playing and v.maxPlayers > v.playing) then
+                    if (v.maxPlayers and v.playing and v.maxPlayers > v.playing and v.id ~= game.JobId) then
                         Server = v
                         break;
                     end
