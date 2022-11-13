@@ -489,6 +489,8 @@ do
     
     local ChangedSpoofedProperties = {}
     SpoofProperty = function(Instance_, Property, NoClone)
+	do return; end
+		
         if (SpoofedProperties[Instance_]) then
             local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
             local Properties = map(SpoofedPropertiesForInstance, function(i, v)
