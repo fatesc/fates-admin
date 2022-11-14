@@ -3378,7 +3378,7 @@ AddCommand("serverhop", {"sh"}, "switches servers (optional: min, max (default: 
             if (#decoded.data ~= 0) then
                 Servers = decoded.data
                 for i, v in pairs(Servers) do
-                    if (v.maxPlayers and v.playing and v.maxPlayers > v.playing) then
+                    if (v.maxPlayers and v.playing and v.maxPlayers > v.playing and v.id ~= game.JobId) then
                         Server = v
                         break;
                     end
@@ -4688,7 +4688,7 @@ getgenv().F_A = {
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands, 'config' to customise the script");
 if (debug.info(2, "f") == nil) then
-	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
+    Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
 _L.LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
 wait(1);

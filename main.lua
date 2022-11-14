@@ -1,5 +1,5 @@
 --[[
-	fates admin - 20/7/2022
+	fates admin - 14/11/2022
 ]]
 
 local game = game
@@ -165,7 +165,7 @@ local GetState = __H.GetState
 local GetAccessories = __H.GetAccessories
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = FindFirstChildWhichIsA(LocalPlayer, "PlayerGui");
+local PlayerGui =  FindFirstChildWhichIsA(LocalPlayer, "PlayerGui");
 local Mouse = LocalPlayer.GetMouse(LocalPlayer);
 
 local CThread;
@@ -329,6 +329,7 @@ end
 
 local setthreadidentity = setthreadidentity or syn_context_set or setthreadcontext or (syn and syn.set_thread_identity)
 local getthreadidentity = getthreadidentity or syn_context_get or getthreadcontext or (syn and syn.get_thread_identity)
+
 --END IMPORT [var]
 
 
@@ -489,8 +490,6 @@ do
     
     local ChangedSpoofedProperties = {}
     SpoofProperty = function(Instance_, Property, NoClone)
-	do return; end
-		
         if (SpoofedProperties[Instance_]) then
             local SpoofedPropertiesForInstance = SpoofedProperties[Instance_]
             local Properties = map(SpoofedPropertiesForInstance, function(i, v)
@@ -8465,7 +8464,7 @@ getgenv().F_A = {
 Utils.Notify(LocalPlayer, "Loaded", format("script loaded in %.3f seconds", (tick()) - _L.start));
 Utils.Notify(LocalPlayer, "Welcome", "'cmds' to see all of the commands, 'config' to customise the script");
 if (debug.info(2, "f") == nil) then
-	Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
+    Utils.Notify(LocalPlayer, "Outdated Script", "use the loadstring to get latest updates (https://fatesc/fates-admin)", 10);
 end
 _L.LatestCommit = JSONDecode(Services.HttpService, game.HttpGetAsync(game, "https://api.github.com/repos/fatesc/fates-admin/commits?per_page=1&path=main.lua"))[1]
 wait(1);

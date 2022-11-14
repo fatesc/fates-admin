@@ -106,8 +106,13 @@ dist
 .tern-port
 
 output.lua
-ProtectInstance.lua
 .gitignore
 build.cpp
 build.exe
 v3
+
+x.lua
+xx.lua
+spoofproperty.lua
+protectinstance.lua
+silentaim.lua
