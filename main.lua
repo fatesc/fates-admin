@@ -1,5 +1,5 @@
 --[[
-	fates admin - 14/11/2022
+	fates admin - 16/11/2022
 ]]
 
 local game = game
@@ -380,25 +380,25 @@ if (not syn_context_set) then
 
     GEnv = getgenv();
     getconnections = function(Connection, FromCache, AddOnConnect)
-        local getconnections = GEnv.getconnections
-        if (not getconnections) then
-            return {}
-        end
+        -- local getconnections = GEnv.getconnections
+        -- if (not getconnections) then
+        --     return {}
+        -- end
 
-        local CachedConnection;
-        for i, v in next, CachedConnections do
-            if (i == Connection) then
-                CachedConnection = v
-                break;
-            end
-        end
-        if (CachedConnection and FromCache) then
-            return CachedConnection
-        end
+        -- local CachedConnection;
+        -- for i, v in next, CachedConnections do
+        --     if (i == Connection) then
+        --         CachedConnection = v
+        --         break;
+        --     end
+        -- end
+        -- if (CachedConnection and FromCache) then
+        --     return CachedConnection
+        -- end
 
-        local Connections = GEnv.getconnections(Connection);
-        CachedConnections[Connection] = Connections
-        return Connections
+        -- local Connections = GEnv.getconnections(Connection);
+        -- CachedConnections[Connection] = Connections
+        -- return Connections
     end
 end
 
@@ -776,7 +776,7 @@ do
                 end
                 local Connections = tbl_concat(
                     getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index), true),
-                    getconnections(Instance_.Changed, true),
+                    -- getconnections(Instance_.Changed, true),
                     getconnections(game.ItemChanged, true)
                 )
                 
