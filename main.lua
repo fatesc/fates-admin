@@ -3621,7 +3621,7 @@ AddCommand("listento", {"listen"}, "Listens to the area around the player (cool 
         AddConnection(CConnect(Target[1].CharacterRemoving, function()
             Services.SoundService:SetListener(Enum.ListenerType.Camera)
             Utils.Notify(Caller, "Listening stopped", "Character has been removed")
-        end))
+        end), CEnv)
     end
 end)
 
