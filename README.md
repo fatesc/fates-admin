@@ -11,6 +11,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/ma
 - [Iaying#6564](https://github.com/Iaying6564) (Script Developer)
 - [misrepresenting#4917](https://github.com/misrepresenting) (UI Developer)
 - [Shawn#2000](https://github.com/Fluxxx222) (Management)
+- [dsf#2711](https://github.com/NotDSF) (Drug Addict)
 
 ## Plugins
 please view the [wiki](https://github.com/fatesc/fates-admin/wiki/Plugins) for more information
