@@ -432,7 +432,7 @@ do
                     }
                 end
                 local Connections = tbl_concat(
-                    getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index), true),
+                    -- getconnections(GetPropertyChangedSignal(Instance_, SpoofedPropertiesForInstance and SpoofedPropertiesForInstance.Property or Index), true),
                     -- getconnections(Instance_.Changed, true),
                     getconnections(game.ItemChanged, true)
                 )

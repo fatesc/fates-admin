@@ -522,10 +522,10 @@ do
             if (Tfind(Macro.Keys, Input.KeyCode)) then
                 if (#Macro.Keys == 2) then
                     if (IsKeyDown(UserInputService, Macro.Keys[1]) and IsKeyDown(UserInputService, Macro.Keys[2]) --[[and Macro.Keys[1] == Input.KeyCode]]) then
-                        ExecuteCommand(Macro.Command, Macro.Args);
+                        ExecuteCommand(Macro.Command, Macro.Args, LocalPlayer);
                     end
                 else
-                    ExecuteCommand(Macro.Command, Macro.Args);
+                    ExecuteCommand(Macro.Command, Macro.Args, LocalPlayer);
                 end
             end
         end
@@ -1537,6 +1537,23 @@ AddCommand("unchatmute", {"uncmute"}, "unmutes a player in your chat", {"1"}, fu
         MuteRequest.InvokeServer(MuteRequest, v.Name);
         Utils.Notify(Caller, "Command", format("%s is now unmuted on your chat", v.Name));
     end
+end)
+
+AddCommand("listento", {"listen"}, "Listens to the area around the player (cool with vc)", {}, function(Caller, Args)
+    local Target = GetPlayer(Args[1])
+    local Part = GetRoot(Target[1])
+    if Part then
+        Services.SoundService:SetListener(Enum.ListenerType.ObjectPosition, Part)
+        AddConnection(CConnect(Target[1].CharacterRemoving, function()
+            Services.SoundService:SetListener(Enum.ListenerType.Camera)
+            Utils.Notify(Caller, "Listening stopped", "Character has been removed")
+        end), CEnv)
+    end
+end)
+
+AddCommand("unlisten", {} ,"reverts the changes from listento", {}, function(Caller, Args)
+    DisableAllCmdConnections("listento")
+    Services.SoundService:SetListener(Enum.ListenerType.Camera)
 end)
 
 AddCommand("delete", {}, "puts a players character in lighting", {"1"}, function(Caller, Args)

@@ -1,5 +1,5 @@
 --[[
-	fates admin - 16/11/2022
+	fates admin - 24/3/2025
 ]]
 
 local game = game
@@ -2596,10 +2596,10 @@ do
             if (Tfind(Macro.Keys, Input.KeyCode)) then
                 if (#Macro.Keys == 2) then
                     if (IsKeyDown(UserInputService, Macro.Keys[1]) and IsKeyDown(UserInputService, Macro.Keys[2]) --[[and Macro.Keys[1] == Input.KeyCode]]) then
-                        ExecuteCommand(Macro.Command, Macro.Args);
+                        ExecuteCommand(Macro.Command, Macro.Args, LocalPlayer);
                     end
                 else
-                    ExecuteCommand(Macro.Command, Macro.Args);
+                    ExecuteCommand(Macro.Command, Macro.Args, LocalPlayer);
                 end
             end
         end
@@ -8088,6 +8088,7 @@ do
         end)
     end
 end
+
 --END IMPORT [plugin]
 
 
